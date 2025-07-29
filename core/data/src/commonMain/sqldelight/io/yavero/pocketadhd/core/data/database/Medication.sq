@@ -1,0 +1,84 @@
+CREATE TABLE MedicationPlanEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    dose TEXT NOT NULL, -- free text e.g., "10mg"
+    times TEXT NOT NULL, -- JSON array of LocalTime strings
+    daysOfWeek TEXT NOT NULL, -- JSON array of integers 1..7
+    isActive INTEGER NOT NULL DEFAULT 1 -- Boolean as INTEGER
+);
+
+CREATE TABLE MedicationIntakeEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    planId TEXT NOT NULL,
+    timestamp INTEGER NOT NULL, -- Instant as epoch milliseconds
+    taken INTEGER NOT NULL, -- Boolean as INTEGER
+    sideEffectsNotes TEXT,
+    FOREIGN KEY (planId) REFERENCES MedicationPlanEntity(id) ON DELETE CASCADE
+);
+
+-- Queries for MedicationPlanEntity
+selectAllMedicationPlans:
+SELECT * FROM MedicationPlanEntity ORDER BY name;
+
+selectActiveMedicationPlans:
+SELECT * FROM MedicationPlanEntity WHERE isActive = 1 ORDER BY name;
+
+selectMedicationPlanById:
+SELECT * FROM MedicationPlanEntity WHERE id = ?;
+
+insertMedicationPlan:
+INSERT INTO MedicationPlanEntity (id, name, dose, times, daysOfWeek, isActive)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateMedicationPlan:
+UPDATE MedicationPlanEntity SET 
+    name = ?, 
+    dose = ?, 
+    times = ?, 
+    daysOfWeek = ?, 
+    isActive = ?
+WHERE id = ?;
+
+deleteMedicationPlan:
+DELETE FROM MedicationPlanEntity WHERE id = ?;
+
+-- Queries for MedicationIntakeEntity
+selectAllMedicationIntakes:
+SELECT * FROM MedicationIntakeEntity ORDER BY timestamp DESC;
+
+selectMedicationIntakeById:
+SELECT * FROM MedicationIntakeEntity WHERE id = ?;
+
+selectIntakesByPlanId:
+SELECT * FROM MedicationIntakeEntity WHERE planId = ? ORDER BY timestamp DESC;
+
+selectIntakesByDateRange:
+SELECT * FROM MedicationIntakeEntity 
+WHERE timestamp >= ? AND timestamp <= ? 
+ORDER BY timestamp DESC;
+
+selectRecentIntakes:
+SELECT * FROM MedicationIntakeEntity 
+ORDER BY timestamp DESC 
+LIMIT ?;
+
+selectAdherenceByPlanAndPeriod:
+SELECT 
+    COUNT(*) totalIntakes,
+    SUM(taken) takenCount,
+    (CAST(SUM(taken) AS REAL) / COUNT(*)) * 100 adherencePercentage
+FROM MedicationIntakeEntity 
+WHERE planId = ? AND timestamp >= ? AND timestamp <= ?;
+
+insertMedicationIntake:
+INSERT INTO MedicationIntakeEntity (id, planId, timestamp, taken, sideEffectsNotes)
+VALUES (?, ?, ?, ?, ?);
+
+updateMedicationIntake:
+UPDATE MedicationIntakeEntity SET 
+    taken = ?, 
+    sideEffectsNotes = ?
+WHERE id = ?;
+
+deleteMedicationIntake:
+DELETE FROM MedicationIntakeEntity WHERE id = ?;

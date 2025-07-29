@@ -1,0 +1,62 @@
+CREATE TABLE RoutineEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    scheduleData TEXT, -- JSON serialized RoutineSchedule or NULL
+    isActive INTEGER NOT NULL DEFAULT 1 -- Boolean as INTEGER
+);
+
+CREATE TABLE RoutineStepEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    routineId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    durationSeconds INTEGER,
+    icon TEXT,
+    stepOrder INTEGER NOT NULL, -- Order of steps in routine
+    FOREIGN KEY (routineId) REFERENCES RoutineEntity(id) ON DELETE CASCADE
+);
+
+-- Queries for RoutineEntity
+selectAllRoutines:
+SELECT * FROM RoutineEntity ORDER BY name;
+
+selectActiveRoutines:
+SELECT * FROM RoutineEntity WHERE isActive = 1 ORDER BY name;
+
+selectRoutineById:
+SELECT * FROM RoutineEntity WHERE id = ?;
+
+insertRoutine:
+INSERT INTO RoutineEntity (id, name, scheduleData, isActive)
+VALUES (?, ?, ?, ?);
+
+updateRoutine:
+UPDATE RoutineEntity SET 
+    name = ?, 
+    scheduleData = ?, 
+    isActive = ?
+WHERE id = ?;
+
+deleteRoutine:
+DELETE FROM RoutineEntity WHERE id = ?;
+
+-- Queries for RoutineStepEntity
+selectStepsByRoutineId:
+SELECT * FROM RoutineStepEntity WHERE routineId = ? ORDER BY stepOrder;
+
+insertRoutineStep:
+INSERT INTO RoutineStepEntity (id, routineId, title, durationSeconds, icon, stepOrder)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateRoutineStep:
+UPDATE RoutineStepEntity SET 
+    title = ?, 
+    durationSeconds = ?, 
+    icon = ?, 
+    stepOrder = ?
+WHERE id = ?;
+
+deleteRoutineStep:
+DELETE FROM RoutineStepEntity WHERE id = ?;
+
+deleteStepsByRoutineId:
+DELETE FROM RoutineStepEntity WHERE routineId = ?;

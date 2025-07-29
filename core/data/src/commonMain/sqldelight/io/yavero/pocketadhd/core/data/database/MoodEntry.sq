@@ -1,0 +1,55 @@
+CREATE TABLE MoodEntryEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    timestamp INTEGER NOT NULL, -- Instant as epoch milliseconds
+    mood INTEGER NOT NULL, -- -2..+2 (very bad to very good)
+    focus INTEGER NOT NULL, -- 0..4 (none to excellent)
+    energy INTEGER NOT NULL, -- 0..4 (none to high)
+    notes TEXT
+);
+
+-- Queries for MoodEntryEntity
+selectAllMoodEntries:
+SELECT * FROM MoodEntryEntity ORDER BY timestamp DESC;
+
+selectMoodEntryById:
+SELECT * FROM MoodEntryEntity WHERE id = ?;
+
+selectMoodEntriesByDateRange:
+SELECT * FROM MoodEntryEntity 
+WHERE timestamp >= ? AND timestamp <= ? 
+ORDER BY timestamp DESC;
+
+selectRecentMoodEntries:
+SELECT * FROM MoodEntryEntity 
+ORDER BY timestamp DESC 
+LIMIT ?;
+
+selectMoodTrendData:
+SELECT timestamp, mood, focus, energy 
+FROM MoodEntryEntity 
+WHERE timestamp >= ? 
+ORDER BY timestamp ASC;
+
+selectAverageMoodByPeriod:
+SELECT 
+    AVG(mood) avgMood,
+    AVG(focus) avgFocus,
+    AVG(energy) avgEnergy,
+    COUNT(*) entryCount
+FROM MoodEntryEntity 
+WHERE timestamp >= ? AND timestamp <= ?;
+
+insertMoodEntry:
+INSERT INTO MoodEntryEntity (id, timestamp, mood, focus, energy, notes)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateMoodEntry:
+UPDATE MoodEntryEntity SET 
+    mood = ?, 
+    focus = ?, 
+    energy = ?, 
+    notes = ?
+WHERE id = ?;
+
+deleteMoodEntry:
+DELETE FROM MoodEntryEntity WHERE id = ?;

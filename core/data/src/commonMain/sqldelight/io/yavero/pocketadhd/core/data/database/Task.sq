@@ -1,0 +1,66 @@
+CREATE TABLE TaskEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    notes TEXT,
+    dueAt INTEGER, -- Instant as epoch milliseconds
+    estimateMinutes INTEGER,
+    tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings
+    isDone INTEGER NOT NULL DEFAULT 0, -- Boolean as INTEGER
+    createdAt INTEGER NOT NULL, -- Instant as epoch milliseconds
+    updatedAt INTEGER NOT NULL -- Instant as epoch milliseconds
+);
+
+CREATE TABLE SubtaskEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    taskId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    isDone INTEGER NOT NULL DEFAULT 0, -- Boolean as INTEGER
+    FOREIGN KEY (taskId) REFERENCES TaskEntity(id) ON DELETE CASCADE
+);
+
+-- Queries for TaskEntity
+selectAllTasks:
+SELECT * FROM TaskEntity ORDER BY createdAt DESC;
+
+selectTaskById:
+SELECT * FROM TaskEntity WHERE id = ?;
+
+selectTasksByDueDate:
+SELECT * FROM TaskEntity WHERE dueAt IS NOT NULL AND dueAt <= ? ORDER BY dueAt ASC;
+
+selectIncompleteTasks:
+SELECT * FROM TaskEntity WHERE isDone = 0 ORDER BY dueAt ASC, createdAt DESC;
+
+insertTask:
+INSERT INTO TaskEntity (id, title, notes, dueAt, estimateMinutes, tags, isDone, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateTask:
+UPDATE TaskEntity SET 
+    title = ?, 
+    notes = ?, 
+    dueAt = ?, 
+    estimateMinutes = ?, 
+    tags = ?, 
+    isDone = ?, 
+    updatedAt = ?
+WHERE id = ?;
+
+deleteTask:
+DELETE FROM TaskEntity WHERE id = ?;
+
+-- Queries for SubtaskEntity
+selectSubtasksByTaskId:
+SELECT * FROM SubtaskEntity WHERE taskId = ? ORDER BY id;
+
+insertSubtask:
+INSERT INTO SubtaskEntity (id, taskId, title, isDone) VALUES (?, ?, ?, ?);
+
+updateSubtask:
+UPDATE SubtaskEntity SET title = ?, isDone = ? WHERE id = ?;
+
+deleteSubtask:
+DELETE FROM SubtaskEntity WHERE id = ?;
+
+deleteSubtasksByTaskId:
+DELETE FROM SubtaskEntity WHERE taskId = ?;
