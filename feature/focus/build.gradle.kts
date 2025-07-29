@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "io.yavero.pocketadhd.feature.focus"
+    namespace = "io.yavero.pocketadhd.feature.home"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     
     defaultConfig {
@@ -39,6 +39,15 @@ kotlin {
             implementation(projects.core.ui)
             implementation(projects.core.designsystem)
             implementation(projects.core.notifications)
+            
+            // Compose dependencies
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+            implementation(compose.materialIconsExtended)
             
             implementation(libs.decompose)
             implementation(libs.decompose.compose)

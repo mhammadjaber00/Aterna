@@ -1,8 +1,10 @@
 package io.yavero.pocketadhd.navigation
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
@@ -101,39 +103,39 @@ class DefaultAppRootComponent(
     }
     
     override fun navigateToHome() {
-        navigation.push(Config.Home)
+        navigation.bringToFront(Config.Home)
     }
     
     override fun navigateToPlanner() {
-        navigation.push(Config.Planner)
+        navigation.bringToFront(Config.Planner)
     }
     
     override fun navigateToFocus() {
-        navigation.push(Config.Focus)
+        navigation.bringToFront(Config.Focus)
     }
     
     override fun navigateToRoutines() {
-        navigation.push(Config.Routines)
+        navigation.bringToFront(Config.Routines)
     }
     
     override fun navigateToMood() {
-        navigation.push(Config.Mood)
+        navigation.bringToFront(Config.Mood)
     }
     
     override fun navigateToMeds() {
-        navigation.push(Config.Meds)
+        navigation.bringToFront(Config.Meds)
     }
     
     override fun navigateToGames() {
-        navigation.push(Config.Games)
+        navigation.bringToFront(Config.Games)
     }
     
     override fun navigateToTips() {
-        navigation.push(Config.Tips)
+        navigation.bringToFront(Config.Tips)
     }
     
     override fun navigateToSettings() {
-        navigation.push(Config.Settings)
+        navigation.bringToFront(Config.Settings)
     }
     
     @Serializable

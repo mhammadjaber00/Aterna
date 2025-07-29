@@ -3,14 +3,19 @@ package io.yavero.pocketadhd.core.data.database
 import android.content.Context
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import io.yavero.pocketadhd.core.data.security.KeyManager
+import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
-actual class DatabaseDriverFactory(private val context: Context) {
+actual class DatabaseDriverFactory(
+    private val context: Context,
+    private val keyManager: KeyManager
+) {
     actual fun createDriver(): SqlDriver {
-        // Get encryption key from secure storage (will be implemented later)
-        val passphrase = getEncryptionKey()
+        // Get encryption key from secure storage
+        val passphrase = runBlocking { keyManager.getOrCreateDbKey() }
         
-        val factory = SupportOpenHelperFactory(passphrase.toByteArray())
+        val factory = SupportOpenHelperFactory(passphrase)
         
         return AndroidSqliteDriver(
             schema = PocketAdhdDatabase.Schema,
@@ -18,11 +23,5 @@ actual class DatabaseDriverFactory(private val context: Context) {
             name = "pocketadhd.db",
             factory = factory
         )
-    }
-    
-    private fun getEncryptionKey(): String {
-        // TODO: Implement secure key retrieval from Android Keystore
-        // For now, return a placeholder - this will be replaced with proper key management
-        return "temporary_key_placeholder"
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
@@ -138,7 +139,7 @@ enum class NavigationDestination(
     val icon: ImageVector
 ) {
     Home("Home", Icons.Default.Home),
-    Planner("Tasks", Icons.Default.List),
+    Planner("Tasks", Icons.AutoMirrored.Filled.List),
     Focus("Focus", Icons.Default.PlayArrow),
     Routines("Routines", Icons.Default.Person),
     Mood("Mood", Icons.Default.Favorite),
