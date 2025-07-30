@@ -6,19 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -27,13 +16,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import io.yavero.pocketadhd.navigation.AppRootComponent
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.focus.FocusViewModel
+import io.yavero.pocketadhd.feature.mood.MoodViewModel
+import io.yavero.pocketadhd.feature.planner.PlannerViewModel
+import io.yavero.pocketadhd.navigation.AppRootComponent
+import org.koin.compose.koinInject
+import io.yavero.pocketadhd.feature.focus.FocusScreen as FeatureFocusScreen
+import io.yavero.pocketadhd.feature.home.HomeScreen as FeatureHomeScreen
+import io.yavero.pocketadhd.feature.mood.MoodScreen as FeatureMoodScreen
+import io.yavero.pocketadhd.feature.planner.PlannerScreen as FeaturePlannerScreen
 
 /**
  * Main app content with bottom navigation
- * 
+ *
  * ADHD-friendly design:
  * - Large, clear navigation icons
  * - Consistent bottom navigation
@@ -47,7 +44,7 @@ fun AppContent(
 ) {
     val childStack by component.childStack.subscribeAsState()
     val activeChild = childStack.active.instance
-    
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
@@ -112,7 +109,7 @@ private fun BottomNavigationBar(
                 NavigationDestination.Mood -> currentChild is AppRootComponent.Child.Mood
                 NavigationDestination.Settings -> currentChild is AppRootComponent.Child.Settings
             }
-            
+
             NavigationBarItem(
                 icon = {
                     Icon(
@@ -150,27 +147,32 @@ enum class NavigationDestination(
 
 @Composable
 private fun HomeScreen(component: io.yavero.pocketadhd.navigation.HomeComponent) {
-    PlaceholderScreen("Home", "Today's overview with quick actions")
+    val defaultComponent = component as io.yavero.pocketadhd.navigation.DefaultHomeComponent
+    FeatureHomeScreen(component = defaultComponent.featureComponent)
 }
 
 @Composable
 private fun PlannerScreen(component: io.yavero.pocketadhd.navigation.PlannerComponent) {
-    PlaceholderScreen("Planner", "Tasks, subtasks, and reminders")
+    val viewModel: PlannerViewModel = koinInject()
+    FeaturePlannerScreen(viewModel = viewModel)
 }
 
 @Composable
 private fun FocusScreen(component: io.yavero.pocketadhd.navigation.FocusComponent) {
-    PlaceholderScreen("Focus", "Pomodoro timer and focus sessions")
+    val viewModel: FocusViewModel = koinInject()
+    FeatureFocusScreen(viewModel = viewModel)
 }
 
 @Composable
 private fun RoutinesScreen(component: io.yavero.pocketadhd.navigation.RoutinesComponent) {
-    PlaceholderScreen("Routines", "Morning, evening, and hygiene routines")
+    val viewModel: io.yavero.pocketadhd.feature.routines.RoutinesViewModel = koinInject()
+    io.yavero.pocketadhd.feature.routines.RoutinesScreen(viewModel = viewModel)
 }
 
 @Composable
 private fun MoodScreen(component: io.yavero.pocketadhd.navigation.MoodComponent) {
-    PlaceholderScreen("Mood", "Mood tracking and trends")
+    val viewModel: MoodViewModel = koinInject()
+    FeatureMoodScreen(viewModel = viewModel)
 }
 
 @Composable
@@ -190,7 +192,8 @@ private fun TipsScreen(component: io.yavero.pocketadhd.navigation.TipsComponent)
 
 @Composable
 private fun SettingsScreen(component: io.yavero.pocketadhd.navigation.SettingsComponent) {
-    PlaceholderScreen("Settings", "App configuration and privacy")
+    val viewModel: io.yavero.pocketadhd.feature.settings.SettingsViewModel = koinInject()
+    io.yavero.pocketadhd.feature.settings.SettingsScreen(viewModel = viewModel)
 }
 
 @Composable
@@ -215,7 +218,7 @@ private fun PlaceholderScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
-            
+
             Text(
                 text = description,
                 style = AdhdTypography.Default.bodyLarge,

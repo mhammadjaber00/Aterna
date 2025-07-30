@@ -34,6 +34,8 @@ data class PlannerUiState(
     val filter: TaskFilter = TaskFilter.ALL,
     val sort: TaskSort = TaskSort.DUE_DATE,
     val showCompleted: Boolean = false,
+    val showTaskEditor: Boolean = false,
+    val editingTask: Task? = null,
     val error: String? = null
 )
 

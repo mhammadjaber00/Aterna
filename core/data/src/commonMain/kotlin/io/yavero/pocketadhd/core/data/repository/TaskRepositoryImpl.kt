@@ -7,6 +7,7 @@ import io.yavero.pocketadhd.core.data.database.PocketAdhdDatabase
 import io.yavero.pocketadhd.core.domain.model.Subtask
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.repository.TaskRepository
+import io.yavero.pocketadhd.core.notifications.LocalNotifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -14,9 +15,11 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.minutes
 
 class TaskRepositoryImpl(
-    private val database: PocketAdhdDatabase
+    private val database: PocketAdhdDatabase,
+    private val localNotifier: LocalNotifier
 ) : TaskRepository {
 
     override fun getAllTasks(): Flow<List<Task>> {
@@ -69,6 +72,11 @@ class TaskRepositoryImpl(
                 isDone = if (subtask.isDone) 1L else 0L
             )
         }
+        
+        // Schedule notification if task has due date and is not completed
+        if (task.dueAt != null && !task.isDone) {
+            scheduleTaskReminder(task)
+        }
     }
 
     override suspend fun updateTask(task: Task) {
@@ -93,9 +101,21 @@ class TaskRepositoryImpl(
                 isDone = if (subtask.isDone) 1L else 0L
             )
         }
+        
+        // Update notifications based on task state
+        if (task.dueAt != null && !task.isDone) {
+            // Cancel existing notification and schedule new one
+            cancelTaskReminder(task.id)
+            scheduleTaskReminder(task)
+        } else {
+            // Cancel notification if task is completed or has no due date
+            cancelTaskReminder(task.id)
+        }
     }
 
     override suspend fun deleteTask(id: String) {
+        // Cancel any scheduled notifications for this task
+        cancelTaskReminder(id)
         database.taskQueries.deleteTask(id)
     }
 
@@ -103,6 +123,8 @@ class TaskRepositoryImpl(
         val task = database.taskQueries.selectTaskById(id).executeAsOneOrNull()
         task?.let {
             val newStatus = if (it.isDone == 1L) 0L else 1L
+            val isCompleting = newStatus == 1L
+            
             database.taskQueries.updateTask(
                 title = it.title,
                 notes = it.notes,
@@ -113,6 +135,18 @@ class TaskRepositoryImpl(
                 updatedAt = Clock.System.now().toEpochMilliseconds(),
                 id = it.id
             )
+            
+            // Handle notifications based on completion status
+            if (isCompleting) {
+                // Task is being completed - cancel any reminders
+                cancelTaskReminder(it.id)
+            } else {
+                // Task is being uncompleted - reschedule reminder if it has a due date
+                it.dueAt?.let { dueDate ->
+                    val taskDomain = mapEntityToDomain(it)
+                    scheduleTaskReminder(taskDomain.copy(isDone = false))
+                }
+            }
         }
     }
 
@@ -172,5 +206,43 @@ class TaskRepositoryImpl(
             createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
             updatedAt = Instant.fromEpochMilliseconds(entity.updatedAt)
         )
+    }
+    
+    /**
+     * Schedules a reminder notification for a task
+     */
+    private suspend fun scheduleTaskReminder(task: Task) {
+        task.dueAt?.let { dueDate ->
+            try {
+                // Schedule notification 15 minutes before due date
+                val reminderTime = dueDate.minus(15.minutes)
+                val now = Clock.System.now()
+                
+                // Only schedule if reminder time is in the future
+                if (reminderTime > now) {
+                    localNotifier.schedule(
+                        id = "task_${task.id}",
+                        at = reminderTime,
+                        title = "Task Reminder",
+                        body = "Don't forget: ${task.title}",
+                        channel = "tasks"
+                    )
+                }
+            } catch (e: Exception) {
+                // Handle notification scheduling errors gracefully
+                // In production, you might want to log this
+            }
+        }
+    }
+    
+    /**
+     * Cancels any scheduled reminder notification for a task
+     */
+    private suspend fun cancelTaskReminder(taskId: String) {
+        try {
+            localNotifier.cancel("task_$taskId")
+        } catch (e: Exception) {
+            // Handle notification cancellation errors gracefully
+        }
     }
 }

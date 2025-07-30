@@ -58,6 +58,78 @@ import kotlinx.datetime.toLocalDateTime
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    component: HomeComponent,
+    modifier: Modifier = Modifier
+) {
+    val uiState by component.uiState.collectAsState()
+    
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Today",
+                        style = AdhdTypography.Default.headlineMedium
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { component.onRefresh() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    LoadingState(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                
+                uiState.error != null -> {
+                    ErrorState(
+                        error = uiState.error!!,
+                        onRetry = { component.onRefresh() },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                
+                else -> {
+                    HomeContent(
+                        uiState = uiState,
+                        onStartFocus = { component.onStartFocus() },
+                        onQuickMoodCheck = { component.onQuickMoodCheck() },
+                        onTaskClick = { taskId -> component.onTaskClick(taskId) },
+                        onRoutineClick = { routineId -> component.onRoutineClick(routineId) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Legacy HomeScreen function for backward compatibility
+ * TODO: Remove once all navigation is updated to use components
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
     viewModel: HomeViewModel,
     modifier: Modifier = Modifier
 ) {

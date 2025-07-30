@@ -108,20 +108,8 @@ fun MoodScreen(
                 )
             )
         },
-        floatingActionButton = {
-            if (uiState.currentEntry == null) {
-                FloatingActionButton(
-                    onClick = { viewModel.startNewEntry() },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "New mood entry"
-                    )
-                }
-            }
-        }
+        // FAB removed to avoid redundancy with QuickCheckInSection
+        // The QuickCheckInSection already provides mood entry functionality when currentEntry is null
     ) { paddingValues ->
         Box(
             modifier = Modifier

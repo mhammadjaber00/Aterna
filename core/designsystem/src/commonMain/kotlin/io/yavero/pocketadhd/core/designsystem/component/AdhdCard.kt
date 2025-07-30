@@ -393,3 +393,51 @@ fun AdhdEmptyStateCard(
         }
     }
 }
+
+/**
+ * Section card for organizing content with title, subtitle, and optional trailing content
+ */
+@Composable
+fun AdhdSectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    trailing: @Composable (() -> Unit)? = null,
+    content: @Composable (ColumnScope.() -> Unit)? = null
+) {
+    AdhdCard(modifier = modifier) {
+        // Header section
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = AdhdTypography.Default.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                if (subtitle != null) {
+                    Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXS))
+                    Text(
+                        text = subtitle,
+                        style = AdhdTypography.Default.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            if (trailing != null) {
+                trailing()
+            }
+        }
+        
+        // Content section
+        if (content != null) {
+            Spacer(modifier = Modifier.height(AdhdSpacing.SpaceM))
+            content()
+        }
+    }
+}

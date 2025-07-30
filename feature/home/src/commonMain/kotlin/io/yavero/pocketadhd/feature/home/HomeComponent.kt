@@ -37,15 +37,37 @@ data class HomeUiState(
 )
 
 class DefaultHomeComponent(
-    componentContext: ComponentContext
+    componentContext: ComponentContext,
+    private val homeViewModel: HomeViewModel,
+    private val onNavigateToFocus: () -> Unit,
+    private val onNavigateToMood: () -> Unit,
+    private val onNavigateToTask: (String) -> Unit,
+    private val onNavigateToRoutine: (String) -> Unit
 ) : HomeComponent, ComponentContext by componentContext {
     
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<HomeUiState> = TODO()
+    override val uiState: StateFlow<HomeUiState> = homeViewModel.uiState
     
-    override fun onStartFocus() = TODO()
-    override fun onQuickMoodCheck() = TODO()
-    override fun onTaskClick(taskId: String) = TODO()
-    override fun onRoutineClick(routineId: String) = TODO()
-    override fun onRefresh() = TODO()
+    override fun onStartFocus() {
+        homeViewModel.startFocus()
+        onNavigateToFocus()
+    }
+    
+    override fun onQuickMoodCheck() {
+        homeViewModel.quickMoodCheck()
+        onNavigateToMood()
+    }
+    
+    override fun onTaskClick(taskId: String) {
+        homeViewModel.onTaskClick(taskId)
+        onNavigateToTask(taskId)
+    }
+    
+    override fun onRoutineClick(routineId: String) {
+        homeViewModel.onRoutineClick(routineId)
+        onNavigateToRoutine(routineId)
+    }
+    
+    override fun onRefresh() {
+        homeViewModel.refresh()
+    }
 }

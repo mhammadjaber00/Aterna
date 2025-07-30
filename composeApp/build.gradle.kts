@@ -33,6 +33,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.sqlcipher)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -77,7 +78,7 @@ kotlin {
             implementation(project(":feature:meds"))
             implementation(project(":feature:games"))
             implementation(project(":feature:tips"))
-//            implementation(project(":feature:settings"))
+            implementation(project(":feature:settings"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

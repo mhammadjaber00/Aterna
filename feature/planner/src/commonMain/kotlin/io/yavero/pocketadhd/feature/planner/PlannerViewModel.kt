@@ -4,16 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.repository.TaskRepository
+import io.yavero.pocketadhd.core.notifications.LocalNotifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toInstant
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * ViewModel for the Planner screen
@@ -23,10 +27,13 @@ import kotlinx.datetime.toInstant
  * - Task CRUD operations
  * - Task completion toggling
  * - Filter and sort preferences
+ * - Task reminder notifications
  */
 class PlannerViewModel(
     private val taskRepository: TaskRepository
-) : ViewModel() {
+) : ViewModel(), KoinComponent {
+    
+    private val localNotifier: LocalNotifier by inject()
     
     private val _uiState = MutableStateFlow(PlannerUiState())
     val uiState: StateFlow<PlannerUiState> = _uiState.asStateFlow()
@@ -40,16 +47,99 @@ class PlannerViewModel(
     }
     
     fun createTask() {
-        // TODO: Navigate to task editor
+        _uiState.value = _uiState.value.copy(
+            showTaskEditor = true,
+            editingTask = null
+        )
     }
     
     fun editTask(taskId: String) {
-        // TODO: Navigate to task editor with taskId
+        viewModelScope.launch {
+            try {
+                taskRepository.getTaskById(taskId).collect { task ->
+                    if (task != null) {
+                        _uiState.value = _uiState.value.copy(
+                            showTaskEditor = true,
+                            editingTask = task
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to load task: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    fun saveTask(task: Task) {
+        viewModelScope.launch {
+            try {
+                val isUpdate = _uiState.value.editingTask != null
+                
+                if (isUpdate) {
+                    // Cancel existing notification for updated task
+                    localNotifier.cancel("task_${task.id}")
+                    // Update existing task
+                    taskRepository.updateTask(task)
+                } else {
+                    // Create new task
+                    taskRepository.insertTask(task)
+                }
+                
+                // Schedule notification if task has due date and is not completed
+                if (!task.isDone && task.dueAt != null) {
+                    scheduleTaskReminder(task)
+                }
+                
+                // Close editor and refresh list
+                _uiState.value = _uiState.value.copy(
+                    showTaskEditor = false,
+                    editingTask = null
+                )
+                loadTasks()
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to save task: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    private suspend fun scheduleTaskReminder(task: Task) {
+        try {
+            val dueAt = task.dueAt ?: return
+            
+            // Only schedule if the due time is in the future
+            if (dueAt > Clock.System.now()) {
+                localNotifier.schedule(
+                    id = "task_${task.id}",
+                    at = dueAt,
+                    title = "Task Reminder",
+                    body = "Don't forget: ${task.title}",
+                    channel = "task_reminders"
+                )
+            }
+        } catch (e: Exception) {
+            // Log error but don't fail the task save
+            println("Failed to schedule task reminder: ${e.message}")
+        }
+    }
+    
+    fun dismissTaskEditor() {
+        _uiState.value = _uiState.value.copy(
+            showTaskEditor = false,
+            editingTask = null
+        )
     }
     
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
             try {
+                // Cancel any scheduled notification for this task
+                localNotifier.cancel("task_$taskId")
+                
                 taskRepository.deleteTask(taskId)
                 loadTasks() // Refresh the list
             } catch (e: Exception) {
@@ -63,7 +153,16 @@ class PlannerViewModel(
     fun toggleTaskCompletion(taskId: String) {
         viewModelScope.launch {
             try {
+                // Get the task to check if it's being completed
+                val task = taskRepository.getTaskById(taskId).first()
+                
                 taskRepository.toggleTaskCompletion(taskId)
+                
+                // If task was not done and is now being completed, cancel its notification
+                if (task != null && !task.isDone) {
+                    localNotifier.cancel("task_$taskId")
+                }
+                
                 // The list will update automatically through the flow
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

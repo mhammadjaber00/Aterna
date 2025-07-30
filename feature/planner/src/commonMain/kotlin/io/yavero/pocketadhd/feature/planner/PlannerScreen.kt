@@ -162,6 +162,15 @@ fun PlannerScreen(
                         onToggleShowCompleted = { viewModel.toggleShowCompleted() },
                         modifier = Modifier.fillMaxSize()
                     )
+                    
+                    // Task Editor Dialog
+                    if (uiState.showTaskEditor) {
+                        TaskEditorDialog(
+                            task = uiState.editingTask,
+                            onSave = { task -> viewModel.saveTask(task) },
+                            onDismiss = { viewModel.dismissTaskEditor() }
+                        )
+                    }
                 }
             }
         }

@@ -41,12 +41,27 @@ object AdhdSpacing {
         val MinHeight: Dp = 48.dp          // Minimum touch target
         val SpacingBetween: Dp = Medium    // Space between buttons
         val IconSpacing: Dp = Small        // Space between icon and text
+        val CornerRadius: Dp = Card.CornerRadius // Standard button corners
+    }
+    
+    object BigButton {
+        val CornerRadius: Dp = 28.dp       // Large rounded corners for primary actions
+        val PaddingHorizontal: Dp = 32.dp  // Extra generous padding for big buttons
+        val PaddingVertical: Dp = 20.dp    // Extra generous vertical padding
+        val MinHeight: Dp = 56.dp          // Larger touch target for primary actions
+    }
+    
+    object Pill {
+        val CornerRadius: Dp = 999.dp      // Fully rounded pill shape
+        val PaddingHorizontal: Dp = 16.dp  // Compact horizontal padding for pills
+        val PaddingVertical: Dp = 8.dp     // Compact vertical padding for pills
+        val MinHeight: Dp = 32.dp          // Smaller height for pill components
     }
     
     object Card {
         val Padding: Dp = Medium           // Internal card padding
         val Margin: Dp = Medium            // Space between cards
-        val CornerRadius: Dp = 12.dp       // Rounded corners for friendliness
+        val CornerRadius: Dp = 16.dp       // Rounded corners for friendliness (ADHD-friendly)
         val Elevation: Dp = 4.dp           // Subtle elevation
     }
     
@@ -58,7 +73,7 @@ object AdhdSpacing {
     }
     
     object Screen {
-        val HorizontalPadding: Dp = Medium // Standard screen horizontal padding
+        val HorizontalPadding: Dp = 20.dp  // Screen horizontal padding (ADHD-friendly)
         val VerticalPadding: Dp = Medium   // Standard screen vertical padding
         val TopPadding: Dp = Large         // Top padding under app bar
         val BottomPadding: Dp = Large      // Bottom padding above nav bar

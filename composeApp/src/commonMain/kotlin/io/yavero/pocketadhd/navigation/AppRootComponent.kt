@@ -10,6 +10,10 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
+import io.yavero.pocketadhd.feature.home.DefaultHomeComponent as FeatureHomeComponent
+import io.yavero.pocketadhd.feature.home.HomeViewModel
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Root navigation component for the ADHD Assistant app
@@ -70,7 +74,12 @@ class DefaultAppRootComponent(
     private fun createChild(config: Config, componentContext: ComponentContext): AppRootComponent.Child =
         when (config) {
             is Config.Home -> AppRootComponent.Child.Home(
-                DefaultHomeComponent(componentContext)
+                DefaultHomeComponent(
+                    componentContext = componentContext,
+                    onNavigateToFocus = ::navigateToFocus,
+                    onNavigateToMood = ::navigateToMood,
+                    onNavigateToPlanner = ::navigateToPlanner
+                )
             )
             is Config.Planner -> AppRootComponent.Child.Planner(
                 DefaultPlannerComponent(componentContext)
@@ -210,8 +219,23 @@ interface SettingsComponent {
 // Default implementations - these will be moved to their respective modules later
 
 class DefaultHomeComponent(
-    componentContext: ComponentContext
-) : HomeComponent, ComponentContext by componentContext
+    componentContext: ComponentContext,
+    private val onNavigateToFocus: () -> Unit,
+    private val onNavigateToMood: () -> Unit,
+    private val onNavigateToPlanner: () -> Unit
+) : HomeComponent, ComponentContext by componentContext, KoinComponent {
+    
+    private val homeViewModel: HomeViewModel by inject()
+    
+    val featureComponent = FeatureHomeComponent(
+        componentContext = componentContext,
+        homeViewModel = homeViewModel,
+        onNavigateToFocus = onNavigateToFocus,
+        onNavigateToMood = onNavigateToMood,
+        onNavigateToTask = { taskId -> onNavigateToPlanner() },
+        onNavigateToRoutine = { routineId -> /* TODO: Navigate to routine */ }
+    )
+}
 
 class DefaultPlannerComponent(
     componentContext: ComponentContext

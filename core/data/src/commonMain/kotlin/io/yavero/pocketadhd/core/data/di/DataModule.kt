@@ -26,7 +26,12 @@ val dataModule = module {
     }
     
     // Repositories
-    singleOf(::TaskRepositoryImpl) bind TaskRepository::class
+    single<TaskRepository> { 
+        TaskRepositoryImpl(
+            database = get<PocketAdhdDatabase>(),
+            localNotifier = get()
+        )
+    }
     singleOf(::RoutineRepositoryImpl) bind RoutineRepository::class
     singleOf(::FocusSessionRepositoryImpl) bind FocusSessionRepository::class
     singleOf(::MoodEntryRepositoryImpl) bind MoodEntryRepository::class

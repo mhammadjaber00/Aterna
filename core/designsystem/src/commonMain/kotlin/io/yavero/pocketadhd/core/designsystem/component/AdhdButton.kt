@@ -1,5 +1,9 @@
 package io.yavero.pocketadhd.core.designsystem.component
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,8 +23,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -45,6 +52,7 @@ import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 /**
  * Primary button for main actions
  * Large, prominent, and easy to tap
+ * Features 0.95→1.0 scale animation with reduce motion support
  */
 @Composable
 fun AdhdPrimaryButton(
@@ -53,22 +61,35 @@ fun AdhdPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: ImageVector? = null,
-    fullWidth: Boolean = false
+    fullWidth: Boolean = false,
+    reduceMotion: Boolean = false // TODO: Get from settings
 ) {
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Scale animation: 0.95 when pressed, 1.0 when released
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && !reduceMotion) 0.95f else 1.0f,
+        animationSpec = tween(durationMillis = 100),
+        label = "button_scale"
+    )
     
     Button(
         onClick = {
             if (enabled) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                // Light haptic feedback for ADHD-friendly interaction
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
             }
         },
         modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-            .defaultMinSize(minHeight = AdhdSpacing.TouchTarget.Minimum),
+            .defaultMinSize(minHeight = AdhdSpacing.TouchTarget.Minimum)
+            .scale(scale),
         enabled = enabled,
         shape = RoundedCornerShape(AdhdSpacing.Card.CornerRadius),
+        interactionSource = interactionSource,
         contentPadding = PaddingValues(
             horizontal = AdhdSpacing.Button.PaddingHorizontal,
             vertical = AdhdSpacing.Button.PaddingVertical
@@ -284,6 +305,65 @@ fun AdhdSuccessButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.tertiary,
             contentColor = MaterialTheme.colorScheme.onTertiary,
+            disabledContainerColor = MaterialTheme.colorScheme.outline,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        )
+    ) {
+        ButtonContent(
+            text = text,
+            icon = icon,
+            textStyle = AdhdTypography.BigButton
+        )
+    }
+}
+
+/**
+ * Large primary button for main actions (uses BigButton design tokens)
+ * Features 0.95→1.0 scale animation with reduce motion support
+ */
+@Composable
+fun AdhdPrimaryButtonLarge(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    fullWidth: Boolean = false,
+    reduceMotion: Boolean = false // TODO: Get from settings
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Scale animation: 0.95 when pressed, 1.0 when released
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && !reduceMotion) 0.95f else 1.0f,
+        animationSpec = tween(durationMillis = 100),
+        label = "large_button_scale"
+    )
+    
+    Button(
+        onClick = {
+            if (enabled) {
+                // Light haptic feedback for ADHD-friendly interaction
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+        },
+        modifier = modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+            .defaultMinSize(minHeight = AdhdSpacing.BigButton.MinHeight)
+            .scale(scale),
+        enabled = enabled,
+        shape = RoundedCornerShape(AdhdSpacing.BigButton.CornerRadius),
+        interactionSource = interactionSource,
+        contentPadding = PaddingValues(
+            horizontal = AdhdSpacing.BigButton.PaddingHorizontal,
+            vertical = AdhdSpacing.BigButton.PaddingVertical
+        ),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.outline,
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         )
