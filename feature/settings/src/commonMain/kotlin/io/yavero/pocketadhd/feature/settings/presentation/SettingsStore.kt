@@ -1,16 +1,19 @@
 package io.yavero.pocketadhd.feature.settings.presentation
 
-import io.yavero.pocketadhd.feature.settings.SettingsIntent
-import io.yavero.pocketadhd.core.domain.mvi.MviStore
-import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
+import io.yavero.pocketadhd.core.domain.error.getUserMessage
+import io.yavero.pocketadhd.core.domain.error.toAppError
 import io.yavero.pocketadhd.core.domain.model.AppSettings
 import io.yavero.pocketadhd.core.domain.model.Theme
-import io.yavero.pocketadhd.core.domain.error.toAppError
-import io.yavero.pocketadhd.core.domain.error.getUserMessage
+import io.yavero.pocketadhd.core.domain.mvi.MviStore
+import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
+import io.yavero.pocketadhd.feature.settings.SettingsIntent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * MVI Store for the Settings feature.
@@ -112,9 +115,6 @@ class SettingsStore(
         scope.launch {
             reduce(SettingsMsg.Loading)
             try {
-                // Simulate loading settings from preferences/storage
-                delay(500) // Simulate loading time
-
                 val settings = loadAppSettings()
                 val dataStats = calculateDataStats()
 
@@ -320,9 +320,6 @@ class SettingsStore(
     private fun clearOldData(daysOld: Int) {
         scope.launch {
             try {
-                // Simulate clearing old data
-                delay(500)
-
                 val itemsCleared = 15 // Simulated count
                 reduce(SettingsMsg.DataCleared("old data ($daysOld+ days)", itemsCleared))
                 _effects.tryEmit(SettingsEffect.ShowDataCleared(itemsCleared))
