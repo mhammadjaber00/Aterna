@@ -1,7 +1,7 @@
 package io.yavero.pocketadhd.feature.planner
 
-import com.arkivanov.decompose.ComponentContext
 import io.yavero.pocketadhd.core.domain.model.Task
+import io.yavero.pocketadhd.feature.planner.presentation.PlannerState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Instant
 
@@ -17,7 +17,7 @@ import kotlinx.datetime.Instant
  * - Filter and sort tasks
  */
 interface PlannerComponent {
-    val uiState: StateFlow<PlannerUiState>
+    val uiState: StateFlow<PlannerState>
     
     fun onCreateTask()
     fun onEditTask(taskId: String)
@@ -26,6 +26,9 @@ interface PlannerComponent {
     fun onFilterChanged(filter: TaskFilter)
     fun onSortChanged(sort: TaskSort)
     fun onRefresh()
+    fun onToggleShowCompleted()
+    fun onSaveTask(task: Task)
+    fun onDismissTaskEditor()
 }
 
 data class PlannerUiState(
@@ -93,40 +96,3 @@ data class SubtaskItem(
     val title: String,
     val isDone: Boolean = false
 )
-
-class DefaultPlannerComponent(
-    componentContext: ComponentContext
-) : PlannerComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<PlannerUiState> = TODO()
-    
-    override fun onCreateTask() = TODO()
-    override fun onEditTask(taskId: String) = TODO()
-    override fun onDeleteTask(taskId: String) = TODO()
-    override fun onToggleTaskCompletion(taskId: String) = TODO()
-    override fun onFilterChanged(filter: TaskFilter) = TODO()
-    override fun onSortChanged(sort: TaskSort) = TODO()
-    override fun onRefresh() = TODO()
-}
-
-class DefaultTaskEditorComponent(
-    componentContext: ComponentContext,
-    private val taskId: String? = null
-) : TaskEditorComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<TaskEditorUiState> = TODO()
-    
-    override fun onTitleChanged(title: String) = TODO()
-    override fun onNotesChanged(notes: String) = TODO()
-    override fun onDueDateChanged(dueDate: Instant?) = TODO()
-    override fun onEstimateChanged(minutes: Int?) = TODO()
-    override fun onTagAdded(tag: String) = TODO()
-    override fun onTagRemoved(tag: String) = TODO()
-    override fun onSubtaskAdded(title: String) = TODO()
-    override fun onSubtaskRemoved(subtaskId: String) = TODO()
-    override fun onSubtaskToggled(subtaskId: String) = TODO()
-    override fun onSave() = TODO()
-    override fun onCancel() = TODO()
-}

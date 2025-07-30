@@ -1,9 +1,9 @@
 package io.yavero.pocketadhd.feature.settings
 
-import com.arkivanov.decompose.ComponentContext
 import io.yavero.pocketadhd.core.domain.model.AppSettings
 import io.yavero.pocketadhd.core.domain.model.ModuleToggles
 import io.yavero.pocketadhd.core.domain.model.Theme
+import io.yavero.pocketadhd.feature.settings.presentation.SettingsState
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
  * - Data management and cleanup
  */
 interface SettingsComponent {
-    val uiState: StateFlow<SettingsUiState>
+    val uiState: StateFlow<SettingsState>
     
     // Module toggles
     fun onModuleToggled(module: AppModule, enabled: Boolean)
@@ -173,61 +173,3 @@ data class PrivacySettingsUiState(
     val appLockTesting: Boolean = false,
     val error: String? = null
 )
-
-class DefaultSettingsComponent(
-    componentContext: ComponentContext
-) : SettingsComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<SettingsUiState> = TODO()
-    
-    override fun onModuleToggled(module: AppModule, enabled: Boolean) = TODO()
-    override fun onResetModules() = TODO()
-    override fun onThemeChanged(theme: Theme) = TODO()
-    override fun onTextScaleChanged(scale: Float) = TODO()
-    override fun onReduceMotionToggled(enabled: Boolean) = TODO()
-    override fun onNotificationsToggled(enabled: Boolean) = TODO()
-    override fun onAppLockToggled(enabled: Boolean) = TODO()
-    override fun onBiometricToggled(enabled: Boolean) = TODO()
-    override fun onExportData() = TODO()
-    override fun onImportData() = TODO()
-    override fun onClearAllData() = TODO()
-    override fun onClearOldData(daysOld: Int) = TODO()
-    override fun onViewAbout() = TODO()
-    override fun onViewPrivacyPolicy() = TODO()
-    override fun onSendFeedback() = TODO()
-    override fun onRefresh() = TODO()
-}
-
-class DefaultExportImportComponent(
-    componentContext: ComponentContext
-) : ExportImportComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<ExportImportUiState> = TODO()
-    
-    override fun onSelectExportLocation() = TODO()
-    override fun onSelectImportFile() = TODO()
-    override fun onExportData(includeSettings: Boolean, includeTasks: Boolean, includeMood: Boolean) = TODO()
-    override fun onImportData(mergeStrategy: ImportMergeStrategy) = TODO()
-    override fun onPreviewImport() = TODO()
-    override fun onCancelImport() = TODO()
-    override fun onBack() = TODO()
-}
-
-class DefaultPrivacySettingsComponent(
-    componentContext: ComponentContext
-) : PrivacySettingsComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<PrivacySettingsUiState> = TODO()
-    
-    override fun onAppLockToggled(enabled: Boolean) = TODO()
-    override fun onBiometricToggled(enabled: Boolean) = TODO()
-    override fun onAutoLockTimeChanged(minutes: Int) = TODO()
-    override fun onDataRetentionChanged(months: Int) = TODO()
-    override fun onAnalyticsToggled(enabled: Boolean) = TODO()
-    override fun onCrashReportingToggled(enabled: Boolean) = TODO()
-    override fun onTestAppLock() = TODO()
-    override fun onResetPrivacySettings() = TODO()
-}

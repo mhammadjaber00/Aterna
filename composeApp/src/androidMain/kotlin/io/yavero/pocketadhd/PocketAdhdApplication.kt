@@ -5,28 +5,40 @@ import io.yavero.pocketadhd.core.data.di.dataModule
 import io.yavero.pocketadhd.core.data.di.platformDataModule
 import io.yavero.pocketadhd.core.notifications.di.notificationsModule
 import io.yavero.pocketadhd.core.notifications.di.platformNotificationsModule
-import io.yavero.pocketadhd.feature.home.HomeViewModel
-import io.yavero.pocketadhd.feature.planner.PlannerViewModel
-import io.yavero.pocketadhd.feature.focus.FocusViewModel
-import io.yavero.pocketadhd.feature.mood.MoodViewModel
-import io.yavero.pocketadhd.feature.routines.RoutinesViewModel
-import io.yavero.pocketadhd.feature.settings.SettingsViewModel
-import net.zetetic.database.sqlcipher.SQLiteDatabase
+import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
+import io.yavero.pocketadhd.feature.home.presentation.HomeStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
  * ViewModels module for feature screens
  */
 val viewModelsModule = module {
-    viewModel { HomeViewModel(get(), get(), get()) }
-    viewModel { PlannerViewModel(get()) }
-    viewModel { FocusViewModel(get()) }
-    viewModel { MoodViewModel(get()) }
-    viewModel { RoutinesViewModel() }
-    viewModel { SettingsViewModel() }
+    single { HomeStore(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
+    single { FocusStore(get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
+    single {
+        io.yavero.pocketadhd.feature.mood.presentation.MoodStore(
+            get(),
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single {
+        io.yavero.pocketadhd.feature.planner.presentation.PlannerStore(
+            get(),
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single {
+        io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore(
+            get(),
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single { io.yavero.pocketadhd.feature.settings.presentation.SettingsStore(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
 }
 
 /**

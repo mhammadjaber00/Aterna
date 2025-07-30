@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -75,9 +74,6 @@ kotlin {
             implementation(project(":feature:focus"))
             implementation(project(":feature:routines"))
             implementation(project(":feature:mood"))
-            implementation(project(":feature:meds"))
-            implementation(project(":feature:games"))
-            implementation(project(":feature:tips"))
             implementation(project(":feature:settings"))
         }
         commonTest.dependencies {

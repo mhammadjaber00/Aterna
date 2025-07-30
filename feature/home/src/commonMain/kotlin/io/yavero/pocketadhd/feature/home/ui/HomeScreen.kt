@@ -1,10 +1,9 @@
-package io.yavero.pocketadhd.feature.mood
+package io.yavero.pocketadhd.feature.home.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,26 +12,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
-import io.yavero.pocketadhd.feature.mood.component.MoodComponent
-import io.yavero.pocketadhd.feature.mood.ui.ErrorState
-import io.yavero.pocketadhd.feature.mood.ui.LoadingState
-import io.yavero.pocketadhd.feature.mood.ui.MoodContent
+import io.yavero.pocketadhd.feature.home.component.HomeComponent
 
 /**
- * Mood screen with 3-tap check-in system
+ * Home screen showing today's overview
  *
  * ADHD-friendly features:
- * - Simple 3-tap mood check-in interface
- * - Large, clear mood scale components
- * - Visual trend indicators
- * - Gentle color coding for mood states
- * - Quick access to recent entries
- * - Optional notes for context
+ * - Card-based layout for easy scanning
+ * - Quick actions prominently displayed
+ * - Today's focus with minimal cognitive load
+ * - Large, clear action buttons
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoodScreen(
-    component: MoodComponent,
+fun HomeScreen(
+    component: HomeComponent,
     modifier: Modifier = Modifier
 ) {
     val uiState by component.uiState.collectAsState()
@@ -43,18 +37,11 @@ fun MoodScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Mood",
+                        text = "Today",
                         style = AdhdTypography.Default.headlineMedium
                     )
                 },
                 actions = {
-                    IconButton(onClick = { component.onViewTrends() }) {
-                        Icon(
-                            imageVector = Icons.Default.Analytics,
-                            contentDescription = if (uiState.showTrends) "Hide trends" else "Show trends"
-                        )
-                    }
-
                     IconButton(onClick = { component.onRefresh() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -67,9 +54,7 @@ fun MoodScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
-        },
-        // FAB removed to avoid redundancy with QuickCheckInSection
-        // The QuickCheckInSection already provides mood entry functionality when currentEntry is null
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -87,24 +72,17 @@ fun MoodScreen(
                     ErrorState(
                         error = uiState.error!!,
                         onRetry = { component.onRefresh() },
-                        onDismiss = { /* Clear error handled by component */ },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
                 else -> {
-                    MoodContent(
+                    HomeContent(
                         uiState = uiState,
-                        onMoodSelected = { mood -> component.onMoodSelected(mood) },
-                        onFocusSelected = { focus -> component.onFocusSelected(focus) },
-                        onEnergySelected = { energy -> component.onEnergySelected(energy) },
-                        onNotesChanged = { notes -> component.onNotesChanged(notes) },
-                        onSaveEntry = { component.onSaveEntry() },
-                        onCancelEntry = { component.onCancelEntry() },
-                        onQuickCheckIn = { mood, focus, energy ->
-                            component.onQuickCheckIn(mood, focus, energy, "")
-                        },
-                        onDeleteEntry = { entryId -> component.onDeleteEntry(entryId) },
+                        onStartFocus = { component.onStartFocus() },
+                        onQuickMoodCheck = { component.onQuickMoodCheck() },
+                        onTaskClick = { taskId -> component.onTaskClick(taskId) },
+                        onRoutineClick = { routineId -> component.onRoutineClick(routineId) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

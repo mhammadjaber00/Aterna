@@ -1,8 +1,7 @@
 package io.yavero.pocketadhd.feature.routines
 
-import com.arkivanov.decompose.ComponentContext
 import io.yavero.pocketadhd.core.domain.model.Routine
-import io.yavero.pocketadhd.core.domain.model.RoutineStep
+import io.yavero.pocketadhd.feature.routines.presentation.RoutinesState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalTime
 
@@ -17,7 +16,7 @@ import kotlinx.datetime.LocalTime
  * - Habit building and streaks
  */
 interface RoutinesComponent {
-    val uiState: StateFlow<RoutinesUiState>
+    val uiState: StateFlow<RoutinesState>
     
     fun onStartRoutine(routineId: String)
     fun onPauseRoutine()
@@ -160,43 +159,3 @@ data class RoutineStepTemplate(
     val durationSeconds: Int,
     val icon: String
 )
-
-class DefaultRoutinesComponent(
-    componentContext: ComponentContext
-) : RoutinesComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<RoutinesUiState> = TODO()
-    
-    override fun onStartRoutine(routineId: String) = TODO()
-    override fun onPauseRoutine() = TODO()
-    override fun onResumeRoutine() = TODO()
-    override fun onCompleteStep() = TODO()
-    override fun onSkipStep() = TODO()
-    override fun onCompleteRoutine() = TODO()
-    override fun onCancelRoutine() = TODO()
-    override fun onCreateRoutine() = TODO()
-    override fun onEditRoutine(routineId: String) = TODO()
-    override fun onDeleteRoutine(routineId: String) = TODO()
-    override fun onToggleRoutineActive(routineId: String) = TODO()
-    override fun onRefresh() = TODO()
-}
-
-class DefaultRoutineEditorComponent(
-    componentContext: ComponentContext,
-    private val routineId: String? = null
-) : RoutineEditorComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<RoutineEditorUiState> = TODO()
-    
-    override fun onNameChanged(name: String) = TODO()
-    override fun onStepAdded(title: String, durationSeconds: Int?, icon: String?) = TODO()
-    override fun onStepRemoved(stepId: String) = TODO()
-    override fun onStepUpdated(stepId: String, title: String, durationSeconds: Int?, icon: String?) = TODO()
-    override fun onStepReordered(fromIndex: Int, toIndex: Int) = TODO()
-    override fun onScheduleChanged(schedule: RoutineScheduleData?) = TODO()
-    override fun onActiveChanged(isActive: Boolean) = TODO()
-    override fun onSave() = TODO()
-    override fun onCancel() = TODO()
-}

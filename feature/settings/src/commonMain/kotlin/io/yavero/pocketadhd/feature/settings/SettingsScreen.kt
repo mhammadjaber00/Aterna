@@ -1,53 +1,24 @@
 package io.yavero.pocketadhd.feature.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Games
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import io.yavero.pocketadhd.core.designsystem.component.AdhdCard
-import io.yavero.pocketadhd.core.designsystem.component.AdhdChip
 import io.yavero.pocketadhd.core.designsystem.component.AdhdPrimaryButton
 import io.yavero.pocketadhd.core.designsystem.component.AdhdSecondaryButton
 import io.yavero.pocketadhd.core.designsystem.component.AdhdSectionCard
 import io.yavero.pocketadhd.core.domain.model.Theme
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.settings.presentation.SettingsState
 
 /**
  * Settings screen with module toggles, theme selection, and privacy controls
@@ -62,10 +33,10 @@ import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel,
+    component: SettingsComponent,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by component.uiState.collectAsState()
     
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -78,7 +49,7 @@ fun SettingsScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadSettings() }) {
+                    IconButton(onClick = { component.onRefresh() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh settings"
@@ -107,8 +78,7 @@ fun SettingsScreen(
                 uiState.error != null -> {
                     ErrorState(
                         error = uiState.error!!,
-                        onRetry = { viewModel.loadSettings() },
-                        onDismiss = { viewModel.clearError() },
+                        onRetry = { component.onRefresh() },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -116,17 +86,7 @@ fun SettingsScreen(
                 else -> {
                     SettingsContent(
                         uiState = uiState,
-                        onThemeChanged = { theme -> viewModel.updateTheme(theme) },
-                        onTextSizeChanged = { scale -> viewModel.updateTextSize(scale) },
-                        onReduceMotionToggled = { viewModel.toggleReduceMotion() },
-                        onMedsToggled = { viewModel.toggleMedsModule() },
-                        onGamesToggled = { viewModel.toggleGamesModule() },
-                        onTipsToggled = { viewModel.toggleTipsModule() },
-                        onNotificationsToggled = { viewModel.toggleNotifications() },
-                        onExportData = { viewModel.exportData() },
-                        onImportData = { viewModel.importData() },
-                        onClearExportResult = { viewModel.clearExportResult() },
-                        onClearImportPreview = { viewModel.clearImportPreview() },
+                        component = component,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -137,18 +97,8 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsContent(
-    uiState: SettingsViewModelState,
-    onThemeChanged: (Theme) -> Unit,
-    onTextSizeChanged: (Float) -> Unit,
-    onReduceMotionToggled: () -> Unit,
-    onMedsToggled: () -> Unit,
-    onGamesToggled: () -> Unit,
-    onTipsToggled: () -> Unit,
-    onNotificationsToggled: () -> Unit,
-    onExportData: () -> Unit,
-    onImportData: () -> Unit,
-    onClearExportResult: () -> Unit,
-    onClearImportPreview: () -> Unit,
+    uiState: SettingsState,
+    component: SettingsComponent,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -170,15 +120,15 @@ private fun SettingsContent(
                         description = "Medication schedules and reminders",
                         icon = Icons.Default.LocalHospital,
                         checked = uiState.settings.modules.meds,
-                        onToggle = onMedsToggled
+                        onCheckedChange = { component.onModuleToggled(AppModule.MEDS, it) }
                     )
                     
                     SettingToggleItem(
                         title = "Games",
-                        description = "Cognitive mini-games and exercises",
+                        description = "Cognitive training mini-games",
                         icon = Icons.Default.Games,
                         checked = uiState.settings.modules.games,
-                        onToggle = onGamesToggled
+                        onCheckedChange = { component.onModuleToggled(AppModule.GAMES, it) }
                     )
                     
                     SettingToggleItem(
@@ -186,7 +136,7 @@ private fun SettingsContent(
                         description = "CBT tips and breathing exercises",
                         icon = Icons.Default.Psychology,
                         checked = uiState.settings.modules.tips,
-                        onToggle = onTipsToggled
+                        onCheckedChange = { component.onModuleToggled(AppModule.TIPS, it) }
                     )
                 }
             }
@@ -199,67 +149,55 @@ private fun SettingsContent(
                 subtitle = "Customize the app's look and feel"
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceL)
+                    verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
                 ) {
                     // Theme Selection
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
+                    Text(
+                        text = "Theme",
+                        style = AdhdTypography.Default.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
                     ) {
-                        Text(
-                            text = "Theme",
-                            style = AdhdTypography.Default.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                        ThemeButton(
+                            theme = Theme.Light,
+                            currentTheme = uiState.settings.theme,
+                            onThemeSelected = { component.onThemeChanged(it) }
                         )
-                        
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
-                        ) {
-                            AdhdChip(
-                                text = "Light",
-                                selected = uiState.settings.theme == Theme.Light,
-                                onClick = { onThemeChanged(Theme.Light) },
-                                icon = Icons.Default.LightMode
-                            )
-                            
-                            AdhdChip(
-                                text = "Dark",
-                                selected = uiState.settings.theme == Theme.Dark,
-                                onClick = { onThemeChanged(Theme.Dark) },
-                                icon = Icons.Default.DarkMode
-                            )
-                            
-                            AdhdChip(
-                                text = "System",
-                                selected = uiState.settings.theme == Theme.System,
-                                onClick = { onThemeChanged(Theme.System) }
-                            )
-                        }
-                    }
-                    
-                    // Text Size Slider
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
-                    ) {
-                        Text(
-                            text = "Text Size: ${(uiState.settings.textScale * 100).toInt()}%",
-                            style = AdhdTypography.Default.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                        ThemeButton(
+                            theme = Theme.Dark,
+                            currentTheme = uiState.settings.theme,
+                            onThemeSelected = { component.onThemeChanged(it) }
                         )
-                        
-                        Slider(
-                            value = uiState.settings.textScale,
-                            onValueChange = onTextSizeChanged,
-                            valueRange = 0.8f..1.5f,
-                            steps = 6
+                        ThemeButton(
+                            theme = Theme.System,
+                            currentTheme = uiState.settings.theme,
+                            onThemeSelected = { component.onThemeChanged(it) }
                         )
                     }
-                    
-                    // Reduce Motion Toggle
+
+                    // Text Size
+                    Text(
+                        text = "Text Size: ${(uiState.settings.textScale * 100).toInt()}%",
+                        style = AdhdTypography.Default.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Slider(
+                        value = uiState.settings.textScale,
+                        onValueChange = { component.onTextScaleChanged(it) },
+                        valueRange = 0.8f..1.4f,
+                        steps = 5
+                    )
+
+                    // Reduce Motion
                     SettingToggleItem(
                         title = "Reduce Motion",
                         description = "Minimize animations and transitions",
                         checked = uiState.settings.reduceMotion,
-                        onToggle = onReduceMotionToggled
+                        onCheckedChange = { component.onReduceMotionToggled(it) }
                     )
                 }
             }
@@ -273,123 +211,119 @@ private fun SettingsContent(
             ) {
                 SettingToggleItem(
                     title = "Enable Notifications",
-                    description = "Receive reminders for tasks and routines",
+                    description = "Receive reminders and updates",
                     icon = Icons.Default.Notifications,
                     checked = uiState.settings.notificationsEnabled,
-                    onToggle = onNotificationsToggled
+                    onCheckedChange = { component.onNotificationsToggled(it) }
                 )
             }
         }
-        
-        // Privacy Section
+
+        // Data Management Section
         item {
             AdhdSectionCard(
-                title = "Privacy & Data",
-                subtitle = "Manage your data and privacy settings"
+                title = "Data Management",
+                subtitle = "Export, import, and manage your data"
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
                 ) {
-                    // App Lock Placeholder
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            Column {
-                                Text(
-                                    text = "App Lock",
-                                    style = AdhdTypography.Default.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Coming soon",
-                                    style = AdhdTypography.StatusText,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Export/Import
+                    // Export/Import buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
                     ) {
                         AdhdSecondaryButton(
                             text = if (uiState.isExporting) "Exporting..." else "Export Data",
-                            onClick = onExportData,
-                            enabled = !uiState.isExporting,
+                            onClick = { component.onExportData() },
                             icon = Icons.Default.Upload,
+                            enabled = !uiState.isExporting,
                             modifier = Modifier.weight(1f)
                         )
                         
                         AdhdSecondaryButton(
                             text = if (uiState.isImporting) "Importing..." else "Import Data",
-                            onClick = onImportData,
-                            enabled = !uiState.isImporting,
+                            onClick = { component.onImportData() },
                             icon = Icons.Default.Download,
+                            enabled = !uiState.isImporting,
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
-                    // Export Result
-                    if (uiState.exportResult != null) {
-                        AdhdCard {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
-                            ) {
-                                Text(
-                                    text = "Export Result",
-                                    style = AdhdTypography.Default.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = uiState.exportResult!!,
-                                    style = AdhdTypography.Default.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                AdhdSecondaryButton(
-                                    text = "Dismiss",
-                                    onClick = onClearExportResult
-                                )
-                            }
+
+                    // Export/Import progress
+                    if (uiState.isExporting) {
+                        Column {
+                            Text(
+                                text = "Export Progress: ${(uiState.exportProgress * 100).toInt()}%",
+                                style = AdhdTypography.Default.bodyMedium
+                            )
+                            Slider(
+                                value = uiState.exportProgress,
+                                onValueChange = {},
+                                enabled = false
+                            )
                         }
                     }
-                    
-                    // Import Preview
-                    if (uiState.importPreview != null) {
-                        AdhdCard {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
-                            ) {
-                                Text(
-                                    text = "Import Preview",
-                                    style = AdhdTypography.Default.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = uiState.importPreview!!,
-                                    style = AdhdTypography.Default.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                AdhdSecondaryButton(
-                                    text = "Dismiss",
-                                    onClick = onClearImportPreview
-                                )
-                            }
+
+                    if (uiState.isImporting) {
+                        Column {
+                            Text(
+                                text = "Import Progress: ${(uiState.importProgress * 100).toInt()}%",
+                                style = AdhdTypography.Default.bodyMedium
+                            )
+                            Slider(
+                                value = uiState.importProgress,
+                                onValueChange = {},
+                                enabled = false
+                            )
                         }
                     }
+
+                    // Data Statistics
+                    DataStatsCard(stats = uiState.dataStats)
+
+                    // Clear Data buttons
+                    AdhdSecondaryButton(
+                        text = "Clear Old Data (30+ days)",
+                        onClick = { component.onClearOldData(30) },
+                        fullWidth = true
+                    )
+
+                    AdhdSecondaryButton(
+                        text = "Clear All Data",
+                        onClick = { component.onClearAllData() },
+                        fullWidth = true
+                    )
+                }
+            }
+        }
+
+        // About Section
+        item {
+            AdhdSectionCard(
+                title = "About & Support",
+                subtitle = "App information and help"
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
+                ) {
+                    AdhdSecondaryButton(
+                        text = "About PocketADHD",
+                        onClick = { component.onViewAbout() },
+                        fullWidth = true
+                    )
+
+                    AdhdSecondaryButton(
+                        text = "Privacy Policy",
+                        onClick = { component.onViewPrivacyPolicy() },
+                        fullWidth = true
+                    )
+
+                    AdhdSecondaryButton(
+                        text = "Send Feedback",
+                        onClick = { component.onSendFeedback() },
+                        fullWidth = true
+                    )
                 }
             }
         }
@@ -401,7 +335,7 @@ private fun SettingToggleItem(
     title: String,
     description: String,
     checked: Boolean,
-    onToggle: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
@@ -412,14 +346,14 @@ private fun SettingToggleItem(
     ) {
         Row(
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = AdhdSpacing.SpaceM)
                 )
             }
             
@@ -431,7 +365,7 @@ private fun SettingToggleItem(
                 )
                 Text(
                     text = description,
-                    style = AdhdTypography.Default.bodySmall,
+                    style = AdhdTypography.Default.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -439,8 +373,97 @@ private fun SettingToggleItem(
         
         Switch(
             checked = checked,
-            onCheckedChange = { onToggle() }
+            onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+private fun ThemeButton(
+    theme: Theme,
+    currentTheme: Theme,
+    onThemeSelected: (Theme) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isSelected = theme == currentTheme
+    val icon = when (theme) {
+        Theme.Light -> Icons.Default.LightMode
+        Theme.Dark -> Icons.Default.DarkMode
+        Theme.System -> Icons.Default.TextFields
+    }
+
+    if (isSelected) {
+        AdhdPrimaryButton(
+            text = theme.name,
+            onClick = { onThemeSelected(theme) },
+            icon = icon,
+            modifier = modifier
+        )
+    } else {
+        AdhdSecondaryButton(
+            text = theme.name,
+            onClick = { onThemeSelected(theme) },
+            icon = icon,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun DataStatsCard(
+    stats: io.yavero.pocketadhd.feature.settings.presentation.DataStats,
+    modifier: Modifier = Modifier
+) {
+    AdhdCard(modifier = modifier) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
+        ) {
+            Text(
+                text = "Data Statistics",
+                style = AdhdTypography.Default.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Tasks:", style = AdhdTypography.Default.bodyMedium)
+                Text("${stats.totalTasks}", style = AdhdTypography.Default.bodyMedium)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Focus Sessions:", style = AdhdTypography.Default.bodyMedium)
+                Text("${stats.totalFocusSessions}", style = AdhdTypography.Default.bodyMedium)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Mood Entries:", style = AdhdTypography.Default.bodyMedium)
+                Text("${stats.totalMoodEntries}", style = AdhdTypography.Default.bodyMedium)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Routines:", style = AdhdTypography.Default.bodyMedium)
+                Text("${stats.totalRoutines}", style = AdhdTypography.Default.bodyMedium)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Database Size:", style = AdhdTypography.Default.bodyMedium)
+                Text("${stats.databaseSize / (1024 * 1024)} MB", style = AdhdTypography.Default.bodyMedium)
+            }
+        }
     }
 }
 
@@ -448,23 +471,21 @@ private fun SettingToggleItem(
 private fun LoadingState(
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
-        ) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Loading settings...",
-                style = AdhdTypography.Default.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        CircularProgressIndicator(
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(AdhdSpacing.SpaceM))
+        Text(
+            text = "Loading settings...",
+            style = AdhdTypography.Default.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -472,45 +493,35 @@ private fun LoadingState(
 private fun ErrorState(
     error: String,
     onRetry: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier.padding(AdhdSpacing.Screen.HorizontalPadding),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier.padding(AdhdSpacing.SpaceL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        AdhdCard {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceL)
-            ) {
-                Text(
-                    text = "Error",
-                    style = AdhdTypography.Default.titleLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-                
-                Text(
-                    text = error,
-                    style = AdhdTypography.Default.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-                
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
-                ) {
-                    AdhdSecondaryButton(
-                        text = "Dismiss",
-                        onClick = onDismiss
-                    )
-                    
-                    AdhdPrimaryButton(
-                        text = "Retry",
-                        onClick = onRetry
-                    )
-                }
-            }
-        }
+        Text(
+            text = "Error loading settings",
+            style = AdhdTypography.Default.headlineSmall,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(AdhdSpacing.SpaceM))
+
+        Text(
+            text = error,
+            style = AdhdTypography.Default.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(AdhdSpacing.SpaceL))
+
+        AdhdPrimaryButton(
+            text = "Retry",
+            onClick = onRetry,
+            icon = Icons.Default.Refresh
+        )
     }
 }

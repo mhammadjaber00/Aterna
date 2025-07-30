@@ -1,52 +1,26 @@
 package io.yavero.pocketadhd.feature.focus
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.yavero.pocketadhd.core.designsystem.component.AdhdCard
-import io.yavero.pocketadhd.core.designsystem.component.AdhdCircularTimer
-import io.yavero.pocketadhd.core.designsystem.component.AdhdDangerButton
-import io.yavero.pocketadhd.core.designsystem.component.AdhdHeaderCard
-import io.yavero.pocketadhd.core.designsystem.component.AdhdPrimaryButton
-import io.yavero.pocketadhd.core.designsystem.component.AdhdSecondaryButton
-import io.yavero.pocketadhd.core.designsystem.component.TimerState
+import io.yavero.pocketadhd.core.designsystem.component.*
 import io.yavero.pocketadhd.core.domain.model.FocusSession
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.focus.presentation.ActiveSession
+import io.yavero.pocketadhd.feature.focus.presentation.FocusSessionState
+import io.yavero.pocketadhd.feature.focus.presentation.FocusState
+import io.yavero.pocketadhd.feature.focus.presentation.FocusStats
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -64,10 +38,10 @@ import kotlinx.datetime.toLocalDateTime
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusScreen(
-    viewModel: FocusViewModel,
+    component: FocusComponent,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by component.uiState.collectAsState()
     
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -80,7 +54,7 @@ fun FocusScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
+                    IconButton(onClick = { component.onRefresh() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh"
@@ -109,7 +83,7 @@ fun FocusScreen(
                 uiState.error != null -> {
                     ErrorState(
                         error = uiState.error!!,
-                        onRetry = { viewModel.refresh() },
+                        onRetry = { component.onRefresh() },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -117,13 +91,13 @@ fun FocusScreen(
                 else -> {
                     FocusContent(
                         uiState = uiState,
-                        onStartSession = { duration -> viewModel.startSession(duration) },
-                        onPauseSession = { viewModel.pauseSession() },
-                        onResumeSession = { viewModel.resumeSession() },
-                        onCompleteSession = { viewModel.completeSession() },
-                        onCancelSession = { viewModel.cancelSession() },
-                        onAddInterruption = { viewModel.addInterruption() },
-                        onUpdateNotes = { notes -> viewModel.updateNotes(notes) },
+                        onStartSession = { duration -> component.onStartSession(duration) },
+                        onPauseSession = { component.onPauseSession() },
+                        onResumeSession = { component.onResumeSession() },
+                        onCompleteSession = { component.onCompleteSession() },
+                        onCancelSession = { component.onCancelSession() },
+                        onAddInterruption = { component.onAddInterruption() },
+                        onUpdateNotes = { notes -> component.onUpdateNotes(notes) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -134,7 +108,7 @@ fun FocusScreen(
 
 @Composable
 private fun FocusContent(
-    uiState: FocusUiState,
+    uiState: FocusState,
     onStartSession: (Int) -> Unit,
     onPauseSession: () -> Unit,
     onResumeSession: () -> Unit,

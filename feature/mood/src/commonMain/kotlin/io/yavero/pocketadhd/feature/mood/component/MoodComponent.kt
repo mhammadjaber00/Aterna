@@ -1,7 +1,7 @@
-package io.yavero.pocketadhd.feature.mood
+package io.yavero.pocketadhd.feature.mood.component
 
-import com.arkivanov.decompose.ComponentContext
 import io.yavero.pocketadhd.core.domain.model.MoodEntry
+import io.yavero.pocketadhd.feature.mood.presentation.MoodState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Instant
 
@@ -16,7 +16,7 @@ import kotlinx.datetime.Instant
  * - Gentle reminders for regular check-ins
  */
 interface MoodComponent {
-    val uiState: StateFlow<MoodUiState>
+    val uiState: StateFlow<MoodState>
     
     fun onQuickCheckIn(mood: Int, focus: Int, energy: Int, notes: String = "")
     fun onMoodSelected(mood: Int)
@@ -84,7 +84,7 @@ enum class TrendDirection {
  */
 interface MoodTrendsComponent {
     val uiState: StateFlow<MoodTrendsUiState>
-    
+
     fun onPeriodChanged(period: TrendPeriod)
     fun onMetricSelected(metric: MoodMetric)
     fun onExportData()
@@ -127,36 +127,4 @@ enum class InsightType {
     PATTERN_DETECTED,
     SUGGESTION,
     MILESTONE
-}
-
-class DefaultMoodComponent(
-    componentContext: ComponentContext
-) : MoodComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<MoodUiState> = TODO()
-    
-    override fun onQuickCheckIn(mood: Int, focus: Int, energy: Int, notes: String) = TODO()
-    override fun onMoodSelected(mood: Int) = TODO()
-    override fun onFocusSelected(focus: Int) = TODO()
-    override fun onEnergySelected(energy: Int) = TODO()
-    override fun onNotesChanged(notes: String) = TODO()
-    override fun onSaveEntry() = TODO()
-    override fun onCancelEntry() = TODO()
-    override fun onDeleteEntry(entryId: String) = TODO()
-    override fun onViewTrends() = TODO()
-    override fun onRefresh() = TODO()
-}
-
-class DefaultMoodTrendsComponent(
-    componentContext: ComponentContext
-) : MoodTrendsComponent, ComponentContext by componentContext {
-    
-    // TODO: Implement with ViewModels and repositories
-    override val uiState: StateFlow<MoodTrendsUiState> = TODO()
-    
-    override fun onPeriodChanged(period: TrendPeriod) = TODO()
-    override fun onMetricSelected(metric: MoodMetric) = TODO()
-    override fun onExportData() = TODO()
-    override fun onBack() = TODO()
 }
