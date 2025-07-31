@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.focus
+package io.yavero.pocketadhd.feature.focus.presentation
 
 import io.yavero.pocketadhd.core.domain.mvi.MviIntent
 

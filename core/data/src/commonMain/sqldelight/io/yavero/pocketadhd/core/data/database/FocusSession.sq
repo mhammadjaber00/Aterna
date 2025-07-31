@@ -5,7 +5,9 @@ CREATE TABLE FocusSessionEntity (
     targetMinutes INTEGER NOT NULL,
     completed INTEGER NOT NULL DEFAULT 0, -- Boolean as INTEGER
     interruptionsCount INTEGER NOT NULL DEFAULT 0,
-    notes TEXT
+    notes TEXT,
+    pausedTotalMs INTEGER NOT NULL DEFAULT 0,
+    lastPausedAt INTEGER -- Instant as epoch milliseconds, NULL if not paused
 );
 
 -- Queries for FocusSessionEntity
@@ -29,15 +31,17 @@ ORDER BY startAt DESC
 LIMIT ?;
 
 insertFocusSession:
-INSERT INTO FocusSessionEntity (id, startAt, endAt, targetMinutes, completed, interruptionsCount, notes)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO FocusSessionEntity (id, startAt, endAt, targetMinutes, completed, interruptionsCount, notes, pausedTotalMs, lastPausedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateFocusSession:
 UPDATE FocusSessionEntity SET 
     endAt = ?, 
     completed = ?, 
     interruptionsCount = ?, 
-    notes = ?
+    notes = ?,
+    pausedTotalMs = ?,
+    lastPausedAt = ?
 WHERE id = ?;
 
 deleteFocusSession:

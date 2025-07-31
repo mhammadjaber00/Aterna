@@ -57,13 +57,5 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
         }
-        
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.kotest.assertions)
-            implementation(libs.koin.test)
-            implementation(libs.turbine)
-        }
     }
 }

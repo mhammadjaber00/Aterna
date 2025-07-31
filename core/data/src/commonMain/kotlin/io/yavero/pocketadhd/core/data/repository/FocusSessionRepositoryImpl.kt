@@ -74,7 +74,9 @@ class FocusSessionRepositoryImpl(
             targetMinutes = session.targetMinutes.toLong(),
             completed = if (session.completed) 1L else 0L,
             interruptionsCount = session.interruptionsCount.toLong(),
-            notes = session.notes
+            notes = session.notes,
+            pausedTotalMs = session.pausedTotalMs,
+            lastPausedAt = session.lastPausedAt?.toEpochMilliseconds()
         )
     }
 
@@ -84,6 +86,8 @@ class FocusSessionRepositoryImpl(
             completed = if (session.completed) 1L else 0L,
             interruptionsCount = session.interruptionsCount.toLong(),
             notes = session.notes,
+            pausedTotalMs = session.pausedTotalMs,
+            lastPausedAt = session.lastPausedAt?.toEpochMilliseconds(),
             id = session.id
         )
     }
@@ -100,7 +104,9 @@ class FocusSessionRepositoryImpl(
             targetMinutes = entity.targetMinutes.toInt(),
             completed = entity.completed == 1L,
             interruptionsCount = entity.interruptionsCount.toInt(),
-            notes = entity.notes
+            notes = entity.notes,
+            pausedTotalMs = entity.pausedTotalMs,
+            lastPausedAt = entity.lastPausedAt?.let { Instant.fromEpochMilliseconds(it) }
         )
     }
 }

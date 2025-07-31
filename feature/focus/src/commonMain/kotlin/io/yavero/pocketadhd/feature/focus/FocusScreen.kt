@@ -17,6 +17,7 @@ import io.yavero.pocketadhd.core.designsystem.component.*
 import io.yavero.pocketadhd.core.domain.model.FocusSession
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.focus.component.FocusComponent
 import io.yavero.pocketadhd.feature.focus.presentation.ActiveSession
 import io.yavero.pocketadhd.feature.focus.presentation.FocusSessionState
 import io.yavero.pocketadhd.feature.focus.presentation.FocusState
@@ -262,7 +263,7 @@ private fun StartSessionSection(
         ) {
             AdhdSecondaryButton(
                 text = "15 min",
-                onClick = { onStartSession(15) },
+                onClick = { onStartSession(1) },
                 modifier = Modifier.weight(1f)
             )
             

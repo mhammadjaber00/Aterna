@@ -28,10 +28,6 @@ sealed interface FocusMsg : MviMsg {
      */
     data class Error(val message: String) : FocusMsg
 
-    /**
-     * Timer tick message
-     */
-    data class TimerTick(val remainingMilliseconds: Long) : FocusMsg
 
     /**
      * Session started message

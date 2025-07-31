@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "io.yavero.pocketadhd.feature.home"
+    namespace = "io.yavero.pocketadhd.feature.focus"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     
     defaultConfig {

@@ -1,8 +1,9 @@
-package io.yavero.pocketadhd.feature.focus
+package io.yavero.pocketadhd.feature.focus.component
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import io.yavero.pocketadhd.feature.focus.presentation.FocusEffect
+import io.yavero.pocketadhd.feature.focus.presentation.FocusIntent
 import io.yavero.pocketadhd.feature.focus.presentation.FocusState
 import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
 import kotlinx.coroutines.*

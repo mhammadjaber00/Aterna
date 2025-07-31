@@ -11,5 +11,7 @@ data class FocusSession(
     val targetMinutes: Int,
     val completed: Boolean,
     val interruptionsCount: Int = 0,
-    val notes: String? = null
+    val notes: String? = null,
+    val pausedTotalMs: Long = 0L,
+    val lastPausedAt: Instant? = null
 )

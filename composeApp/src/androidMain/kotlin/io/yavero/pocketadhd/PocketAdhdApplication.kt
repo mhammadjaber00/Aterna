@@ -5,6 +5,8 @@ import io.yavero.pocketadhd.core.data.di.dataModule
 import io.yavero.pocketadhd.core.data.di.platformDataModule
 import io.yavero.pocketadhd.core.notifications.di.notificationsModule
 import io.yavero.pocketadhd.core.notifications.di.platformNotificationsModule
+import io.yavero.pocketadhd.feature.focus.di.focusModule
+import io.yavero.pocketadhd.feature.focus.di.platformFocusModule
 import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
 import io.yavero.pocketadhd.feature.home.presentation.HomeStore
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +21,7 @@ import org.koin.dsl.module
  */
 val viewModelsModule = module {
     single { HomeStore(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
-    single { FocusStore(get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
+    single { FocusStore(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
     single {
         io.yavero.pocketadhd.feature.mood.presentation.MoodStore(
             get(),
@@ -66,6 +68,9 @@ class PocketAdhdApplication : Application() {
                 
                 notificationsModule,
                 platformNotificationsModule,
+
+                focusModule,
+                platformFocusModule,
                 
                 viewModelsModule
             )

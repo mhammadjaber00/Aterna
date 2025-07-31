@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import io.yavero.pocketadhd.feature.focus.component.FocusComponent
 import io.yavero.pocketadhd.feature.home.component.HomeComponent
 import io.yavero.pocketadhd.feature.mood.component.MoodComponent
 import io.yavero.pocketadhd.navigation.AppRootComponent
@@ -87,7 +88,7 @@ private fun PlannerScreen(component: io.yavero.pocketadhd.feature.planner.Planne
 }
 
 @Composable
-private fun FocusScreen(component: io.yavero.pocketadhd.feature.focus.FocusComponent) {
+private fun FocusScreen(component: FocusComponent) {
     FeatureFocusScreen(component = component)
 }
 

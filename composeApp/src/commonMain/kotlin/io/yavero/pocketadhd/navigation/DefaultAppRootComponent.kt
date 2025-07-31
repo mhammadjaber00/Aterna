@@ -3,7 +3,7 @@ package io.yavero.pocketadhd.navigation
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
-import io.yavero.pocketadhd.feature.focus.DefaultFocusComponent
+import io.yavero.pocketadhd.feature.focus.component.DefaultFocusComponent
 import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
 import io.yavero.pocketadhd.feature.home.component.HomeComponentImpl
 import io.yavero.pocketadhd.feature.home.presentation.HomeStore

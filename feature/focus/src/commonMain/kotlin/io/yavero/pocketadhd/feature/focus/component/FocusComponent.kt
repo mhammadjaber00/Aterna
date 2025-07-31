@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.focus
+package io.yavero.pocketadhd.feature.focus.component
 
 import io.yavero.pocketadhd.feature.focus.presentation.FocusState
 import kotlinx.coroutines.flow.StateFlow

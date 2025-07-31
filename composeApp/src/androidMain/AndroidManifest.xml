@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 
     <application
             android:name=".PocketAdhdApplication"
@@ -20,6 +22,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <receiver
+                android:name="io.yavero.pocketadhd.feature.focus.notification.FocusActionReceiver"
+                android:exported="false">
+            <intent-filter>
+                <action android:name="io.yavero.pocketadhd.FOCUS_PAUSE"/>
+                <action android:name="io.yavero.pocketadhd.FOCUS_RESUME"/>
+                <action android:name="io.yavero.pocketadhd.FOCUS_CANCEL"/>
+                <action android:name="io.yavero.pocketadhd.FOCUS_COMPLETE"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

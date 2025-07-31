@@ -2,6 +2,7 @@ package io.yavero.pocketadhd.navigation
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import io.yavero.pocketadhd.feature.focus.component.FocusComponent
 import io.yavero.pocketadhd.feature.home.component.HomeComponent
 import io.yavero.pocketadhd.feature.mood.component.MoodComponent
 
@@ -30,7 +31,7 @@ interface AppRootComponent {
     sealed class Child {
         data class Home(val component: HomeComponent) : Child()
         data class Planner(val component: io.yavero.pocketadhd.feature.planner.PlannerComponent) : Child()
-        data class Focus(val component: io.yavero.pocketadhd.feature.focus.FocusComponent) : Child()
+        data class Focus(val component: FocusComponent) : Child()
         data class Routines(val component: io.yavero.pocketadhd.feature.routines.RoutinesComponent) : Child()
         data class Mood(val component: MoodComponent) : Child()
         data class Settings(val component: io.yavero.pocketadhd.feature.settings.SettingsComponent) : Child()
