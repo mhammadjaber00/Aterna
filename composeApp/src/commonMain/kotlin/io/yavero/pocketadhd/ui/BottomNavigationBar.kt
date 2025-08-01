@@ -22,9 +22,9 @@ fun BottomNavigationBar(
             val isSelected = when (destination) {
                 NavigationDestination.Home -> currentChild is AppRootComponent.Child.Home
                 NavigationDestination.Planner -> currentChild is AppRootComponent.Child.Planner
-                NavigationDestination.Focus -> currentChild is AppRootComponent.Child.Focus
+//                NavigationDestination.Focus -> currentChild is AppRootComponent.Child.Focus
                 NavigationDestination.Routines -> currentChild is AppRootComponent.Child.Routines
-                NavigationDestination.Mood -> currentChild is AppRootComponent.Child.Mood
+//                NavigationDestination.Mood -> currentChild is AppRootComponent.Child.Mood
                 NavigationDestination.Settings -> currentChild is AppRootComponent.Child.Settings
             }
 

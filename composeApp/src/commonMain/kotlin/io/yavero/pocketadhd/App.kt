@@ -6,11 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import io.yavero.pocketadhd.navigation.DefaultAppRootComponent
-import io.yavero.pocketadhd.ui.AppContent
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 import io.yavero.pocketadhd.core.ui.theme.DarkColorScheme
 import io.yavero.pocketadhd.core.ui.theme.LightColorScheme
+import io.yavero.pocketadhd.navigation.DefaultAppRootComponent
+import io.yavero.pocketadhd.ui.AppContent
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -24,16 +24,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * - Bottom navigation for easy access to main features
  */
 @Composable
-@Preview
-fun App() {
-    // Create the root component with proper lifecycle
-    val lifecycle = remember { LifecycleRegistry() }
-    val rootComponent = remember {
-        DefaultAppRootComponent(
-            componentContext = DefaultComponentContext(lifecycle = lifecycle)
-        )
-    }
-    
+fun App(rootComponent: io.yavero.pocketadhd.navigation.AppRootComponent) {
     // Apply ADHD-friendly theme
     AdhdTheme {
         AppContent(
@@ -43,8 +34,21 @@ fun App() {
 }
 
 /**
- * ADHD-friendly theme that applies our custom design tokens
+ * Preview version of App that creates its own component
  */
+@Composable
+@Preview
+fun App() {
+    val lifecycle = remember { LifecycleRegistry() }
+    val rootComponent = remember {
+        DefaultAppRootComponent(
+            componentContext = DefaultComponentContext(lifecycle = lifecycle)
+        )
+    }
+
+    App(rootComponent = rootComponent)
+}
+
 @Composable
 private fun AdhdTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

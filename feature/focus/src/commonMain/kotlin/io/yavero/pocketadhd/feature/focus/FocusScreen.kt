@@ -122,7 +122,7 @@ private fun FocusContent(
     LazyColumn(
         modifier = modifier.padding(horizontal = AdhdSpacing.Screen.HorizontalPadding),
         verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceL),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = AdhdSpacing.SpaceL)
+        contentPadding = PaddingValues(vertical = AdhdSpacing.SpaceL)
     ) {
         // Timer Section
         item {
