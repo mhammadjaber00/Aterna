@@ -1,6 +1,7 @@
-package io.yavero.pocketadhd.feature.planner
+package io.yavero.pocketadhd.feature.planner.component
 
 import io.yavero.pocketadhd.core.domain.mvi.MviIntent
+import kotlinx.datetime.Instant
 
 /**
  * Sealed interface representing all possible user intents/actions in the Planner feature.
@@ -80,9 +81,8 @@ sealed interface PlannerIntent : MviIntent {
         val id: String? = null,
         val title: String,
         val description: String = "",
-        val dueAt: kotlinx.datetime.Instant? = null,
+        val dueAt: Instant? = null,
         val estimateMinutes: Int? = null,
-        val priority: Int = 0,
         val tags: List<String> = emptyList()
     ) : PlannerIntent
 
@@ -94,7 +94,7 @@ sealed interface PlannerIntent : MviIntent {
     /**
      * User wants to set a reminder for a task
      */
-    data class SetTaskReminder(val taskId: String, val reminderTime: kotlinx.datetime.Instant) : PlannerIntent
+    data class SetTaskReminder(val taskId: String, val reminderTime: Instant) : PlannerIntent
 
     /**
      * User wants to remove a task reminder

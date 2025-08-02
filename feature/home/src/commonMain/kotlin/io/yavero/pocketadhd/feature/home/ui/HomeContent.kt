@@ -15,6 +15,7 @@ fun HomeContent(
     onQuickMoodCheck: () -> Unit,
     onTaskClick: (String) -> Unit,
     onRoutineClick: (String) -> Unit,
+    onCreateTask: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -42,7 +43,8 @@ fun HomeContent(
         item {
             TasksSection(
                 tasks = uiState.todaysTasks,
-                onTaskClick = onTaskClick
+                onTaskClick = onTaskClick,
+                onCreateTask = onCreateTask
             )
         }
 

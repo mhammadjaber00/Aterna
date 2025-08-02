@@ -63,6 +63,10 @@ class HomeStore(
             is HomeIntent.RoutineClicked -> {
                 _effects.tryEmit(HomeEffect.NavigateToRoutine(intent.routineId))
             }
+
+            HomeIntent.CreateTask -> {
+                _effects.tryEmit(HomeEffect.NavigateToCreateTask)
+            }
         }
     }
 

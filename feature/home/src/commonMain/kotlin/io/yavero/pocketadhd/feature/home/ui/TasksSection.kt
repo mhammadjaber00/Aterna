@@ -18,6 +18,7 @@ import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 fun TasksSection(
     tasks: List<Task>,
     onTaskClick: (String) -> Unit,
+    onCreateTask: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -35,7 +36,7 @@ fun TasksSection(
                 title = "No tasks for today",
                 description = "You're all caught up! Add a new task or take a break.",
                 actionText = "Add Task",
-                onActionClick = { /* TODO: Navigate to add task */ },
+                onActionClick = onCreateTask,
                 icon = Icons.Default.Add
             )
         } else {

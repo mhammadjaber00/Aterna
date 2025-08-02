@@ -20,5 +20,6 @@ interface HomeComponent {
     fun onQuickMoodCheck()
     fun onTaskClick(taskId: String)
     fun onRoutineClick(routineId: String)
+    fun onCreateTask()
     fun onRefresh()
 }

@@ -9,6 +9,10 @@ import io.yavero.pocketadhd.feature.focus.di.focusModule
 import io.yavero.pocketadhd.feature.focus.di.platformFocusModule
 import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
 import io.yavero.pocketadhd.feature.home.presentation.HomeStore
+import io.yavero.pocketadhd.feature.mood.presentation.MoodStore
+import io.yavero.pocketadhd.feature.planner.presentation.PlannerStore
+import io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore
+import io.yavero.pocketadhd.feature.settings.presentation.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,32 +24,45 @@ import org.koin.dsl.module
  * ViewModels module for feature screens
  */
 val viewModelsModule = module {
-    single { HomeStore(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
-    single { FocusStore(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
     single {
-        io.yavero.pocketadhd.feature.mood.presentation.MoodStore(
+        HomeStore(
+            get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single {
+        FocusStore(
+            get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single {
+        MoodStore(
             get(),
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )
     }
     single {
-        io.yavero.pocketadhd.feature.planner.presentation.PlannerStore(
+        PlannerStore(
+            get(),
             get(),
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )
     }
     single {
-        io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore(
+        RoutinesStore(
             get(),
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )
     }
-    single { io.yavero.pocketadhd.feature.settings.presentation.SettingsStore(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)) }
+    single {
+        SettingsStore(
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
 }
 
 /**
  * Android Application class for PocketADHD
- * 
+ *
  * Initializes Koin dependency injection with all necessary modules:
  * - Data layer (repositories, database, encryption)
  * - Notifications (cross-platform local notifications)
@@ -53,25 +70,25 @@ val viewModelsModule = module {
  * - Platform-specific implementations
  */
 class PocketAdhdApplication : Application() {
-    
+
     override fun onCreate() {
         super.onCreate()
-        
+
         System.loadLibrary("sqlcipher")
 
         startKoin {
             androidContext(this@PocketAdhdApplication)
-            
+
             modules(
                 dataModule,
                 platformDataModule,
-                
+
                 notificationsModule,
                 platformNotificationsModule,
 
                 focusModule,
                 platformFocusModule,
-                
+
                 viewModelsModule
             )
         }

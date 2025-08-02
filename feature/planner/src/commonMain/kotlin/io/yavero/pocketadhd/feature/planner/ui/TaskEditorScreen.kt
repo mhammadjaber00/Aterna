@@ -1,96 +1,130 @@
-package io.yavero.pocketadhd.feature.planner
+package io.yavero.pocketadhd.feature.planner.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import io.yavero.pocketadhd.core.designsystem.component.AdhdPrimaryButton
-import io.yavero.pocketadhd.core.designsystem.component.AdhdSecondaryButton
 import io.yavero.pocketadhd.core.domain.model.Subtask
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.planner.presentation.TaskEditorState
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+
 /**
- * Task editor dialog for creating and editing tasks
+ * Task editor screen for creating and editing tasks
  * 
  * ADHD-friendly features:
  * - Clear form structure with generous spacing
  * - Large, accessible input fields
  * - Visual separation between sections
  * - Simple subtask management
- * - Clear save/cancel actions
+ * - Clear save/cancel actions in top bar
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
-fun TaskEditorDialog(
-    task: Task? = null, // null for creating new task
+fun TaskEditorScreen(
+    taskEditorState: TaskEditorState,
     onSave: (Task) -> Unit,
-    onDismiss: () -> Unit,
+    onCancel: () -> Unit,
+    onSetReminder: (String, Instant) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    var title by remember { mutableStateOf(task?.title ?: "") }
-    var notes by remember { mutableStateOf(task?.notes ?: "") }
-    var estimateMinutes by remember { mutableStateOf(task?.estimateMinutes?.toString() ?: "") }
-    var subtasks by remember { mutableStateOf(task?.subtasks ?: emptyList()) }
+    var title by remember { mutableStateOf(taskEditorState.title) }
+    var notes by remember { mutableStateOf(taskEditorState.description) }
+    var estimateMinutes by remember { mutableStateOf(taskEditorState.estimateMinutes?.toString() ?: "") }
+    var subtasks by remember {
+        mutableStateOf(taskEditorState.subtasks.map {
+            Subtask(id = it.id, title = it.title, isDone = it.isDone)
+        })
+    }
     var newSubtaskTitle by remember { mutableStateOf("") }
-    var dueDate by remember { mutableStateOf(task?.dueAt) }
+    var dueDate by remember { mutableStateOf(taskEditorState.dueDate) }
     var showDatePicker by remember { mutableStateOf(false) }
-    
-    val isEditing = task != null
-    val dialogTitle = if (isEditing) "Edit Task" else "Create Task"
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = dialogTitle,
-                style = AdhdTypography.Default.headlineSmall
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf<kotlinx.datetime.LocalDate?>(null) }
+
+    val isEditing = taskEditorState.isEditing
+    val screenTitle = if (isEditing) "Edit Task" else "Create Task"
+    val canSave = title.isNotBlank()
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = screenTitle,
+                        style = AdhdTypography.Default.headlineSmall
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onCancel) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Cancel"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (canSave) {
+                                val now = kotlinx.datetime.Clock.System.now()
+                                val newTask = Task(
+                                    id = taskEditorState.taskId ?: Uuid.random().toString(),
+                                    title = title.trim(),
+                                    notes = notes.trim().takeIf { it.isNotBlank() },
+                                    dueAt = dueDate,
+                                    estimateMinutes = estimateMinutes.toIntOrNull(),
+                                    subtasks = subtasks,
+                                    tags = taskEditorState.tags,
+                                    isDone = false, // New tasks are not done, existing tasks keep their status
+                                    createdAt = if (isEditing) kotlinx.datetime.Clock.System.now() else now, // Use current time for creation
+                                    updatedAt = now
+                                )
+                                onSave(newTask)
+                            }
+                        },
+                        enabled = canSave
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Save task"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        },
-        text = {
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = AdhdSpacing.Screen.HorizontalPadding),
+                verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = AdhdSpacing.SpaceM)
             ) {
                 // Title field
                 item {
@@ -99,7 +133,8 @@ fun TaskEditorDialog(
                         onValueChange = { title = it },
                         label = { Text("Task Title") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = title.isBlank()
                     )
                 }
                 
@@ -152,8 +187,23 @@ fun TaskEditorDialog(
                                             contentDescription = "Select due date"
                                         )
                                     }
-                                    
+
+                                    // Reminder button - only show when due date is set
                                     if (dueDate != null) {
+                                        IconButton(
+                                            onClick = {
+                                                dueDate?.let { date ->
+                                                    val taskId = taskEditorState.taskId ?: "new-task"
+                                                    onSetReminder(taskId, date)
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Notifications,
+                                                contentDescription = "Set reminder"
+                                            )
+                                        }
+                                        
                                         IconButton(onClick = { dueDate = null }) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
@@ -267,45 +317,89 @@ fun TaskEditorDialog(
                         }
                     }
                 }
+
+                // Bottom spacing for better UX
+                item {
+                    Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXL))
+                }
             }
-        },
-        confirmButton = {
-            AdhdPrimaryButton(
-                text = if (isEditing) "Save Changes" else "Create Task",
-                onClick = {
-                    if (title.isNotBlank()) {
-                        val now = kotlinx.datetime.Clock.System.now()
-                        val newTask = Task(
-                            id = task?.id ?: Uuid.random().toString(),
-                            title = title.trim(),
-                            notes = notes.trim().takeIf { it.isNotBlank() },
-                            dueAt = dueDate,
-                            estimateMinutes = estimateMinutes.toIntOrNull(),
-                            subtasks = subtasks,
-                            tags = task?.tags ?: emptyList(),
-                            isDone = task?.isDone ?: false,
-                            createdAt = task?.createdAt ?: now,
-                            updatedAt = now
-                        )
-                        onSave(newTask)
-                    }
-                },
-                enabled = title.isNotBlank()
-            )
-        },
-        dismissButton = {
-            AdhdSecondaryButton(
-                text = "Cancel",
-                onClick = onDismiss
-            )
         }
-    )
-    
-    // TODO: Implement date picker dialog
+    }
+
+    // Material 3 DatePickerDialog
     if (showDatePicker) {
-        // For now, just set a default date (tomorrow)
-        // In a real implementation, you'd show a proper date/time picker
-        dueDate = kotlinx.datetime.Clock.System.now().plus(kotlin.time.Duration.parse("P1D"))
-        showDatePicker = false
+        val datePickerState = rememberDatePickerState()
+
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val instant = Instant.fromEpochMilliseconds(millis)
+                            val localDate = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            selectedDate = localDate
+                            showDatePicker = false
+                            showTimePicker = true // Show time picker after date selection
+                        }
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Material 3 TimePicker for setting reminders
+    if (showTimePicker && selectedDate != null) {
+        val timePickerState = rememberTimePickerState()
+
+        AlertDialog(
+            onDismissRequest = {
+                showTimePicker = false
+                selectedDate = null
+            },
+            title = { Text("Set Time") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedDate?.let { date ->
+                            val localDateTime = kotlinx.datetime.LocalDateTime(
+                                date = date,
+                                time = kotlinx.datetime.LocalTime(
+                                    hour = timePickerState.hour,
+                                    minute = timePickerState.minute
+                                )
+                            )
+                            dueDate = localDateTime.toInstant(TimeZone.currentSystemDefault())
+                            showTimePicker = false
+                            selectedDate = null
+                        }
+                    }
+                ) {
+                    Text("Set")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showTimePicker = false
+                        selectedDate = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

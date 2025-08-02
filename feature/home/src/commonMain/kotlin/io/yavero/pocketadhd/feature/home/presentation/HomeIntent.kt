@@ -33,4 +33,9 @@ sealed interface HomeIntent : MviIntent {
      * User clicked on a specific routine (triggers navigation effect)
      */
     data class RoutineClicked(val routineId: String) : HomeIntent
+
+    /**
+     * User wants to create a new task (triggers navigation effect)
+     */
+    data object CreateTask : HomeIntent
 }

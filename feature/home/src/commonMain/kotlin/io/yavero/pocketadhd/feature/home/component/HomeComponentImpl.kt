@@ -26,6 +26,7 @@ class HomeComponentImpl(
     private val onNavigateToMood: () -> Unit,
     private val onNavigateToTask: (String) -> Unit,
     private val onNavigateToRoutine: (String) -> Unit,
+    private val onNavigateToCreateTask: () -> Unit,
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {}
 ) : HomeComponent, ComponentContext by componentContext {
@@ -66,12 +67,17 @@ class HomeComponentImpl(
         homeStore.process(HomeIntent.Refresh)
     }
 
+    override fun onCreateTask() {
+        homeStore.process(HomeIntent.CreateTask)
+    }
+
     private fun handleEffect(effect: HomeEffect) {
         when (effect) {
-            HomeEffect.NavigateToFocus -> onNavigateToFocus()
-            HomeEffect.NavigateToMood -> onNavigateToMood()
+            is HomeEffect.NavigateToFocus -> onNavigateToFocus()
+            is HomeEffect.NavigateToMood -> onNavigateToMood()
             is HomeEffect.NavigateToTask -> onNavigateToTask(effect.taskId)
             is HomeEffect.NavigateToRoutine -> onNavigateToRoutine(effect.routineId)
+            is HomeEffect.NavigateToCreateTask -> onNavigateToCreateTask()
             is HomeEffect.ShowError -> onShowError(effect.message)
             is HomeEffect.ShowSuccess -> onShowSuccess(effect.message)
         }

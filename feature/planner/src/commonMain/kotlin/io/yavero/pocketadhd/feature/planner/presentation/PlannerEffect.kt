@@ -20,29 +20,14 @@ sealed interface PlannerEffect : MviEffect {
     data class ShowSuccess(val message: String) : PlannerEffect
 
     /**
-     * Show task created confirmation
+     * Generic message with optional action (e.g., undo)
      */
-    data object ShowTaskCreated : PlannerEffect
+    data class ShowMessage(
+        val message: String,
+        val actionLabel: String? = null,
+        val action: (() -> Unit)? = null
+    ) : PlannerEffect
 
-    /**
-     * Show task updated confirmation
-     */
-    data object ShowTaskUpdated : PlannerEffect
-
-    /**
-     * Show task deleted confirmation
-     */
-    data object ShowTaskDeleted : PlannerEffect
-
-    /**
-     * Show task completed confirmation
-     */
-    data object ShowTaskCompleted : PlannerEffect
-
-    /**
-     * Show subtask added confirmation
-     */
-    data object ShowSubtaskAdded : PlannerEffect
 
     /**
      * Show reminder set confirmation
@@ -65,16 +50,6 @@ sealed interface PlannerEffect : MviEffect {
     data class NavigateToFocusSession(val taskId: String) : PlannerEffect
 
     /**
-     * Open task editor
-     */
-    data class OpenTaskEditor(val taskId: String? = null) : PlannerEffect
-
-    /**
-     * Close task editor
-     */
-    data object CloseTaskEditor : PlannerEffect
-
-    /**
      * Vibrate device for feedback
      */
     data object VibrateDevice : PlannerEffect
@@ -83,11 +58,6 @@ sealed interface PlannerEffect : MviEffect {
      * Show task reminder notification
      */
     data class ShowTaskReminder(val taskId: String, val taskTitle: String) : PlannerEffect
-
-    /**
-     * Request notification permission (if needed)
-     */
-    data object RequestNotificationPermission : PlannerEffect
 
     /**
      * Share task details

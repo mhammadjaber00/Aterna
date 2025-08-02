@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.planner
+package io.yavero.pocketadhd.feature.planner.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,12 +16,15 @@ import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.feature.planner.component.PlannerComponent
+import io.yavero.pocketadhd.feature.planner.component.TaskFilter
+import io.yavero.pocketadhd.feature.planner.component.TaskSort
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
  * Planner screen for task management
- * 
+ *
  * ADHD-friendly features:
  * - Clear visual hierarchy with cards
  * - Easy filtering with chips
@@ -37,7 +40,7 @@ fun PlannerScreen(
 ) {
     val uiState by component.uiState.collectAsState()
     var showSortMenu by remember { mutableStateOf(false) }
-    
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -55,7 +58,7 @@ fun PlannerScreen(
                             contentDescription = "Sort tasks"
                         )
                     }
-                    
+
                     DropdownMenu(
                         expanded = showSortMenu,
                         onDismissRequest = { showSortMenu = false }
@@ -85,15 +88,17 @@ fun PlannerScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { component.onCreateTask() },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add task"
-                )
+            if (uiState.tasks.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = { component.onCreateTask() },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add task"
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -108,7 +113,7 @@ fun PlannerScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                
+
                 uiState.error != null -> {
                     ErrorState(
                         error = uiState.error!!,
@@ -116,7 +121,7 @@ fun PlannerScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                
+
                 else -> {
                     PlannerContent(
                         uiState = uiState,
@@ -125,17 +130,9 @@ fun PlannerScreen(
                         onTaskToggle = { taskId -> component.onToggleTaskCompletion(taskId) },
                         onTaskDelete = { taskId -> component.onDeleteTask(taskId) },
                         onToggleShowCompleted = { component.onToggleShowCompleted() },
+                        onCreateTask = { component.onCreateTask() },
                         modifier = Modifier.fillMaxSize()
                     )
-                    
-                    // Task Editor Dialog
-                    if (uiState.taskEditor != null) {
-                        TaskEditorDialog(
-                            task = null, // TODO: Fix this based on taskEditor state
-                            onSave = { task -> component.onSaveTask(task) },
-                            onDismiss = { component.onDismissTaskEditor() }
-                        )
-                    }
                 }
             }
         }
@@ -150,15 +147,15 @@ private fun PlannerContent(
     onTaskToggle: (String) -> Unit,
     onTaskDelete: (String) -> Unit,
     onToggleShowCompleted: () -> Unit,
+    onCreateTask: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.padding(horizontal = AdhdSpacing.Screen.HorizontalPadding),
         verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = AdhdSpacing.SpaceM)
+        contentPadding = PaddingValues(vertical = AdhdSpacing.SpaceM)
     ) {
-        // Filter chips
-        item {
+        stickyHeader {
             FilterSection(
                 currentFilter = uiState.currentFilter,
                 showCompleted = uiState.showCompleted,
@@ -166,7 +163,7 @@ private fun PlannerContent(
                 onToggleShowCompleted = onToggleShowCompleted
             )
         }
-        
+
         // Task count summary
         item {
             TaskSummary(
@@ -175,13 +172,13 @@ private fun PlannerContent(
                 filter = uiState.currentFilter
             )
         }
-        
+
         // Task list
         if (uiState.filteredTasks.isEmpty()) {
             item {
                 EmptyTasksState(
                     filter = uiState.currentFilter,
-                    onCreateTask = { /* TODO: Navigate to create task */ }
+                    onCreateTask = onCreateTask
                 )
             }
         } else {
@@ -218,7 +215,7 @@ private fun FilterSection(
             style = AdhdTypography.Default.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
-        
+
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
         ) {
@@ -229,7 +226,7 @@ private fun FilterSection(
                     onClick = { onFilterChanged(filter) }
                 )
             }
-            
+
             item {
                 AdhdChip(
                     text = "Show Completed",
@@ -266,7 +263,7 @@ private fun TaskSummary(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             if (totalTasks > 0) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -285,6 +282,7 @@ private fun TaskSummary(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskItem(
     task: Task,
@@ -294,13 +292,23 @@ private fun TaskItem(
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.StartToEnd) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+
     val statusColor = when {
         task.isDone -> AdhdColors.Success500
         task.dueAt?.let { it < kotlinx.datetime.Clock.System.now() } == true -> AdhdColors.Error500
         else -> MaterialTheme.colorScheme.primary
     }
-    
+
     val statusText = when {
         task.isDone -> "Completed"
         task.dueAt?.let { it < kotlinx.datetime.Clock.System.now() } == true -> "Overdue"
@@ -309,90 +317,110 @@ private fun TaskItem(
             val localDateTime = dueDate.toLocalDateTime(TimeZone.currentSystemDefault())
             "Due ${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
         }
+
         else -> "No due date"
     }
-    
-    AdhdStatusCard(
-        title = task.title,
-        subtitle = task.notes,
-        status = statusText,
-        statusColor = statusColor,
-        onClick = onClick,
-        modifier = modifier
-    ) {
-        // Subtask progress
-        if (task.subtasks.isNotEmpty()) {
-            val completedSubtasks = task.subtasks.count { it.isDone }
-            Text(
-                text = "$completedSubtasks/${task.subtasks.size} subtasks completed",
-                style = AdhdTypography.StatusText,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXS))
-        }
-        
-        // Time estimate
-        task.estimateMinutes?.let { minutes ->
-            Text(
-                text = "Estimated: ${minutes}min",
-                style = AdhdTypography.StatusText,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXS))
-        }
-        
-        // Tags
-        if (task.tags.isNotEmpty()) {
-            Text(
-                text = task.tags.joinToString(", ") { "#$it" },
-                style = AdhdTypography.StatusText,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(AdhdSpacing.SpaceS))
-        }
-        
-        // Action buttons
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
-        ) {
-            AdhdPrimaryButton(
-                text = if (task.isDone) "Mark Incomplete" else "Mark Complete",
-                onClick = onToggle,
-                icon = Icons.Default.CheckCircle,
-                modifier = Modifier.weight(1f)
-            )
-            
-            IconButton(onClick = { showMenu = true }) {
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            // Background content shown during swipe
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = AdhdSpacing.SpaceM),
+                contentAlignment = Alignment.CenterEnd
+            ) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options"
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete task",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
-            
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
+        },
+        modifier = modifier
+    ) {
+        AdhdStatusCard(
+            title = task.title,
+            subtitle = task.notes,
+            status = statusText,
+            statusColor = statusColor,
+            onClick = onClick
+        ) {
+            // Subtask progress
+            if (task.subtasks.isNotEmpty()) {
+                val completedSubtasks = task.subtasks.count { it.isDone }
+                Text(
+                    text = "$completedSubtasks/${task.subtasks.size} subtasks completed",
+                    style = AdhdTypography.StatusText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXS))
+            }
+
+            // Time estimate
+            task.estimateMinutes?.let { minutes ->
+                Text(
+                    text = "Estimated: ${minutes}min",
+                    style = AdhdTypography.StatusText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(AdhdSpacing.SpaceXS))
+            }
+
+            // Tags
+            if (task.tags.isNotEmpty()) {
+                Text(
+                    text = task.tags.joinToString(", ") { "#$it" },
+                    style = AdhdTypography.StatusText,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(AdhdSpacing.SpaceS))
+            }
+
+            // Action buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceS)
             ) {
-                DropdownMenuItem(
-                    text = { Text("Edit") },
-                    onClick = {
-                        onClick()
-                        showMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                    }
+                AdhdPrimaryButton(
+                    text = if (task.isDone) "Mark Incomplete" else "Mark Complete",
+                    onClick = onToggle,
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.weight(1f)
                 )
-                DropdownMenuItem(
-                    text = { Text("Delete") },
-                    onClick = {
-                        onDelete()
-                        showMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    }
-                )
+
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options"
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            onClick()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            onDelete()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                        }
+                    )
+                }
             }
         }
     }
@@ -411,7 +439,7 @@ private fun EmptyTasksState(
         TaskFilter.UPCOMING -> "No upcoming tasks"
         TaskFilter.NO_DUE_DATE -> "No tasks without due dates"
     }
-    
+
     AdhdEmptyStateCard(
         title = message,
         description = "Create your first task to get started with better organization.",
@@ -458,35 +486,17 @@ private fun ErrorState(
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center
         )
-        
+
         Text(
             text = error,
             style = AdhdTypography.Default.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        
+
         AdhdPrimaryButton(
             text = "Try Again",
             onClick = onRetry
         )
     }
 }
-
-// Extension properties for display names
-private val TaskFilter.displayName: String
-    get() = when (this) {
-        TaskFilter.ALL -> "All Tasks"
-        TaskFilter.TODAY -> "Today"
-        TaskFilter.OVERDUE -> "Overdue"
-        TaskFilter.UPCOMING -> "Upcoming"
-        TaskFilter.NO_DUE_DATE -> "No Due Date"
-    }
-
-private val TaskSort.displayName: String
-    get() = when (this) {
-        TaskSort.DUE_DATE -> "Due Date"
-        TaskSort.CREATED_DATE -> "Created Date"
-        TaskSort.TITLE -> "Title"
-        TaskSort.PRIORITY -> "Priority"
-    }

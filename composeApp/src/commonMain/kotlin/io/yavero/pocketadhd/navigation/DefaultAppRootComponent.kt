@@ -9,7 +9,8 @@ import io.yavero.pocketadhd.feature.home.component.HomeComponentImpl
 import io.yavero.pocketadhd.feature.home.presentation.HomeStore
 import io.yavero.pocketadhd.feature.mood.component.MoodComponentImp
 import io.yavero.pocketadhd.feature.mood.presentation.MoodStore
-import io.yavero.pocketadhd.feature.planner.DefaultPlannerComponent
+import io.yavero.pocketadhd.feature.planner.component.DefaultPlannerComponent
+import io.yavero.pocketadhd.feature.planner.component.DefaultTaskEditorComponent
 import io.yavero.pocketadhd.feature.planner.presentation.PlannerStore
 import io.yavero.pocketadhd.feature.routines.DefaultRoutinesComponent
 import io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore
@@ -48,14 +49,16 @@ class DefaultAppRootComponent(
                     onNavigateToFocus = ::navigateToFocus,
                     onNavigateToMood = ::navigateToMood,
                     onNavigateToTask = { taskId -> navigateToPlanner() },
-                    onNavigateToRoutine = { routineId -> navigateToRoutines() }
+                    onNavigateToRoutine = { routineId -> navigateToRoutines() },
+                    onNavigateToCreateTask = ::navigateToTaskEditor
                 )
             )
 
             is Config.Planner -> AppRootComponent.Child.Planner(
                 DefaultPlannerComponent(
                     componentContext = componentContext,
-                    plannerStore = plannerStore
+                    plannerStore = plannerStore,
+                    onNavigateToTaskEditor = ::navigateToTaskEditor
                 )
             )
 
@@ -86,11 +89,16 @@ class DefaultAppRootComponent(
                     settingsStore = settingsStore
                 )
             )
-        }
 
-    override fun onBackPressed() {
-        navigation.pop()
-    }
+            is Config.TaskEditor -> AppRootComponent.Child.TaskEditor(
+                DefaultTaskEditorComponent(
+                    componentContext = componentContext,
+                    plannerStore = plannerStore,
+                    taskId = config.taskId,
+                    onNavigateBack = { navigation.pop() }
+                )
+            )
+        }
 
     override fun navigateToHome() {
         navigation.bringToFront(Config.Home)
@@ -115,6 +123,10 @@ class DefaultAppRootComponent(
 
     override fun navigateToSettings() {
         navigation.bringToFront(Config.Settings)
+    }
+
+    override fun navigateToTaskEditor(taskId: String?) {
+        navigation.bringToFront(Config.TaskEditor(taskId))
     }
 
 }

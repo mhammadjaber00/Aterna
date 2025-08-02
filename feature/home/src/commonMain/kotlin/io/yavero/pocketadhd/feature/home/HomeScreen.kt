@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.home.ui
+package io.yavero.pocketadhd.feature.home
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 import io.yavero.pocketadhd.feature.home.component.HomeComponent
+import io.yavero.pocketadhd.feature.home.ui.ErrorState
+import io.yavero.pocketadhd.feature.home.ui.HomeContent
+import io.yavero.pocketadhd.feature.home.ui.LoadingState
 
 /**
  * Home screen showing today's overview
@@ -83,6 +86,7 @@ fun HomeScreen(
                         onQuickMoodCheck = { component.onQuickMoodCheck() },
                         onTaskClick = { taskId -> component.onTaskClick(taskId) },
                         onRoutineClick = { routineId -> component.onRoutineClick(routineId) },
+                        onCreateTask = { component.onCreateTask() },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

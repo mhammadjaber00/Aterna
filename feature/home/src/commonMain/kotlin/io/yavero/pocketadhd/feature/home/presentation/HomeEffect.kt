@@ -13,6 +13,7 @@ sealed interface HomeEffect : MviEffect {
     data object NavigateToMood : HomeEffect
     data class NavigateToTask(val taskId: String) : HomeEffect
     data class NavigateToRoutine(val routineId: String) : HomeEffect
+    data object NavigateToCreateTask : HomeEffect
 
     // Error effects
     data class ShowError(val message: String) : HomeEffect

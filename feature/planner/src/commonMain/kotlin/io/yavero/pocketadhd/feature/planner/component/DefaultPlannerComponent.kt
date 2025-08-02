@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.planner
+package io.yavero.pocketadhd.feature.planner.component
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -7,6 +7,7 @@ import io.yavero.pocketadhd.feature.planner.presentation.PlannerState
 import io.yavero.pocketadhd.feature.planner.presentation.PlannerStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.Instant
 
 /**
  * Default implementation of PlannerComponent using MVI pattern
@@ -25,6 +26,7 @@ class DefaultPlannerComponent(
     private val onShowSuccess: (String) -> Unit = {},
     private val onNavigateToTaskDetails: (String) -> Unit = {},
     private val onNavigateToFocusSession: (String) -> Unit = {},
+    private val onNavigateToTaskEditor: (String?) -> Unit = {},
     private val onVibrateDevice: () -> Unit = {}
 ) : PlannerComponent, ComponentContext by componentContext {
 
@@ -47,11 +49,11 @@ class DefaultPlannerComponent(
     }
 
     override fun onCreateTask() {
-        plannerStore.process(PlannerIntent.CreateNewTask)
+        onNavigateToTaskEditor(null)
     }
 
     override fun onEditTask(taskId: String) {
-        plannerStore.process(PlannerIntent.EditTask(taskId))
+        onNavigateToTaskEditor(taskId)
     }
 
     override fun onDeleteTask(taskId: String) {
@@ -78,52 +80,31 @@ class DefaultPlannerComponent(
         plannerStore.process(PlannerIntent.ToggleShowCompleted)
     }
 
-    override fun onSaveTask(task: io.yavero.pocketadhd.core.domain.model.Task) {
-        plannerStore.process(
-            PlannerIntent.SaveTask(
-                id = task.id,
-                title = task.title,
-                description = task.notes ?: "",
-                dueAt = task.dueAt,
-                estimateMinutes = task.estimateMinutes,
-                priority = 0, // Default priority since Task model doesn't have priority field
-                tags = task.tags
-            )
-        )
+
+    override fun onSetTaskReminder(taskId: String, reminderTime: Instant) {
+        plannerStore.process(PlannerIntent.SetTaskReminder(taskId, reminderTime))
     }
 
-    override fun onDismissTaskEditor() {
-        plannerStore.process(PlannerIntent.CancelTaskEditing)
+    override fun onRemoveTaskReminder(taskId: String) {
+        plannerStore.process(PlannerIntent.RemoveTaskReminder(taskId))
     }
 
     private fun handleEffect(effect: PlannerEffect) {
         when (effect) {
             is PlannerEffect.ShowError -> onShowError(effect.message)
             is PlannerEffect.ShowSuccess -> onShowSuccess(effect.message)
-            PlannerEffect.ShowTaskCreated -> onShowSuccess("Task created!")
-            PlannerEffect.ShowTaskUpdated -> onShowSuccess("Task updated!")
-            PlannerEffect.ShowTaskDeleted -> onShowSuccess("Task deleted!")
-            PlannerEffect.ShowTaskCompleted -> onShowSuccess("Task completed!")
-            PlannerEffect.ShowSubtaskAdded -> onShowSuccess("Subtask added!")
+            is PlannerEffect.ShowMessage -> {
+                onShowSuccess(effect.message)
+                // TODO: Handle action if provided (effect.action, effect.actionLabel)
+            }
+
             is PlannerEffect.ShowReminderSet -> onShowSuccess("Reminder set for ${effect.taskTitle}")
             is PlannerEffect.ShowReminderRemoved -> onShowSuccess("Reminder removed for ${effect.taskTitle}")
             is PlannerEffect.NavigateToTaskDetails -> onNavigateToTaskDetails(effect.taskId)
             is PlannerEffect.NavigateToFocusSession -> onNavigateToFocusSession(effect.taskId)
-            is PlannerEffect.OpenTaskEditor -> {
-                // Handle task editor opening if needed
-            }
-
-            PlannerEffect.CloseTaskEditor -> {
-                // Handle task editor closing if needed
-            }
-
             PlannerEffect.VibrateDevice -> onVibrateDevice()
             is PlannerEffect.ShowTaskReminder -> {
                 // Handle task reminder notification if needed
-            }
-
-            PlannerEffect.RequestNotificationPermission -> {
-                // Handle notification permission request if needed
             }
 
             is PlannerEffect.ShareTask -> {

@@ -2,9 +2,8 @@ package io.yavero.pocketadhd.feature.planner.presentation
 
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.mvi.MviMsg
-import io.yavero.pocketadhd.feature.planner.SubtaskItem
-import io.yavero.pocketadhd.feature.planner.TaskFilter
-import io.yavero.pocketadhd.feature.planner.TaskSort
+import io.yavero.pocketadhd.feature.planner.component.TaskFilter
+import io.yavero.pocketadhd.feature.planner.component.TaskSort
 
 /**
  * Sealed interface representing internal messages for state updates in the Planner feature.
@@ -70,37 +69,6 @@ sealed interface PlannerMsg : MviMsg {
     data class TaskCompletionToggled(val taskId: String, val isCompleted: Boolean) : PlannerMsg
 
     /**
-     * Subtask added successfully
-     */
-    data class SubtaskAdded(val taskId: String, val subtask: SubtaskItem) : PlannerMsg
-
-    /**
-     * Subtask completion toggled
-     */
-    data class SubtaskCompletionToggled(val taskId: String, val subtaskId: String, val isCompleted: Boolean) :
-        PlannerMsg
-
-    /**
-     * Subtask deleted successfully
-     */
-    data class SubtaskDeleted(val taskId: String, val subtaskId: String) : PlannerMsg
-
-    /**
-     * Task editor opened
-     */
-    data class TaskEditorOpened(val task: Task? = null) : PlannerMsg
-
-    /**
-     * Task editor closed
-     */
-    data object TaskEditorClosed : PlannerMsg
-
-    /**
-     * Task editor state updated
-     */
-    data class TaskEditorUpdated(val editorState: TaskEditorState) : PlannerMsg
-
-    /**
      * Task reminder set successfully
      */
     data class TaskReminderSet(val taskId: String, val reminderTime: kotlinx.datetime.Instant) : PlannerMsg
@@ -119,9 +87,4 @@ sealed interface PlannerMsg : MviMsg {
      * Error occurred
      */
     data class Error(val message: String) : PlannerMsg
-
-    /**
-     * Task editor error
-     */
-    data class TaskEditorError(val message: String) : PlannerMsg
 }

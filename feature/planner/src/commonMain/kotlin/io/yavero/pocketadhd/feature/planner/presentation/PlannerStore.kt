@@ -7,14 +7,15 @@ import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.TaskRepository
-import io.yavero.pocketadhd.feature.planner.PlannerIntent
-import io.yavero.pocketadhd.feature.planner.SubtaskItem
-import io.yavero.pocketadhd.feature.planner.TaskFilter
-import io.yavero.pocketadhd.feature.planner.TaskSort
+import io.yavero.pocketadhd.core.notifications.NotificationScheduler
+import io.yavero.pocketadhd.feature.planner.component.PlannerIntent
+import io.yavero.pocketadhd.feature.planner.component.TaskFilter
+import io.yavero.pocketadhd.feature.planner.component.TaskSort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -31,6 +32,7 @@ import kotlin.uuid.Uuid
  */
 class PlannerStore(
     private val taskRepository: TaskRepository,
+    private val notificationScheduler: NotificationScheduler,
     private val scope: CoroutineScope
 ) : MviStore<PlannerIntent, PlannerState, PlannerEffect> {
 
@@ -40,8 +42,20 @@ class PlannerStore(
     private val _effects = createEffectsFlow<PlannerEffect>()
     override val effects: SharedFlow<PlannerEffect> = _effects
 
+    // Debounced search query flow
+    private val _searchQuery = MutableStateFlow("")
+    
     init {
         load()
+
+        // Set up debounced search
+        _searchQuery
+            .debounce(300.milliseconds)
+            .onEach { query ->
+                reduce(PlannerMsg.SearchQueryUpdated(query, query.isNotBlank()))
+                applyFiltersAndSorting()
+            }
+            .launchIn(scope)
     }
 
     override fun process(intent: PlannerIntent) {
@@ -49,8 +63,7 @@ class PlannerStore(
             PlannerIntent.Refresh -> load()
 
             PlannerIntent.CreateNewTask -> {
-                reduce(PlannerMsg.TaskEditorOpened())
-                _effects.tryEmit(PlannerEffect.OpenTaskEditor())
+                // Task creation will be handled by navigation
             }
 
             is PlannerIntent.EditTask -> {
@@ -102,8 +115,7 @@ class PlannerStore(
             }
 
             PlannerIntent.CancelTaskEditing -> {
-                reduce(PlannerMsg.TaskEditorClosed)
-                _effects.tryEmit(PlannerEffect.CloseTaskEditor)
+                // Task editing cancellation will be handled by navigation
             }
 
             is PlannerIntent.SetTaskReminder -> {
@@ -142,8 +154,7 @@ class PlannerStore(
     private fun editTask(taskId: String) {
         val task = _state.value.tasks.find { it.id == taskId }
         if (task != null) {
-            reduce(PlannerMsg.TaskEditorOpened(task))
-            _effects.tryEmit(PlannerEffect.OpenTaskEditor(taskId))
+            // Task editing will be handled by navigation
         } else {
             _effects.tryEmit(PlannerEffect.ShowError("Task not found"))
         }
@@ -162,7 +173,7 @@ class PlannerStore(
                     reduce(PlannerMsg.TaskCompletionToggled(taskId, updatedTask.isDone))
 
                     if (updatedTask.isDone) {
-                        _effects.tryEmit(PlannerEffect.ShowTaskCompleted)
+                        _effects.tryEmit(PlannerEffect.ShowMessage("Task completed!"))
                         _effects.tryEmit(PlannerEffect.VibrateDevice)
                     }
 
@@ -181,7 +192,7 @@ class PlannerStore(
             try {
                 taskRepository.deleteTask(taskId)
                 reduce(PlannerMsg.TaskDeleted(taskId))
-                _effects.tryEmit(PlannerEffect.ShowTaskDeleted)
+                _effects.tryEmit(PlannerEffect.ShowMessage("Task deleted!"))
 
                 // Reload to get fresh data
                 load()
@@ -211,14 +222,7 @@ class PlannerStore(
 
                     taskRepository.updateTask(updatedTask)
 
-                    val subtaskItem = SubtaskItem(
-                        id = newSubtask.id,
-                        title = newSubtask.title,
-                        isDone = newSubtask.isDone
-                    )
-
-                    reduce(PlannerMsg.SubtaskAdded(taskId, subtaskItem))
-                    _effects.tryEmit(PlannerEffect.ShowSubtaskAdded)
+                    _effects.tryEmit(PlannerEffect.ShowMessage("Subtask added!"))
 
                     // Reload to get fresh data
                     load()
@@ -250,10 +254,6 @@ class PlannerStore(
 
                     taskRepository.updateTask(updatedTask)
 
-                    val toggledSubtask = updatedSubtasks.find { it.id == subtaskId }
-                    if (toggledSubtask != null) {
-                        reduce(PlannerMsg.SubtaskCompletionToggled(taskId, subtaskId, toggledSubtask.isDone))
-                    }
 
                     // Reload to get fresh data
                     load()
@@ -278,7 +278,6 @@ class PlannerStore(
                     )
 
                     taskRepository.updateTask(updatedTask)
-                    reduce(PlannerMsg.SubtaskDeleted(taskId, subtaskId))
 
                     // Reload to get fresh data
                     load()
@@ -301,13 +300,11 @@ class PlannerStore(
     }
 
     private fun searchTasks(query: String) {
-        reduce(PlannerMsg.SearchQueryUpdated(query, query.isNotBlank()))
-        applyFiltersAndSorting()
+        _searchQuery.value = query
     }
 
     private fun clearSearch() {
-        reduce(PlannerMsg.SearchQueryUpdated("", false))
-        applyFiltersAndSorting()
+        _searchQuery.value = ""
     }
 
     private fun toggleShowCompleted() {
@@ -355,22 +352,18 @@ class PlannerStore(
                 if (intent.id != null) {
                     taskRepository.updateTask(task)
                     reduce(PlannerMsg.TaskUpdated(task))
-                    _effects.tryEmit(PlannerEffect.ShowTaskUpdated)
+                    _effects.tryEmit(PlannerEffect.ShowMessage("Task updated!"))
                 } else {
                     taskRepository.insertTask(task)
                     reduce(PlannerMsg.TaskCreated(task))
-                    _effects.tryEmit(PlannerEffect.ShowTaskCreated)
+                    _effects.tryEmit(PlannerEffect.ShowMessage("Task created!"))
                 }
-
-                reduce(PlannerMsg.TaskEditorClosed)
-                _effects.tryEmit(PlannerEffect.CloseTaskEditor)
 
                 // Reload to get fresh data
                 load()
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(PlannerEffect.ShowError(appError.getUserMessage()))
-                reduce(PlannerMsg.TaskEditorError(appError.getUserMessage()))
             }
         }
     }
@@ -378,12 +371,19 @@ class PlannerStore(
     private fun setTaskReminder(taskId: String, reminderTime: kotlinx.datetime.Instant) {
         scope.launch {
             try {
-                // Implementation would depend on notification system
-                // For now, just show confirmation
                 val task = _state.value.tasks.find { it.id == taskId }
                 if (task != null) {
+                    // Schedule the actual notification
+                    notificationScheduler.scheduleTaskReminder(
+                        taskId = taskId,
+                        taskTitle = task.title,
+                        reminderTime = reminderTime
+                    )
+                    
                     reduce(PlannerMsg.TaskReminderSet(taskId, reminderTime))
                     _effects.tryEmit(PlannerEffect.ShowReminderSet(task.title, reminderTime))
+                } else {
+                    _effects.tryEmit(PlannerEffect.ShowError("Task not found"))
                 }
             } catch (e: Exception) {
                 val appError = e.toAppError()
@@ -395,12 +395,15 @@ class PlannerStore(
     private fun removeTaskReminder(taskId: String) {
         scope.launch {
             try {
-                // Implementation would depend on notification system
-                // For now, just show confirmation
                 val task = _state.value.tasks.find { it.id == taskId }
                 if (task != null) {
+                    // Cancel the actual notification
+                    notificationScheduler.cancelTaskReminder(taskId)
+                    
                     reduce(PlannerMsg.TaskReminderRemoved(taskId))
                     _effects.tryEmit(PlannerEffect.ShowReminderRemoved(task.title))
+                } else {
+                    _effects.tryEmit(PlannerEffect.ShowError("Task not found"))
                 }
             } catch (e: Exception) {
                 val appError = e.toAppError()
@@ -412,20 +415,24 @@ class PlannerStore(
     private fun applyFiltersAndSorting() {
         val currentState = _state.value
         val tasks = currentState.tasks
+        val (filteredTasks, stats) = applyFiltersAndSortingToTasks(tasks, currentState)
+        reduce(PlannerMsg.TasksFiltered(filteredTasks, stats))
+    }
 
+    private fun applyFiltersAndSortingToTasks(tasks: List<Task>, state: PlannerState): Pair<List<Task>, TaskStats> {
         // Apply search filter first
-        val searchFiltered = if (currentState.searchQuery.isBlank()) {
+        val searchFiltered = if (state.searchQuery.isBlank()) {
             tasks
         } else {
             tasks.filter { task ->
-                task.title.contains(currentState.searchQuery, ignoreCase = true) ||
-                        (task.notes?.contains(currentState.searchQuery, ignoreCase = true) == true) ||
-                        task.tags.any { it.contains(currentState.searchQuery, ignoreCase = true) }
+                task.title.contains(state.searchQuery, ignoreCase = true) ||
+                        (task.notes?.contains(state.searchQuery, ignoreCase = true) == true) ||
+                        task.tags.any { it.contains(state.searchQuery, ignoreCase = true) }
             }
         }
 
         // Apply main filter
-        val filtered = when (currentState.currentFilter) {
+        val filtered = when (state.currentFilter) {
             TaskFilter.ALL -> searchFiltered
             TaskFilter.TODAY -> getTodaysTasks(searchFiltered)
             TaskFilter.OVERDUE -> getOverdueTasks(searchFiltered)
@@ -434,17 +441,16 @@ class PlannerStore(
         }
 
         // Apply sorting
-        val sorted = when (currentState.currentSort) {
+        val sorted = when (state.currentSort) {
             TaskSort.DUE_DATE -> filtered.sortedWith(compareBy(nullsLast()) { it.dueAt })
             TaskSort.CREATED_DATE -> filtered.sortedByDescending { it.createdAt }
             TaskSort.TITLE -> filtered.sortedBy { it.title.lowercase() }
-            TaskSort.PRIORITY -> filtered.sortedByDescending { it.createdAt } // Fallback to created date since no priority field
         }
 
         // Calculate statistics
         val stats = calculateTaskStats(tasks)
 
-        reduce(PlannerMsg.TasksFiltered(sorted, stats))
+        return Pair(sorted, stats)
     }
 
     private fun getTodaysTasks(tasks: List<Task>): List<Task> {
@@ -532,50 +538,47 @@ class PlannerStore(
                     isSearchActive = msg.isActive
                 )
 
-                is PlannerMsg.TaskCreated -> currentState.copy(
-                    tasks = currentState.tasks + msg.task
-                )
-
-                is PlannerMsg.TaskUpdated -> currentState.copy(
-                    tasks = currentState.tasks.map { if (it.id == msg.task.id) msg.task else it }
-                )
-
-                is PlannerMsg.TaskDeleted -> currentState.copy(
-                    tasks = currentState.tasks.filter { it.id != msg.taskId }
-                )
-
-                is PlannerMsg.TaskCompletionToggled -> currentState.copy(
-                    tasks = currentState.tasks.map { task ->
-                        if (task.id == msg.taskId) task.copy(isDone = msg.isCompleted) else task
-                    }
-                )
-
-                is PlannerMsg.TaskEditorOpened -> {
-                    val editorState = if (msg.task != null) {
-                        TaskEditorState(
-                            isEditing = true,
-                            taskId = msg.task.id,
-                            title = msg.task.title,
-                            description = msg.task.notes ?: "",
-                            dueDate = msg.task.dueAt,
-                            estimateMinutes = msg.task.estimateMinutes,
-                            priority = 0, // Default priority since Task model doesn't have this field
-                            tags = msg.task.tags,
-                            canSave = msg.task.title.isNotBlank()
-                        )
-                    } else {
-                        TaskEditorState()
-                    }
-                    currentState.copy(taskEditor = editorState)
+                is PlannerMsg.TaskCreated -> {
+                    val updatedTasks = currentState.tasks + msg.task
+                    val (filteredTasks, stats) = applyFiltersAndSortingToTasks(updatedTasks, currentState)
+                    currentState.copy(
+                        tasks = updatedTasks,
+                        filteredTasks = filteredTasks,
+                        taskStats = stats
+                    )
                 }
 
-                PlannerMsg.TaskEditorClosed -> currentState.copy(
-                    taskEditor = null
-                )
+                is PlannerMsg.TaskUpdated -> {
+                    val updatedTasks = currentState.tasks.map { if (it.id == msg.task.id) msg.task else it }
+                    val (filteredTasks, stats) = applyFiltersAndSortingToTasks(updatedTasks, currentState)
+                    currentState.copy(
+                        tasks = updatedTasks,
+                        filteredTasks = filteredTasks,
+                        taskStats = stats
+                    )
+                }
 
-                is PlannerMsg.TaskEditorUpdated -> currentState.copy(
-                    taskEditor = msg.editorState
-                )
+                is PlannerMsg.TaskDeleted -> {
+                    val updatedTasks = currentState.tasks.filter { it.id != msg.taskId }
+                    val (filteredTasks, stats) = applyFiltersAndSortingToTasks(updatedTasks, currentState)
+                    currentState.copy(
+                        tasks = updatedTasks,
+                        filteredTasks = filteredTasks,
+                        taskStats = stats
+                    )
+                }
+
+                is PlannerMsg.TaskCompletionToggled -> {
+                    val updatedTasks = currentState.tasks.map { task ->
+                        if (task.id == msg.taskId) task.copy(isDone = msg.isCompleted) else task
+                    }
+                    val (filteredTasks, stats) = applyFiltersAndSortingToTasks(updatedTasks, currentState)
+                    currentState.copy(
+                        tasks = updatedTasks,
+                        filteredTasks = filteredTasks,
+                        taskStats = stats
+                    )
+                }
 
                 is PlannerMsg.ShowCompletedToggled -> currentState.copy(
                     showCompleted = msg.showCompleted
@@ -586,14 +589,7 @@ class PlannerStore(
                     error = msg.message
                 )
 
-                is PlannerMsg.TaskEditorError -> currentState.copy(
-                    taskEditor = currentState.taskEditor?.copy(error = msg.message)
-                )
-
                 // Handle other messages that don't directly change state
-                is PlannerMsg.SubtaskAdded,
-                is PlannerMsg.SubtaskCompletionToggled,
-                is PlannerMsg.SubtaskDeleted,
                 is PlannerMsg.TaskReminderSet,
                 is PlannerMsg.TaskReminderRemoved -> currentState
             }

@@ -1,5 +1,6 @@
 package io.yavero.pocketadhd.ui
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,23 +9,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.pocketadhd.feature.focus.component.FocusComponent
 import io.yavero.pocketadhd.feature.home.component.HomeComponent
 import io.yavero.pocketadhd.feature.mood.component.MoodComponent
-import io.yavero.pocketadhd.feature.planner.PlannerComponent
+import io.yavero.pocketadhd.feature.planner.component.PlannerComponent
+import io.yavero.pocketadhd.feature.planner.ui.TaskEditorScreen
 import io.yavero.pocketadhd.feature.routines.RoutinesComponent
 import io.yavero.pocketadhd.feature.settings.SettingsScreen
 import io.yavero.pocketadhd.navigation.AppRootComponent
 import io.yavero.pocketadhd.feature.focus.FocusScreen as FeatureFocusScreen
-import io.yavero.pocketadhd.feature.home.ui.HomeScreen as FeatureHomeScreen
+import io.yavero.pocketadhd.feature.home.HomeScreen as FeatureHomeScreen
 import io.yavero.pocketadhd.feature.mood.MoodScreen as FeatureMoodScreen
-import io.yavero.pocketadhd.feature.planner.PlannerScreen as FeaturePlannerScreen
+import io.yavero.pocketadhd.feature.planner.ui.PlannerScreen as FeaturePlannerScreen
 import io.yavero.pocketadhd.feature.routines.RoutinesScreen as FeatureRoutineScreen
 
 /**
@@ -76,7 +81,12 @@ fun AppContent(
         ) {
             Children(
                 stack = childStack,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                animation = stackAnimation {
+                    fade(
+                        animationSpec = tween(durationMillis = 240)
+                    )
+                }
             ) {
                 when (val instance = it.instance) {
                     is AppRootComponent.Child.Home -> HomeScreen(component = instance.component)
@@ -85,6 +95,7 @@ fun AppContent(
                     is AppRootComponent.Child.Routines -> RoutinesScreen(component = instance.component)
                     is AppRootComponent.Child.Mood -> MoodScreen(component = instance.component)
                     is AppRootComponent.Child.Settings -> SettingsScreen(component = instance.component)
+                    is AppRootComponent.Child.TaskEditor -> TaskEditorScreen(component = instance.component)
                 }
             }
         }
@@ -114,4 +125,15 @@ private fun RoutinesScreen(component: RoutinesComponent) {
 @Composable
 private fun MoodScreen(component: MoodComponent) {
     FeatureMoodScreen(component = component)
+}
+
+@Composable
+private fun TaskEditorScreen(component: io.yavero.pocketadhd.feature.planner.component.TaskEditorScreenComponent) {
+    val uiState by component.uiState.collectAsState()
+    TaskEditorScreen(
+        taskEditorState = uiState,
+        onSave = component::onSaveTask,
+        onCancel = component::onCancel,
+        onSetReminder = component::onSetReminder
+    )
 }

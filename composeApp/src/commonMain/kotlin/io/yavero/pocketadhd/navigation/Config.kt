@@ -27,4 +27,7 @@ sealed interface Config {
 
     @Serializable
     data object Settings : Config
+
+    @Serializable
+    data class TaskEditor(val taskId: String? = null) : Config
 }
