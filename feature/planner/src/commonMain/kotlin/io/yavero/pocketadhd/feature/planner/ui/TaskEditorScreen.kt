@@ -2,7 +2,6 @@ package io.yavero.pocketadhd.feature.planner.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -10,12 +9,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.unit.dp
 import io.yavero.pocketadhd.core.domain.model.Subtask
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
-import io.yavero.pocketadhd.feature.planner.presentation.TaskEditorState
+import io.yavero.pocketadhd.feature.planner.presentation.planner.TaskEditorState
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -26,7 +27,7 @@ import kotlin.uuid.Uuid
 
 /**
  * Task editor screen for creating and editing tasks
- * 
+ *
  * ADHD-friendly features:
  * - Clear form structure with generous spacing
  * - Large, accessible input fields
@@ -45,7 +46,7 @@ fun TaskEditorScreen(
 ) {
     var title by remember { mutableStateOf(taskEditorState.title) }
     var notes by remember { mutableStateOf(taskEditorState.description) }
-    var estimateMinutes by remember { mutableStateOf(taskEditorState.estimateMinutes?.toString() ?: "") }
+    var estimateMinutes by remember { mutableStateOf(taskEditorState.estimateMinutes ?: 0) }
     var subtasks by remember {
         mutableStateOf(taskEditorState.subtasks.map {
             Subtask(id = it.id, title = it.title, isDone = it.isDone)
@@ -55,7 +56,13 @@ fun TaskEditorScreen(
     var dueDate by remember { mutableStateOf(taskEditorState.dueDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showDurationPicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<kotlinx.datetime.LocalDate?>(null) }
+
+    val focusRequester = remember { FocusRequester() }
+    var userInteracted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     val isEditing = taskEditorState.isEditing
     val screenTitle = if (isEditing) "Edit Task" else "Create Task"
@@ -89,7 +96,7 @@ fun TaskEditorScreen(
                                     title = title.trim(),
                                     notes = notes.trim().takeIf { it.isNotBlank() },
                                     dueAt = dueDate,
-                                    estimateMinutes = estimateMinutes.toIntOrNull(),
+                                    estimateMinutes = if (estimateMinutes > 0) estimateMinutes else null,
                                     subtasks = subtasks,
                                     tags = taskEditorState.tags,
                                     isDone = false, // New tasks are not done, existing tasks keep their status
@@ -130,14 +137,19 @@ fun TaskEditorScreen(
                 item {
                     OutlinedTextField(
                         value = title,
-                        onValueChange = { title = it },
+                        onValueChange = {
+                            title = it
+                            userInteracted = true
+                        },
                         label = { Text("Task Title") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
                         singleLine = true,
-                        isError = title.isBlank()
+                        isError = userInteracted && title.isBlank()
                     )
                 }
-                
+
                 // Notes field
                 item {
                     OutlinedTextField(
@@ -149,19 +161,61 @@ fun TaskEditorScreen(
                         maxLines = 4
                     )
                 }
-                
-                // Estimate field
+
+                // Estimate field with DurationPickerSheet
                 item {
-                    OutlinedTextField(
-                        value = estimateMinutes,
-                        onValueChange = { estimateMinutes = it },
-                        label = { Text("Estimate (minutes)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(AdhdSpacing.SpaceM)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Time Estimate",
+                                    style = AdhdTypography.Default.titleMedium
+                                )
+
+                                OutlinedButton(
+                                    onClick = { showDurationPicker = true }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(AdhdSpacing.SpaceXS))
+                                    Text(
+                                        text = if (estimateMinutes > 0) {
+                                            "${estimateMinutes / 60}h ${estimateMinutes % 60}m"
+                                        } else {
+                                            "Set estimate"
+                                        }
+                                    )
+                                }
+                            }
+
+                            if (estimateMinutes > 0) {
+                                Text(
+                                    text = "$estimateMinutes minutes total",
+                                    style = AdhdTypography.Default.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Text(
+                                    text = "No estimate set",
+                                    style = AdhdTypography.Default.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
-                
+
                 // Due date section
                 item {
                     Card(
@@ -179,7 +233,7 @@ fun TaskEditorScreen(
                                     text = "Due Date",
                                     style = AdhdTypography.Default.titleMedium
                                 )
-                                
+
                                 Row {
                                     IconButton(onClick = { showDatePicker = true }) {
                                         Icon(
@@ -203,7 +257,7 @@ fun TaskEditorScreen(
                                                 contentDescription = "Set reminder"
                                             )
                                         }
-                                        
+
                                         IconButton(onClick = { dueDate = null }) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
@@ -213,7 +267,7 @@ fun TaskEditorScreen(
                                     }
                                 }
                             }
-                            
+
                             dueDate?.let { date ->
                                 val localDateTime = date.toLocalDateTime(TimeZone.currentSystemDefault())
                                 Text(
@@ -229,7 +283,7 @@ fun TaskEditorScreen(
                         }
                     }
                 }
-                
+
                 // Subtasks section
                 item {
                     Card(
@@ -242,9 +296,9 @@ fun TaskEditorScreen(
                                 text = "Subtasks",
                                 style = AdhdTypography.Default.titleMedium
                             )
-                            
+
                             Spacer(modifier = Modifier.height(AdhdSpacing.SpaceS))
-                            
+
                             // Add new subtask
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -257,9 +311,9 @@ fun TaskEditorScreen(
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(AdhdSpacing.SpaceS))
-                                
+
                                 IconButton(
                                     onClick = {
                                         if (newSubtaskTitle.isNotBlank()) {
@@ -278,11 +332,11 @@ fun TaskEditorScreen(
                                     )
                                 }
                             }
-                            
+
                             // Existing subtasks
                             subtasks.forEach { subtask ->
                                 Spacer(modifier = Modifier.height(AdhdSpacing.SpaceS))
-                                
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -290,18 +344,18 @@ fun TaskEditorScreen(
                                     Checkbox(
                                         checked = subtask.isDone,
                                         onCheckedChange = { checked ->
-                                            subtasks = subtasks.map { 
-                                                if (it.id == subtask.id) it.copy(isDone = checked) else it 
+                                            subtasks = subtasks.map {
+                                                if (it.id == subtask.id) it.copy(isDone = checked) else it
                                             }
                                         }
                                     )
-                                    
+
                                     Text(
                                         text = subtask.title,
                                         modifier = Modifier.weight(1f),
                                         style = AdhdTypography.Default.bodyMedium
                                     )
-                                    
+
                                     IconButton(
                                         onClick = {
                                             subtasks = subtasks.filter { it.id != subtask.id }
@@ -324,6 +378,17 @@ fun TaskEditorScreen(
                 }
             }
         }
+
+        // DurationPickerSheet
+        DurationPickerSheet(
+            isVisible = showDurationPicker,
+            initialMinutes = estimateMinutes,
+            onDismiss = { showDurationPicker = false },
+            onDurationSelected = { minutes ->
+                estimateMinutes = minutes
+                showDurationPicker = false
+            }
+        )
     }
 
     // Material 3 DatePickerDialog

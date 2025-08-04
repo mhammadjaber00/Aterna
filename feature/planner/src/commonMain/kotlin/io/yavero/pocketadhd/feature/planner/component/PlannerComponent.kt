@@ -1,6 +1,7 @@
 package io.yavero.pocketadhd.feature.planner.component
 
-import io.yavero.pocketadhd.feature.planner.presentation.PlannerState
+import io.yavero.pocketadhd.feature.planner.presentation.planner.PlannerState
+import io.yavero.pocketadhd.feature.planner.presentation.task.TasksState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Instant
 
@@ -17,7 +18,9 @@ import kotlinx.datetime.Instant
  */
 interface PlannerComponent {
     val uiState: StateFlow<PlannerState>
-    
+    val tasksState: StateFlow<TasksState>
+
+    // Original PlannerStore methods
     fun onCreateTask()
     fun onEditTask(taskId: String)
     fun onDeleteTask(taskId: String)
@@ -28,6 +31,19 @@ interface PlannerComponent {
     fun onToggleShowCompleted()
     fun onSetTaskReminder(taskId: String, reminderTime: Instant)
     fun onRemoveTaskReminder(taskId: String)
+
+    // New TasksStore methods
+    fun onTaskToggleExpanded(taskId: String)
+    fun onTaskToggleSelection(taskId: String)
+    fun onTaskStartFocus(taskId: String)
+    fun onTaskSelectAll()
+    fun onTaskClearSelection()
+    fun onTaskBulkComplete()
+    fun onTaskBulkDelete()
+    fun onSubtaskToggle(taskId: String, subtaskId: String)
+    fun onSubtaskAdd(taskId: String, title: String)
+    fun onUndoDelete()
+    fun onSnackbarDismissed()
 }
 
 enum class TaskFilter(val displayName: String) {

@@ -17,7 +17,7 @@ sealed interface Config {
     data object Planner : Config
 
     @Serializable
-    data object Focus : Config
+    data class Focus(val taskId: String, val estimateMinutes: Int) : Config
 
     @Serializable
     data object Routines : Config

@@ -10,7 +10,8 @@ import io.yavero.pocketadhd.feature.focus.di.platformFocusModule
 import io.yavero.pocketadhd.feature.focus.presentation.FocusStore
 import io.yavero.pocketadhd.feature.home.presentation.HomeStore
 import io.yavero.pocketadhd.feature.mood.presentation.MoodStore
-import io.yavero.pocketadhd.feature.planner.presentation.PlannerStore
+import io.yavero.pocketadhd.feature.planner.presentation.planner.PlannerStore
+import io.yavero.pocketadhd.feature.planner.presentation.task.TasksStore
 import io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore
 import io.yavero.pocketadhd.feature.settings.presentation.SettingsStore
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +44,12 @@ val viewModelsModule = module {
     single {
         PlannerStore(
             get(),
+            get(),
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        )
+    }
+    single {
+        TasksStore(
             get(),
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )

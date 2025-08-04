@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.planner.presentation
+package io.yavero.pocketadhd.feature.planner.presentation.planner
 
 import io.yavero.pocketadhd.core.domain.error.getUserMessage
 import io.yavero.pocketadhd.core.domain.error.toAppError
@@ -8,7 +8,6 @@ import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.TaskRepository
 import io.yavero.pocketadhd.core.notifications.NotificationScheduler
-import io.yavero.pocketadhd.feature.planner.component.PlannerIntent
 import io.yavero.pocketadhd.feature.planner.component.TaskFilter
 import io.yavero.pocketadhd.feature.planner.component.TaskSort
 import kotlinx.coroutines.CoroutineScope
@@ -368,7 +367,7 @@ class PlannerStore(
         }
     }
 
-    private fun setTaskReminder(taskId: String, reminderTime: kotlinx.datetime.Instant) {
+    private fun setTaskReminder(taskId: String, reminderTime: Instant) {
         scope.launch {
             try {
                 val task = _state.value.tasks.find { it.id == taskId }

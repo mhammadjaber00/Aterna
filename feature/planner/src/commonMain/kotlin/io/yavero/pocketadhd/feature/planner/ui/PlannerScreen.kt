@@ -19,6 +19,8 @@ import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 import io.yavero.pocketadhd.feature.planner.component.PlannerComponent
 import io.yavero.pocketadhd.feature.planner.component.TaskFilter
 import io.yavero.pocketadhd.feature.planner.component.TaskSort
+import io.yavero.pocketadhd.feature.planner.presentation.planner.PlannerState
+import io.yavero.pocketadhd.feature.planner.presentation.task.TasksState
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -39,53 +41,80 @@ fun PlannerScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by component.uiState.collectAsState()
+    val tasksState by component.tasksState.collectAsState()
     var showSortMenu by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Handle snackbar for undo functionality
+    LaunchedEffect(tasksState.snackbar) {
+        tasksState.snackbar?.let { snackbarData ->
+            val result = snackbarHostState.showSnackbar(
+                message = snackbarData.message,
+                actionLabel = snackbarData.actionLabel,
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                snackbarData.action?.invoke()
+            }
+            component.onSnackbarDismissed()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Tasks",
-                        style = AdhdTypography.Default.headlineMedium
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { showSortMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = "Sort tasks"
+            if (tasksState.selectionMode) {
+                ContextualTopBar(
+                    selectedCount = tasksState.selectedTasks.size,
+                    onBulkComplete = { component.onTaskBulkComplete() },
+                    onBulkDelete = { component.onTaskBulkDelete() },
+                    onClearSelection = { component.onTaskClearSelection() }
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Tasks",
+                            style = AdhdTypography.Default.headlineMedium
                         )
-                    }
-
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false }
-                    ) {
-                        TaskSort.entries.forEach { sort ->
-                            DropdownMenuItem(
-                                text = { Text(sort.displayName) },
-                                onClick = {
-                                    component.onSortChanged(sort)
-                                    showSortMenu = false
-                                }
+                    },
+                    actions = {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Sort tasks"
                             )
                         }
-                    }
 
-                    IconButton(onClick = { component.onRefresh() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            TaskSort.entries.forEach { sort ->
+                                DropdownMenuItem(
+                                    text = { Text(sort.displayName) },
+                                    onClick = {
+                                        component.onSortChanged(sort)
+                                        showSortMenu = false
+                                    }
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = { component.onRefresh() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
+            }
         },
         floatingActionButton = {
             if (uiState.tasks.isNotEmpty()) {
@@ -125,12 +154,18 @@ fun PlannerScreen(
                 else -> {
                     PlannerContent(
                         uiState = uiState,
+                        tasksState = tasksState,
                         onFilterChanged = { filter -> component.onFilterChanged(filter) },
-                        onTaskClick = { taskId -> component.onEditTask(taskId) },
-                        onTaskToggle = { taskId -> component.onToggleTaskCompletion(taskId) },
-                        onTaskDelete = { taskId -> component.onDeleteTask(taskId) },
                         onToggleShowCompleted = { component.onToggleShowCompleted() },
                         onCreateTask = { component.onCreateTask() },
+                        onTaskToggleExpanded = { taskId -> component.onTaskToggleExpanded(taskId) },
+                        onTaskToggleSelection = { taskId -> component.onTaskToggleSelection(taskId) },
+                        onTaskToggleComplete = { taskId -> component.onToggleTaskCompletion(taskId) },
+                        onTaskStartFocus = { taskId -> component.onTaskStartFocus(taskId) },
+                        onTaskDelete = { taskId -> component.onDeleteTask(taskId) },
+                        onTaskEdit = { taskId -> component.onEditTask(taskId) },
+                        onSubtaskToggle = { taskId, subtaskId -> component.onSubtaskToggle(taskId, subtaskId) },
+                        onSubtaskAdd = { taskId, title -> component.onSubtaskAdd(taskId, title) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -141,13 +176,19 @@ fun PlannerScreen(
 
 @Composable
 private fun PlannerContent(
-    uiState: io.yavero.pocketadhd.feature.planner.presentation.PlannerState,
+    uiState: PlannerState,
+    tasksState: TasksState,
     onFilterChanged: (TaskFilter) -> Unit,
-    onTaskClick: (String) -> Unit,
-    onTaskToggle: (String) -> Unit,
-    onTaskDelete: (String) -> Unit,
     onToggleShowCompleted: () -> Unit,
     onCreateTask: () -> Unit,
+    onTaskToggleExpanded: (String) -> Unit,
+    onTaskToggleSelection: (String) -> Unit,
+    onTaskToggleComplete: (String) -> Unit,
+    onTaskStartFocus: (String) -> Unit,
+    onTaskDelete: (String) -> Unit,
+    onTaskEdit: (String) -> Unit,
+    onSubtaskToggle: (String, String) -> Unit,
+    onSubtaskAdd: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -174,7 +215,7 @@ private fun PlannerContent(
         }
 
         // Task list
-        if (uiState.filteredTasks.isEmpty()) {
+        if (tasksState.tasks.isEmpty()) {
             item {
                 EmptyTasksState(
                     filter = uiState.currentFilter,
@@ -183,14 +224,20 @@ private fun PlannerContent(
             }
         } else {
             items(
-                items = uiState.filteredTasks,
-                key = { task -> task.id }
-            ) { task ->
-                TaskItem(
-                    task = task,
-                    onClick = { onTaskClick(task.id) },
-                    onToggle = { onTaskToggle(task.id) },
-                    onDelete = { onTaskDelete(task.id) }
+                items = tasksState.tasks,
+                key = { it.task.id }
+            ) { taskUiModel ->
+                SwipeableTaskCard(
+                    taskUiModel = taskUiModel,
+                    onToggleExpanded = { onTaskToggleExpanded(taskUiModel.task.id) },
+                    onToggleSelection = { onTaskToggleSelection(taskUiModel.task.id) },
+                    onToggleComplete = { onTaskToggleComplete(taskUiModel.task.id) },
+                    onStartFocus = { onTaskStartFocus(taskUiModel.task.id) },
+                    onDelete = { onTaskDelete(taskUiModel.task.id) },
+                    onEdit = { onTaskEdit(taskUiModel.task.id) },
+                    onSubtaskToggle = { subtaskId -> onSubtaskToggle(taskUiModel.task.id, subtaskId) },
+                    onSubtaskAdd = { title -> onSubtaskAdd(taskUiModel.task.id, title) },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

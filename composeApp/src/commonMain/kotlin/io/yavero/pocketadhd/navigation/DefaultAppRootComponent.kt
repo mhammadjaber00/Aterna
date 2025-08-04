@@ -11,7 +11,8 @@ import io.yavero.pocketadhd.feature.mood.component.MoodComponentImp
 import io.yavero.pocketadhd.feature.mood.presentation.MoodStore
 import io.yavero.pocketadhd.feature.planner.component.DefaultPlannerComponent
 import io.yavero.pocketadhd.feature.planner.component.DefaultTaskEditorComponent
-import io.yavero.pocketadhd.feature.planner.presentation.PlannerStore
+import io.yavero.pocketadhd.feature.planner.presentation.planner.PlannerStore
+import io.yavero.pocketadhd.feature.planner.presentation.task.TasksStore
 import io.yavero.pocketadhd.feature.routines.DefaultRoutinesComponent
 import io.yavero.pocketadhd.feature.routines.presentation.RoutinesStore
 import io.yavero.pocketadhd.feature.settings.DefaultSettingsComponent
@@ -28,6 +29,7 @@ class DefaultAppRootComponent(
     private val focusStore: FocusStore by inject()
     private val moodStore: MoodStore by inject()
     private val plannerStore: PlannerStore by inject()
+    private val tasksStore: TasksStore by inject()
     private val routinesStore: RoutinesStore by inject()
     private val settingsStore: SettingsStore by inject()
 
@@ -46,7 +48,7 @@ class DefaultAppRootComponent(
                 HomeComponentImpl(
                     componentContext = componentContext,
                     homeStore = homeStore,
-                    onNavigateToFocus = ::navigateToFocus,
+                    onNavigateToFocus = { navigateToFocus("", 25) }, // Default focus session
                     onNavigateToMood = ::navigateToMood,
                     onNavigateToTask = { taskId -> navigateToPlanner() },
                     onNavigateToRoutine = { routineId -> navigateToRoutines() },
@@ -58,14 +60,26 @@ class DefaultAppRootComponent(
                 DefaultPlannerComponent(
                     componentContext = componentContext,
                     plannerStore = plannerStore,
-                    onNavigateToTaskEditor = ::navigateToTaskEditor
+                    tasksStore = tasksStore,
+                    onNavigateToTaskEditor = ::navigateToTaskEditor,
+                    onNavigateToFocusSession = { taskId ->
+                        // Get task estimate or default to 25 minutes
+                        navigateToFocus(taskId, 25) // TODO: Get actual estimate from task
+                    }
                 )
             )
 
             is Config.Focus -> AppRootComponent.Child.Focus(
                 DefaultFocusComponent(
                     componentContext = componentContext,
-                    focusStore = focusStore
+                    focusStore = focusStore,
+                    taskId = config.taskId,
+                    estimateMinutes = config.estimateMinutes,
+                    onTaskCompleted = { taskId ->
+                        // Handle task completion - could emit effect to planner store
+                        // For now, just navigate back to planner
+                        navigateToPlanner()
+                    }
                 )
             )
 
@@ -108,8 +122,8 @@ class DefaultAppRootComponent(
         navigation.bringToFront(Config.Planner)
     }
 
-    override fun navigateToFocus() {
-        navigation.bringToFront(Config.Focus)
+    override fun navigateToFocus(taskId: String, estimateMinutes: Int) {
+        navigation.bringToFront(Config.Focus(taskId, estimateMinutes))
     }
 
     override fun navigateToRoutines() {

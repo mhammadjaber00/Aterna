@@ -25,7 +25,7 @@ interface AppRootComponent {
     val childStack: Value<ChildStack<*, Child>>
     fun navigateToHome()
     fun navigateToPlanner()
-    fun navigateToFocus()
+    fun navigateToFocus(taskId: String, estimateMinutes: Int)
     fun navigateToRoutines()
     fun navigateToMood()
     fun navigateToSettings()

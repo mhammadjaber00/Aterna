@@ -1,7 +1,7 @@
 package io.yavero.pocketadhd.feature.planner.component
 
 import io.yavero.pocketadhd.core.domain.model.Task
-import io.yavero.pocketadhd.feature.planner.presentation.TaskEditorState
+import io.yavero.pocketadhd.feature.planner.presentation.planner.TaskEditorState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Instant
 

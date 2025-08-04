@@ -22,12 +22,15 @@ import kotlinx.coroutines.flow.StateFlow
 class DefaultFocusComponent(
     componentContext: ComponentContext,
     private val focusStore: FocusStore,
+    private val taskId: String = "",
+    private val estimateMinutes: Int = 25,
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayTimerSound: () -> Unit = {},
     private val onVibrateDevice: () -> Unit = {},
     private val onShowSessionCompleted: () -> Unit = {},
-    private val onShowSessionCancelled: () -> Unit = {}
+    private val onShowSessionCancelled: () -> Unit = {},
+    private val onTaskCompleted: (String) -> Unit = {}
 ) : FocusComponent, ComponentContext by componentContext {
 
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

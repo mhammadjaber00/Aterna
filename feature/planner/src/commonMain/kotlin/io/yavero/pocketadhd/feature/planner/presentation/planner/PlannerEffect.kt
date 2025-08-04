@@ -1,6 +1,7 @@
-package io.yavero.pocketadhd.feature.planner.presentation
+package io.yavero.pocketadhd.feature.planner.presentation.planner
 
 import io.yavero.pocketadhd.core.domain.mvi.MviEffect
+import kotlinx.datetime.Instant
 
 /**
  * Sealed interface representing all possible one-time effects in the Planner feature.
@@ -32,7 +33,7 @@ sealed interface PlannerEffect : MviEffect {
     /**
      * Show reminder set confirmation
      */
-    data class ShowReminderSet(val taskTitle: String, val reminderTime: kotlinx.datetime.Instant) : PlannerEffect
+    data class ShowReminderSet(val taskTitle: String, val reminderTime: Instant) : PlannerEffect
 
     /**
      * Show reminder removed confirmation

@@ -54,26 +54,39 @@ fun AppContent(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            BottomNavigationBar(
-                currentChild = activeChild,
-                onNavigate = { destination ->
-                    when (destination) {
-                        NavigationDestination.Home -> component.navigateToHome()
-                        NavigationDestination.Planner -> component.navigateToPlanner()
+            if (shouldShowBottomNavigation(activeChild)) {
+                BottomNavigationBar(
+                    currentChild = activeChild,
+                    onNavigate = { destination ->
+                        when (destination) {
+                            NavigationDestination.Home -> component.navigateToHome()
+                            NavigationDestination.Planner -> component.navigateToPlanner()
 //                        NavigationDestination.Focus -> component.navigateToFocus()
-                        NavigationDestination.Routines -> component.navigateToRoutines()
+                            NavigationDestination.Routines -> component.navigateToRoutines()
 //                        NavigationDestination.Mood -> component.navigateToMood()
-                        NavigationDestination.Settings -> component.navigateToSettings()
+                            NavigationDestination.Settings -> component.navigateToSettings()
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     ) { paddingValues ->
+        val bottomInset = paddingValues.calculateBottomPadding()
+
+        val adjustedBottom = if (
+            shouldShowBottomNavigation(activeChild) &&
+            bottomInset > 25.dp
+        ) {
+            bottomInset - 25.dp
+        } else {
+            bottomInset
+        }
+
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    bottom = paddingValues.calculateBottomPadding() - 25.dp,
+                    bottom = adjustedBottom,
                     start = paddingValues.calculateStartPadding(layoutDirection),
                     end = paddingValues.calculateEndPadding(layoutDirection)
                 ),
@@ -102,6 +115,16 @@ fun AppContent(
     }
 }
 
+private fun shouldShowBottomNavigation(child: AppRootComponent.Child): Boolean {
+    return when (child) {
+        is AppRootComponent.Child.Home,
+        is AppRootComponent.Child.Planner,
+        is AppRootComponent.Child.Routines,
+        is AppRootComponent.Child.Settings -> true
+
+        else -> false
+    }
+}
 @Composable
 private fun HomeScreen(component: HomeComponent) {
     FeatureHomeScreen(component = component)

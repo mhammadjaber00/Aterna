@@ -1,9 +1,10 @@
-package io.yavero.pocketadhd.feature.planner.presentation
+package io.yavero.pocketadhd.feature.planner.presentation.planner
 
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.mvi.MviMsg
 import io.yavero.pocketadhd.feature.planner.component.TaskFilter
 import io.yavero.pocketadhd.feature.planner.component.TaskSort
+import kotlinx.datetime.Instant
 
 /**
  * Sealed interface representing internal messages for state updates in the Planner feature.
@@ -71,7 +72,7 @@ sealed interface PlannerMsg : MviMsg {
     /**
      * Task reminder set successfully
      */
-    data class TaskReminderSet(val taskId: String, val reminderTime: kotlinx.datetime.Instant) : PlannerMsg
+    data class TaskReminderSet(val taskId: String, val reminderTime: Instant) : PlannerMsg
 
     /**
      * Task reminder removed successfully

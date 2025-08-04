@@ -1,4 +1,4 @@
-package io.yavero.pocketadhd.feature.planner.presentation
+package io.yavero.pocketadhd.feature.planner.presentation.planner
 
 import io.yavero.pocketadhd.core.domain.model.Task
 import io.yavero.pocketadhd.core.domain.mvi.LoadingState
