@@ -25,6 +25,7 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
             binaryOptions["bundleId"] = "io.yavero.pocketadhd.pocketadhd"
+            linkerOpts("-lsqlite3")
         }
     }
 
@@ -69,12 +70,8 @@ kotlin {
             implementation(project(":core:export"))
             
             // Feature modules
-            implementation(project(":feature:home"))
-            implementation(project(":feature:planner"))
-            implementation(project(":feature:focus"))
-            implementation(project(":feature:routines"))
-            implementation(project(":feature:mood"))
-            implementation(project(":feature:settings"))
+            implementation(project(":feature:quest"))
+            implementation(project(":feature:onboarding"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

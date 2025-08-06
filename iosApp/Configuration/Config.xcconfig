@@ -5,3 +5,6 @@ PRODUCT_BUNDLE_IDENTIFIER=io.yavero.pocketadhd.pocketadhd$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0
+
+// Link SQLite library
+OTHER_LDFLAGS = -lsqlite3

@@ -18,28 +18,18 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import io.yavero.pocketadhd.feature.focus.component.FocusComponent
-import io.yavero.pocketadhd.feature.home.component.HomeComponent
-import io.yavero.pocketadhd.feature.mood.component.MoodComponent
-import io.yavero.pocketadhd.feature.planner.component.PlannerComponent
-import io.yavero.pocketadhd.feature.planner.ui.TaskEditorScreen
-import io.yavero.pocketadhd.feature.routines.RoutinesComponent
-import io.yavero.pocketadhd.feature.settings.SettingsScreen
+import io.yavero.pocketadhd.feature.quest.component.QuestComponent
+import io.yavero.pocketadhd.feature.onboarding.ui.OnboardingScreen
 import io.yavero.pocketadhd.navigation.AppRootComponent
-import io.yavero.pocketadhd.feature.focus.FocusScreen as FeatureFocusScreen
-import io.yavero.pocketadhd.feature.home.HomeScreen as FeatureHomeScreen
-import io.yavero.pocketadhd.feature.mood.MoodScreen as FeatureMoodScreen
-import io.yavero.pocketadhd.feature.planner.ui.PlannerScreen as FeaturePlannerScreen
-import io.yavero.pocketadhd.feature.routines.RoutinesScreen as FeatureRoutineScreen
+import io.yavero.pocketadhd.feature.quest.QuestScreen as FeatureQuestScreen
 
 /**
- * Main app content with bottom navigation
+ * Main app content for the Pixel RPG Adventure app
  *
- * ADHD-friendly design:
- * - Large, clear navigation icons
- * - Consistent bottom navigation
- * - Simple, predictable navigation structure
- * - High contrast for accessibility
+ * Immersive pixel-art RPG design:
+ * - Clean, focused navigation between onboarding and quest
+ * - Pixel-art aesthetic throughout
+ * - Simple, engaging user flow
  */
 @Composable
 fun AppContent(
@@ -53,42 +43,43 @@ fun AppContent(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            if (shouldShowBottomNavigation(activeChild)) {
-                BottomNavigationBar(
-                    currentChild = activeChild,
-                    onNavigate = { destination ->
-                        when (destination) {
-                            NavigationDestination.Home -> component.navigateToHome()
-                            NavigationDestination.Planner -> component.navigateToPlanner()
-//                        NavigationDestination.Focus -> component.navigateToFocus()
-                            NavigationDestination.Routines -> component.navigateToRoutines()
-//                        NavigationDestination.Mood -> component.navigateToMood()
-                            NavigationDestination.Settings -> component.navigateToSettings()
-                        }
-                    }
-                )
-            }
-        }
+//        bottomBar = {
+//            if (shouldShowBottomNavigation(activeChild)) {
+//                BottomNavigationBar(
+//                    currentChild = activeChild,
+//                    onNavigate = { destination ->
+//                        when (destination) {
+//                            NavigationDestination.QuestHub -> component.navigateToQuestHub()
+//                             TODO: Advanced features gated behind ADVANCED_FEATURES flag
+//                             NavigationDestination.Home -> component.navigateToHome()
+//                             NavigationDestination.Planner -> component.navigateToPlanner()
+//                             NavigationDestination.Routines -> component.navigateToRoutines()
+//                             NavigationDestination.Settings -> component.navigateToSettings()
+//                        }
+//                    }
+//                )
+//            }
+//        }
     ) { paddingValues ->
-        val bottomInset = paddingValues.calculateBottomPadding()
-
-        val adjustedBottom = if (
-            shouldShowBottomNavigation(activeChild) &&
-            bottomInset > 25.dp
-        ) {
-            bottomInset - 25.dp
-        } else {
-            bottomInset
-        }
+//        val bottomInset = paddingValues.calculateBottomPadding()
+//
+//        val adjustedBottom = if (
+//            shouldShowBottomNavigation(activeChild) &&
+//            bottomInset > 25.dp
+//        ) {
+//            bottomInset - 25.dp
+//        } else {
+//            bottomInset
+//        }
 
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    bottom = adjustedBottom,
-                    start = paddingValues.calculateStartPadding(layoutDirection),
-                    end = paddingValues.calculateEndPadding(layoutDirection)
+                    paddingValues
+//                    bottom = adjustedBottom,
+//                    start = paddingValues.calculateStartPadding(layoutDirection),
+//                    end = paddingValues.calculateEndPadding(layoutDirection)
                 ),
             color = MaterialTheme.colorScheme.background
         ) {
@@ -102,61 +93,15 @@ fun AppContent(
                 }
             ) {
                 when (val instance = it.instance) {
-                    is AppRootComponent.Child.Home -> HomeScreen(component = instance.component)
-                    is AppRootComponent.Child.Planner -> PlannerScreen(component = instance.component)
-                    is AppRootComponent.Child.Focus -> FocusScreen(component = instance.component)
-                    is AppRootComponent.Child.Routines -> RoutinesScreen(component = instance.component)
-                    is AppRootComponent.Child.Mood -> MoodScreen(component = instance.component)
-                    is AppRootComponent.Child.Settings -> SettingsScreen(component = instance.component)
-                    is AppRootComponent.Child.TaskEditor -> TaskEditorScreen(component = instance.component)
+                    is AppRootComponent.Child.Onboarding -> OnboardingScreen(component = instance.component)
+                    is AppRootComponent.Child.QuestHub -> QuestHubScreen(component = instance.component)
                 }
             }
         }
     }
 }
 
-private fun shouldShowBottomNavigation(child: AppRootComponent.Child): Boolean {
-    return when (child) {
-        is AppRootComponent.Child.Home,
-        is AppRootComponent.Child.Planner,
-        is AppRootComponent.Child.Routines,
-        is AppRootComponent.Child.Settings -> true
-
-        else -> false
-    }
-}
 @Composable
-private fun HomeScreen(component: HomeComponent) {
-    FeatureHomeScreen(component = component)
-}
-
-@Composable
-private fun PlannerScreen(component: PlannerComponent) {
-    FeaturePlannerScreen(component = component)
-}
-
-@Composable
-private fun FocusScreen(component: FocusComponent) {
-    FeatureFocusScreen(component = component)
-}
-
-@Composable
-private fun RoutinesScreen(component: RoutinesComponent) {
-    FeatureRoutineScreen(component = component)
-}
-
-@Composable
-private fun MoodScreen(component: MoodComponent) {
-    FeatureMoodScreen(component = component)
-}
-
-@Composable
-private fun TaskEditorScreen(component: io.yavero.pocketadhd.feature.planner.component.TaskEditorScreenComponent) {
-    val uiState by component.uiState.collectAsState()
-    TaskEditorScreen(
-        taskEditorState = uiState,
-        onSave = component::onSaveTask,
-        onCancel = component::onCancel,
-        onSetReminder = component::onSetReminder
-    )
+private fun QuestHubScreen(component: QuestComponent) {
+    FeatureQuestScreen(component = component)
 }

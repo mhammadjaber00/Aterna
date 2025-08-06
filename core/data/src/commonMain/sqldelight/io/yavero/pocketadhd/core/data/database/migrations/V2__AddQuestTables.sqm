@@ -1,0 +1,32 @@
+-- Migration V2: Add Quest System Tables
+-- This migration adds the Hero and QuestLog tables for the quest system
+
+CREATE TABLE HeroEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    classType TEXT NOT NULL,
+    level INTEGER NOT NULL DEFAULT 1,
+    xp INTEGER NOT NULL DEFAULT 0,
+    gold INTEGER NOT NULL DEFAULT 0,
+    totalFocusMinutes INTEGER NOT NULL DEFAULT 0,
+    dailyStreak INTEGER NOT NULL DEFAULT 0,
+    lastActiveDate INTEGER NOT NULL,
+    isInCooldown INTEGER NOT NULL DEFAULT 0,
+    cooldownEndTime INTEGER,
+    createdAt INTEGER NOT NULL
+);
+
+CREATE TABLE QuestLogEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    heroId TEXT NOT NULL,
+    durationMinutes INTEGER NOT NULL,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER,
+    completed INTEGER NOT NULL DEFAULT 0,
+    gaveUp INTEGER NOT NULL DEFAULT 0,
+    xpGained INTEGER NOT NULL DEFAULT 0,
+    goldGained INTEGER NOT NULL DEFAULT 0,
+    serverValidated INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
+);

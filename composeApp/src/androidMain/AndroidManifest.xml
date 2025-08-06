@@ -24,13 +24,13 @@
         </activity>
 
         <receiver
-                android:name="io.yavero.pocketadhd.feature.focus.notification.FocusActionReceiver"
+                android:name="io.yavero.pocketadhd.feature.quest.notification.QuestActionReceiver"
                 android:exported="false">
             <intent-filter>
-                <action android:name="io.yavero.pocketadhd.FOCUS_PAUSE"/>
-                <action android:name="io.yavero.pocketadhd.FOCUS_RESUME"/>
-                <action android:name="io.yavero.pocketadhd.FOCUS_CANCEL"/>
-                <action android:name="io.yavero.pocketadhd.FOCUS_COMPLETE"/>
+                <action android:name="io.yavero.pocketadhd.QUEST_PAUSE"/>
+                <action android:name="io.yavero.pocketadhd.QUEST_RESUME"/>
+                <action android:name="io.yavero.pocketadhd.QUEST_CANCEL"/>
+                <action android:name="io.yavero.pocketadhd.QUEST_COMPLETE"/>
             </intent-filter>
         </receiver>
     </application>

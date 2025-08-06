@@ -31,6 +31,12 @@ kotlin {
 
     iosArm64()
     iosSimulatorArm64()
+
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget> {
+        binaries.all {
+            linkerOpts("-lsqlite3")
+        }
+    }
     
     sourceSets {
         commonMain.dependencies {
@@ -41,6 +47,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.koin.core)
         }
         

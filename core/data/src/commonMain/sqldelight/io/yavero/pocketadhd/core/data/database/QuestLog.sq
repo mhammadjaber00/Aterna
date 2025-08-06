@@ -1,0 +1,31 @@
+CREATE TABLE QuestLogEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    heroId TEXT NOT NULL,
+    durationMinutes INTEGER NOT NULL,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER,
+    completed INTEGER NOT NULL DEFAULT 0,
+    gaveUp INTEGER NOT NULL DEFAULT 0,
+    xpGained INTEGER NOT NULL DEFAULT 0,
+    goldGained INTEGER NOT NULL DEFAULT 0,
+    serverValidated INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
+);
+
+-- Queries
+selectQuestsByHero:
+SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC;
+
+selectRecentQuests:
+SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC LIMIT ?;
+
+insertQuest:
+INSERT INTO QuestLogEntity 
+(id, heroId, durationMinutes, startTime, endTime, completed, gaveUp, xpGained, goldGained, serverValidated, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateQuestCompletion:
+UPDATE QuestLogEntity 
+SET endTime = ?, completed = ?, xpGained = ?, goldGained = ?, serverValidated = ?
+WHERE id = ?;

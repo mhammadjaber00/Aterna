@@ -8,14 +8,17 @@ data class AppSettings(
     val theme: Theme = Theme.System,
     val textScale: Float = 1.0f,
     val reduceMotion: Boolean = false,
-    val notificationsEnabled: Boolean = true
+    val notificationsEnabled: Boolean = true,
+    val onboardingDone: Boolean = false
 )
 
 @Serializable
 data class ModuleToggles(
     val meds: Boolean = false,
     val games: Boolean = false,
-    val tips: Boolean = true
+    val tips: Boolean = true,
+    val quest_enabled: Boolean = true, // Always enabled for Kahv
+    val advanced_features: Boolean = false // Gate other features behind this flag
 )
 
 @Serializable

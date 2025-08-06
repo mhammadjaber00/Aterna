@@ -3,7 +3,7 @@ package io.yavero.pocketadhd.navigation
 import kotlinx.serialization.Serializable
 
 /**
- * Sealed interface representing all possible navigation configurations
+ * Sealed interface representing navigation configurations for the Pixel RPG Adventure app
  *
  * Used by the navigation system to determine which screen to display
  * and maintain navigation state across configuration changes.
@@ -11,23 +11,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Config {
     @Serializable
-    data object Home : Config
+    data object Onboarding : Config
 
     @Serializable
-    data object Planner : Config
-
-    @Serializable
-    data class Focus(val taskId: String, val estimateMinutes: Int) : Config
-
-    @Serializable
-    data object Routines : Config
-
-    @Serializable
-    data object Mood : Config
-
-    @Serializable
-    data object Settings : Config
-
-    @Serializable
-    data class TaskEditor(val taskId: String? = null) : Config
+    data object QuestHub : Config
 }

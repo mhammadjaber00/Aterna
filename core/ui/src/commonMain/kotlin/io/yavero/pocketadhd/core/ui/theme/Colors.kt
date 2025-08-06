@@ -4,62 +4,74 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// ADHD-friendly palette: low–medium saturation, soft neutrals, steady contrast
+// RPG Fantasy palette: medieval tones, mystical colors, gold accents for immersive experience
 object AdhdColors {
-    // Primary — serene teal (base of the app)
-    val Primary50 = Color(0xFFF2FBFA)
-    val Primary100 = Color(0xFFDCF6F3)
-    val Primary200 = Color(0xFFBCECE7)
-    val Primary300 = Color(0xFF8FDAD4)
-    val Primary400 = Color(0xFF62C7BD)
-    val Primary500 = Color(0xFF3AB7A7) // Main primary
-    val Primary600 = Color(0xFF2AA89A)
-    val Primary700 = Color(0xFF1C9788)
-    val Primary800 = Color(0xFF117E71)
-    val Primary900 = Color(0xFF0B5E55)
+    // Primary — mystical deep blue/purple (magical energy)
+    val Primary50 = Color(0xFFF0F4FF)
+    val Primary100 = Color(0xFFE0E7FF)
+    val Primary200 = Color(0xFFC7D2FE)
+    val Primary300 = Color(0xFFA5B4FC)
+    val Primary400 = Color(0xFF818CF8)
+    val Primary500 = Color(0xFF6366F1) // Main primary - mystical purple
+    val Primary600 = Color(0xFF4F46E5)
+    val Primary700 = Color(0xFF4338CA)
+    val Primary800 = Color(0xFF3730A3)
+    val Primary900 = Color(0xFF312E81)
 
-    // Secondary — warm apricot (sparingly for calls to action)
-    val Secondary50 = Color(0xFFFFF6EF)
-    val Secondary100 = Color(0xFFFFE8D8)
-    val Secondary200 = Color(0xFFFFD6B8)
-    val Secondary300 = Color(0xFFFFC090)
-    val Secondary400 = Color(0xFFFFAA6B)
-    val Secondary500 = Color(0xFFF28C3D) // Main secondary (dark enough for white text)
-    val Secondary600 = Color(0xFFDE7A2E)
-    val Secondary700 = Color(0xFFC66520)
-    val Secondary800 = Color(0xFFA55117)
-    val Secondary900 = Color(0xFF7F3C0F)
+    // Secondary — rich gold (coins, rewards, treasure)
+    val Secondary50 = Color(0xFFFFFBEB)
+    val Secondary100 = Color(0xFFFEF3C7)
+    val Secondary200 = Color(0xFFFDE68A)
+    val Secondary300 = Color(0xFFFCD34D)
+    val Secondary400 = Color(0xFFFBBF24)
+    val Secondary500 = Color(0xFFF59E0B) // Main secondary - rich gold
+    val Secondary600 = Color(0xFFD97706)
+    val Secondary700 = Color(0xFFB45309)
+    val Secondary800 = Color(0xFF92400E)
+    val Secondary900 = Color(0xFF78350F)
 
-    // Success — gentle green
-    val Success50 = Color(0xFFEBF6EF)
-    val Success300 = Color(0xFF7BC89A)
-    val Success500 = Color(0xFF4FAE7F)
-    val Success700 = Color(0xFF2F7D57)
+    // Tertiary — forest green (nature, health, life force)
+    val Tertiary50 = Color(0xFFF0FDF4)
+    val Tertiary100 = Color(0xFFDCFCE7)
+    val Tertiary200 = Color(0xFFBBF7D0)
+    val Tertiary300 = Color(0xFF86EFAC)
+    val Tertiary400 = Color(0xFF4ADE80)
+    val Tertiary500 = Color(0xFF22C55E) // Main tertiary - forest green
+    val Tertiary600 = Color(0xFF16A34A)
+    val Tertiary700 = Color(0xFF15803D)
+    val Tertiary800 = Color(0xFF166534)
+    val Tertiary900 = Color(0xFF14532D)
 
-    // Warning — muted amber
-    val Warning50 = Color(0xFFFFF8E6)
-    val Warning500 = Color(0xFFE5B029)
-    val Warning700 = Color(0xFFB08900)
+    // Success — emerald (quest completion, victory)
+    val Success50 = Color(0xFFECFDF5)
+    val Success300 = Color(0xFF6EE7B7)
+    val Success500 = Color(0xFF10B981)
+    val Success700 = Color(0xFF047857)
 
-    // Error — softened crimson
-    val Error50 = Color(0xFFFDEEEF)
-    val Error300 = Color(0xFFE48B8F)
-    val Error500 = Color(0xFFD25258)
-    val Error700 = Color(0xFFA93A40)
+    // Warning — amber (caution, magic energy low)
+    val Warning50 = Color(0xFFFFFBEB)
+    val Warning500 = Color(0xFFF59E0B)
+    val Warning700 = Color(0xFFB45309)
 
-    // Neutrals — calm, slightly cool
-    val Neutral0 = Color(0xFFFFFFFF)
-    val Neutral50 = Color(0xFFFAFAFA)
-    val Neutral100 = Color(0xFFF4F4F5)
-    val Neutral200 = Color(0xFFEAEAEC)
-    val Neutral300 = Color(0xFFDCDDE1)
-    val Neutral400 = Color(0xFFB8BBC2)
-    val Neutral500 = Color(0xFF8F95A1)
-    val Neutral600 = Color(0xFF6B7280)
-    val Neutral700 = Color(0xFF525559)
-    val Neutral800 = Color(0xFF343A40)
-    val Neutral900 = Color(0xFF1F2329)
-    val Neutral950 = Color(0xFF101214)
+    // Error — crimson (danger, health low, quest failed)
+    val Error50 = Color(0xFFFEF2F2)
+    val Error300 = Color(0xFFFCA5A5)
+    val Error500 = Color(0xFFEF4444)
+    val Error700 = Color(0xFFB91C1C)
+
+    // Neutrals — stone and parchment tones (medieval feel)
+    val Neutral0 = Color(0xFFFFFFF8) // Slightly warm white (parchment)
+    val Neutral50 = Color(0xFFFAF9F7) // Warm off-white
+    val Neutral100 = Color(0xFFF5F4F1) // Light parchment
+    val Neutral200 = Color(0xFFE7E5E0) // Aged paper
+    val Neutral300 = Color(0xFFD6D3CE) // Light stone
+    val Neutral400 = Color(0xFFA8A29E) // Medium stone
+    val Neutral500 = Color(0xFF78716C) // Dark stone
+    val Neutral600 = Color(0xFF57534E) // Charcoal stone
+    val Neutral700 = Color(0xFF44403C) // Dark charcoal
+    val Neutral800 = Color(0xFF292524) // Deep stone
+    val Neutral900 = Color(0xFF1C1917) // Almost black stone
+    val Neutral950 = Color(0xFF0C0A09) // Deepest dungeon black
 
     // Focus states — steady, not neon
     val FocusActive = Color(0xFF22C55E) // success/“go”
@@ -85,10 +97,10 @@ val LightColorScheme = lightColorScheme(
     secondaryContainer = AdhdColors.Secondary100,
     onSecondaryContainer = AdhdColors.Secondary900,
 
-    tertiary = AdhdColors.Success500,
+    tertiary = AdhdColors.Tertiary500,
     onTertiary = AdhdColors.Neutral0,
-    tertiaryContainer = AdhdColors.Success50,
-    onTertiaryContainer = AdhdColors.Success700,
+    tertiaryContainer = AdhdColors.Tertiary50,
+    onTertiaryContainer = AdhdColors.Tertiary700,
 
     error = AdhdColors.Error500,
     onError = AdhdColors.Neutral0,
@@ -118,10 +130,10 @@ val DarkColorScheme = darkColorScheme(
     secondaryContainer = AdhdColors.Secondary800,
     onSecondaryContainer = AdhdColors.Secondary100,
 
-    tertiary = AdhdColors.Success300,
+    tertiary = AdhdColors.Tertiary300,
     onTertiary = AdhdColors.Neutral900,
-    tertiaryContainer = AdhdColors.Success700,
-    onTertiaryContainer = AdhdColors.Success50,
+    tertiaryContainer = AdhdColors.Tertiary700,
+    onTertiaryContainer = AdhdColors.Tertiary50,
 
     error = AdhdColors.Error300,
     onError = AdhdColors.Neutral900,

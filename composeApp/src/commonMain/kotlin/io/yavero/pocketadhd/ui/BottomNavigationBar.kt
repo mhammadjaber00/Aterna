@@ -20,12 +20,12 @@ fun BottomNavigationBar(
     ) {
         NavigationDestination.entries.forEach { destination ->
             val isSelected = when (destination) {
-                NavigationDestination.Home -> currentChild is AppRootComponent.Child.Home
-                NavigationDestination.Planner -> currentChild is AppRootComponent.Child.Planner
-//                NavigationDestination.Focus -> currentChild is AppRootComponent.Child.Focus
-                NavigationDestination.Routines -> currentChild is AppRootComponent.Child.Routines
-//                NavigationDestination.Mood -> currentChild is AppRootComponent.Child.Mood
-                NavigationDestination.Settings -> currentChild is AppRootComponent.Child.Settings
+                NavigationDestination.QuestHub -> currentChild is AppRootComponent.Child.QuestHub
+                // TODO: Advanced features gated behind ADVANCED_FEATURES flag
+                // NavigationDestination.Home -> currentChild is AppRootComponent.Child.Home
+                // NavigationDestination.Planner -> currentChild is AppRootComponent.Child.Planner
+                // NavigationDestination.Routines -> currentChild is AppRootComponent.Child.Routines
+                // NavigationDestination.Settings -> currentChild is AppRootComponent.Child.Settings
             }
 
             NavigationBarItem(

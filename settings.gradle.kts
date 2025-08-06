@@ -1,4 +1,4 @@
-rootProject.name = "pocketadhd"
+rootProject.name = "kahv"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -28,8 +28,6 @@ dependencyResolutionManagement {
     }
 }
 
-includeBuild("build-logic")
-
 include(":composeApp")
 
 // Core modules
@@ -41,9 +39,5 @@ include(":core:notifications")
 include(":core:export")
 
 // Feature modules
-include(":feature:home")
-include(":feature:planner")
-include(":feature:focus")
-include(":feature:routines")
-include(":feature:mood")
-include(":feature:settings")
+include(":feature:quest")
+include(":feature:onboarding")

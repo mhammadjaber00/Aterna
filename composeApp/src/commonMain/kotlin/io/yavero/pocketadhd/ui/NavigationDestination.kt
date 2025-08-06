@@ -1,10 +1,7 @@
 package io.yavero.pocketadhd.ui
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -16,12 +13,11 @@ enum class NavigationDestination(
     val label: String,
     val icon: ImageVector
 ) {
-    Home("Home", Icons.Default.Home),
-    Planner("Tasks", Icons.AutoMirrored.Filled.List),
+    QuestHub("Quests", Icons.Default.Star)
 
-    //    Focus("Focus", Icons.Default.PlayArrow),
-    Routines("Routines", Icons.Default.Person),
-
-    //    Mood("Mood", Icons.Default.Favorite),
-    Settings("Settings", Icons.Default.Settings)
+    // TODO: Advanced features gated behind ADVANCED_FEATURES flag
+    // Home("Home", Icons.Default.Home),
+    // Planner("Tasks", Icons.AutoMirrored.Filled.List),
+    // Routines("Routines", Icons.Default.Person),
+    // Settings("Settings", Icons.Default.Settings)
 }

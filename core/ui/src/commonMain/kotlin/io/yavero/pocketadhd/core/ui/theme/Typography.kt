@@ -7,16 +7,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * ADHD-friendly typography system
+ * RPG Fantasy typography system
  * 
  * Design principles:
- * - Larger base sizes for better readability
- * - Clear font weight distinctions
+ * - Pixel-art and medieval-inspired fonts for immersive RPG experience
+ * - Larger base sizes for better readability (ADHD-friendly)
+ * - Clear font weight distinctions with chunky, bold text for headings
  * - Generous line heights for reduced visual stress
  * - Support for dynamic text scaling
- * - High contrast ratios
+ * - High contrast ratios with fantasy theming
  */
 object AdhdTypography {
+
+    // RPG Font Families
+    private val PixelFont = FontFamily.Monospace // Pixel-art style for UI elements
+    private val MedievalFont = FontFamily.Serif   // Medieval style for headings and titles
+    private val BodyFont = FontFamily.Default     // Clean readable font for body text
     
     // Base font sizes - larger than typical for ADHD-friendly design
     private val DisplayLarge = 57.sp
@@ -61,50 +67,50 @@ object AdhdTypography {
     private val LabelSmallLineHeight = 16.sp
     
     val Default = Typography(
-        // Display styles - for large, prominent text
+        // Display styles - for large, prominent text (Medieval/Fantasy themed)
         displayLarge = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Normal,
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.Black, // Extra bold for medieval impact
             fontSize = DisplayLarge,
             lineHeight = DisplayLargeLineHeight,
-            letterSpacing = (-0.25).sp
+            letterSpacing = 0.5.sp // Wider spacing for medieval feel
         ),
         displayMedium = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Normal,
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.ExtraBold,
             fontSize = DisplayMedium,
             lineHeight = DisplayMediumLineHeight,
-            letterSpacing = 0.sp
+            letterSpacing = 0.25.sp
         ),
         displaySmall = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Normal,
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.Bold,
             fontSize = DisplaySmall,
             lineHeight = DisplaySmallLineHeight,
-            letterSpacing = 0.sp
+            letterSpacing = 0.25.sp
         ),
-        
-        // Headline styles - for section headers
+
+        // Headline styles - for section headers (Medieval themed)
         headlineLarge = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.SemiBold, // Stronger weight for better hierarchy
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.ExtraBold, // Stronger weight for medieval hierarchy
             fontSize = HeadlineLarge,
             lineHeight = HeadlineLargeLineHeight,
-            letterSpacing = 0.sp
+            letterSpacing = 0.25.sp // Wider spacing for medieval feel
         ),
         headlineMedium = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.Bold,
             fontSize = HeadlineMedium,
             lineHeight = HeadlineMediumLineHeight,
-            letterSpacing = 0.sp
+            letterSpacing = 0.25.sp
         ),
         headlineSmall = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = MedievalFont,
+            fontWeight = FontWeight.Bold,
             fontSize = HeadlineSmall,
             lineHeight = HeadlineSmallLineHeight,
-            letterSpacing = 0.sp
+            letterSpacing = 0.15.sp
         ),
         
         // Title styles - for card titles, dialog titles
@@ -176,38 +182,79 @@ object AdhdTypography {
             letterSpacing = 0.5.sp
         )
     )
-    
-    // Custom styles for specific ADHD-friendly use cases
+
+    // Custom styles for RPG-specific use cases
     val FocusTimer = TextStyle(
-        fontFamily = FontFamily.Monospace,
+        fontFamily = PixelFont, // Pixel-art style for timer
         fontWeight = FontWeight.Bold,
         fontSize = 48.sp,
         lineHeight = 56.sp,
-        letterSpacing = 0.sp
+        letterSpacing = 2.sp // Wider spacing for pixel effect
     )
     
     val BigButton = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = MedievalFont,
+        fontWeight = FontWeight.ExtraBold, // Chunky medieval buttons
         fontSize = 20.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.5.sp // Wider spacing for medieval feel
     )
     
     val StatusText = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = PixelFont,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.5.sp // Pixel-style spacing
     )
     
     val EmptyState = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = BodyFont,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.15.sp
+    )
+
+    // RPG-specific typography styles
+    val QuestTitle = TextStyle(
+        fontFamily = MedievalFont,
+        fontWeight = FontWeight.Black,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = 0.5.sp
+    )
+
+    val DungeonName = TextStyle(
+        fontFamily = MedievalFont,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.25.sp
+    )
+
+    val LootDisplay = TextStyle(
+        fontFamily = PixelFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 1.sp
+    )
+
+    val HeroStats = TextStyle(
+        fontFamily = PixelFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.5.sp
+    )
+
+    val QuestDescription = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.25.sp
     )
 }
 
