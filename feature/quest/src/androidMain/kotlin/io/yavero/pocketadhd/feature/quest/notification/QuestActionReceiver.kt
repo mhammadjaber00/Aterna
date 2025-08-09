@@ -14,12 +14,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * BroadcastReceiver for handling quest session notification actions
- *
- * Handles pause/resume/cancel/complete actions triggered from notification buttons.
- * Updates the quest session in the database and manages notification state.
- */
 class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val focusSessionRepository: FocusSessionRepository by inject()
@@ -41,7 +35,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
                             val updated = session.copy(lastPausedAt = Clock.System.now())
                             focusSessionRepository.updateFocusSession(updated)
 
-                            // Update notification to show paused state
+
                             questNotifier.showOngoing(
                                 sessionId = updated.id,
                                 title = "Quest Session Paused",
@@ -62,7 +56,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
                         )
                         focusSessionRepository.updateFocusSession(updated)
 
-                        // Calculate new end time and update notifications
+
                         val targetMs = updated.targetMinutes * 60 * 1000L
                         val elapsedActive =
                             ((now - updated.startAt).inWholeMilliseconds - updated.pausedTotalMs).coerceAtLeast(0)
@@ -87,7 +81,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
                         )
                         focusSessionRepository.updateFocusSession(updated)
 
-                        // Clear notifications
+
                         questNotifier.clearOngoing(updated.id)
                         questNotifier.cancelScheduledEnd(updated.id)
                     }
@@ -101,7 +95,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
                         )
                         focusSessionRepository.updateFocusSession(updated)
 
-                        // Clear ongoing notification and show completion notification
+
                         questNotifier.clearOngoing(updated.id)
                         questNotifier.cancelScheduledEnd(updated.id)
                         questNotifier.showCompleted(
@@ -112,7 +106,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
                     }
                 }
             } catch (e: Exception) {
-                // Log error but don't crash
+
                 e.printStackTrace()
             }
         }

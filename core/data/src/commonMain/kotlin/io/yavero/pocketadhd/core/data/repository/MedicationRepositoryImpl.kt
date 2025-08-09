@@ -24,7 +24,7 @@ class MedicationRepositoryImpl(
     private val medicationQueries = database.medicationQueries
     private val json = Json { ignoreUnknownKeys = true }
 
-    // Medication Plans
+
     override fun getAllMedicationPlans(): Flow<List<MedicationPlan>> {
         return medicationQueries.selectAllMedicationPlans()
             .asFlow()
@@ -76,8 +76,8 @@ class MedicationRepositoryImpl(
 
     override suspend fun deleteMedicationPlan(id: String) {
         database.transaction {
-            // Delete all intakes for this plan first
-            medicationQueries.selectIntakesByPlanId(id).executeAsList().forEach { intake ->
+
+        medicationQueries.selectIntakesByPlanId(id).executeAsList().forEach { intake ->
                 medicationQueries.deleteMedicationIntake(intake.id)
             }
             medicationQueries.deleteMedicationPlan(id)
@@ -98,7 +98,7 @@ class MedicationRepositoryImpl(
         }
     }
 
-    // Medication Intakes
+
     override fun getAllMedicationIntakes(): Flow<List<MedicationIntake>> {
         return medicationQueries.selectAllMedicationIntakes()
             .asFlow()

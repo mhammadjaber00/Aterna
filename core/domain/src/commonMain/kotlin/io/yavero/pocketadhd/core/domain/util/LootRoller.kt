@@ -12,20 +12,20 @@ object LootRoller {
     ): QuestLoot {
         val random = Random(serverSeed)
 
-        // Base rewards scale with quest duration
+
         val baseXP = questDurationMinutes * 10
         val baseGold = (questDurationMinutes / 5) * 5
 
-        // Apply class multipliers
+
         val finalXP = (baseXP * classType.xpMultiplier).toInt()
         val finalGold = (baseGold * classType.goldMultiplier).toInt()
 
-        // Level bonus (10% per level)
+
         val levelMultiplier = 1.0 + (heroLevel * 0.1)
         val bonusXP = (finalXP * levelMultiplier).toInt()
         val bonusGold = (finalGold * levelMultiplier).toInt()
 
-        // Item drop chance increases with longer quests
+
         val itemDropChance = minOf(0.8, questDurationMinutes * 0.02)
         val items = if (random.nextDouble() < itemDropChance) {
             listOf(rollRandomItem(random, heroLevel))

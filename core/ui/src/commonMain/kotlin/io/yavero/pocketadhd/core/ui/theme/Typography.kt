@@ -6,25 +6,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/**
- * RPG Fantasy typography system
- * 
- * Design principles:
- * - Pixel-art and medieval-inspired fonts for immersive RPG experience
- * - Larger base sizes for better readability (ADHD-friendly)
- * - Clear font weight distinctions with chunky, bold text for headings
- * - Generous line heights for reduced visual stress
- * - Support for dynamic text scaling
- * - High contrast ratios with fantasy theming
- */
 object AdhdTypography {
 
-    // RPG Font Families
-    private val PixelFont = FontFamily.Monospace // Pixel-art style for UI elements
-    private val MedievalFont = FontFamily.Serif   // Medieval style for headings and titles
-    private val BodyFont = FontFamily.Default     // Clean readable font for body text
-    
-    // Base font sizes - larger than typical for ADHD-friendly design
+
+    private val PixelFont = FontFamily.Monospace
+    private val MedievalFont = FontFamily.Serif
+    private val BodyFont = FontFamily.Default
+
+
     private val DisplayLarge = 57.sp
     private val DisplayMedium = 45.sp
     private val DisplaySmall = 36.sp
@@ -34,18 +23,18 @@ object AdhdTypography {
     private val HeadlineSmall = 24.sp
     
     private val TitleLarge = 22.sp
-    private val TitleMedium = 18.sp  // Increased from 16sp
-    private val TitleSmall = 16.sp   // Increased from 14sp
-    
-    private val BodyLarge = 18.sp    // Increased from 16sp
-    private val BodyMedium = 16.sp   // Increased from 14sp
-    private val BodySmall = 14.sp    // Increased from 12sp
-    
-    private val LabelLarge = 16.sp   // Increased from 14sp
-    private val LabelMedium = 14.sp  // Increased from 12sp
-    private val LabelSmall = 12.sp   // Increased from 11sp
-    
-    // Line heights - generous for reduced visual stress
+    private val TitleMedium = 18.sp
+    private val TitleSmall = 16.sp
+
+    private val BodyLarge = 18.sp
+    private val BodyMedium = 16.sp
+    private val BodySmall = 14.sp
+
+    private val LabelLarge = 16.sp
+    private val LabelMedium = 14.sp
+    private val LabelSmall = 12.sp
+
+
     private val DisplayLargeLineHeight = 64.sp
     private val DisplayMediumLineHeight = 52.sp
     private val DisplaySmallLineHeight = 44.sp
@@ -67,13 +56,13 @@ object AdhdTypography {
     private val LabelSmallLineHeight = 16.sp
     
     val Default = Typography(
-        // Display styles - for large, prominent text (Medieval/Fantasy themed)
+
         displayLarge = TextStyle(
             fontFamily = MedievalFont,
-            fontWeight = FontWeight.Black, // Extra bold for medieval impact
+            fontWeight = FontWeight.Black, 
             fontSize = DisplayLarge,
             lineHeight = DisplayLargeLineHeight,
-            letterSpacing = 0.5.sp // Wider spacing for medieval feel
+            letterSpacing = 0.5.sp 
         ),
         displayMedium = TextStyle(
             fontFamily = MedievalFont,
@@ -90,13 +79,13 @@ object AdhdTypography {
             letterSpacing = 0.25.sp
         ),
 
-        // Headline styles - for section headers (Medieval themed)
+
         headlineLarge = TextStyle(
             fontFamily = MedievalFont,
-            fontWeight = FontWeight.ExtraBold, // Stronger weight for medieval hierarchy
+            fontWeight = FontWeight.ExtraBold, 
             fontSize = HeadlineLarge,
             lineHeight = HeadlineLargeLineHeight,
-            letterSpacing = 0.25.sp // Wider spacing for medieval feel
+            letterSpacing = 0.25.sp 
         ),
         headlineMedium = TextStyle(
             fontFamily = MedievalFont,
@@ -112,8 +101,8 @@ object AdhdTypography {
             lineHeight = HeadlineSmallLineHeight,
             letterSpacing = 0.15.sp
         ),
-        
-        // Title styles - for card titles, dialog titles
+
+
         titleLarge = TextStyle(
             fontFamily = FontFamily.Default,
             fontWeight = FontWeight.Medium,
@@ -135,8 +124,8 @@ object AdhdTypography {
             lineHeight = TitleSmallLineHeight,
             letterSpacing = 0.1.sp
         ),
-        
-        // Body styles - for main content
+
+
         bodyLarge = TextStyle(
             fontFamily = FontFamily.Default,
             fontWeight = FontWeight.Normal,
@@ -158,8 +147,8 @@ object AdhdTypography {
             lineHeight = BodySmallLineHeight,
             letterSpacing = 0.4.sp
         ),
-        
-        // Label styles - for buttons, tabs, form labels
+
+
         labelLarge = TextStyle(
             fontFamily = FontFamily.Default,
             fontWeight = FontWeight.Medium,
@@ -183,21 +172,21 @@ object AdhdTypography {
         )
     )
 
-    // Custom styles for RPG-specific use cases
+
     val FocusTimer = TextStyle(
-        fontFamily = PixelFont, // Pixel-art style for timer
+        fontFamily = PixelFont, 
         fontWeight = FontWeight.Bold,
         fontSize = 48.sp,
         lineHeight = 56.sp,
-        letterSpacing = 2.sp // Wider spacing for pixel effect
+        letterSpacing = 2.sp 
     )
     
     val BigButton = TextStyle(
         fontFamily = MedievalFont,
-        fontWeight = FontWeight.ExtraBold, // Chunky medieval buttons
+        fontWeight = FontWeight.ExtraBold, 
         fontSize = 20.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp // Wider spacing for medieval feel
+        letterSpacing = 0.5.sp 
     )
     
     val StatusText = TextStyle(
@@ -205,7 +194,7 @@ object AdhdTypography {
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp // Pixel-style spacing
+        letterSpacing = 0.5.sp 
     )
     
     val EmptyState = TextStyle(
@@ -216,7 +205,7 @@ object AdhdTypography {
         letterSpacing = 0.15.sp
     )
 
-    // RPG-specific typography styles
+
     val QuestTitle = TextStyle(
         fontFamily = MedievalFont,
         fontWeight = FontWeight.Black,
@@ -258,10 +247,6 @@ object AdhdTypography {
     )
 }
 
-/**
- * Scales typography based on user's text scale preference
- * This supports accessibility requirements for dynamic text sizing
- */
 fun Typography.scaled(textScale: Float): Typography {
     return Typography(
         displayLarge = displayLarge.copy(fontSize = displayLarge.fontSize * textScale),

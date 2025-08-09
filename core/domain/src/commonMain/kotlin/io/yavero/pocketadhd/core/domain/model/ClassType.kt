@@ -12,23 +12,30 @@ enum class ClassType(
 ) {
     WARRIOR(
         "Warrior",
-        "Strong and resilient, gains bonus XP for longer quests",
-        xpMultiplier = 1.2,
-        goldMultiplier = 1.0,
+        "+10% Gold",
+        xpMultiplier = 1.0,
+        goldMultiplier = 1.1,
         cooldownReduction = 0.0
     ),
     MAGE(
         "Mage",
-        "Wise and focused, gains bonus gold for completed quests",
-        xpMultiplier = 1.0,
-        goldMultiplier = 1.3,
+        "+10% XP",
+        xpMultiplier = 1.1,
+        goldMultiplier = 1.0,
         cooldownReduction = 0.0
     ),
     ROGUE(
         "Rogue",
-        "Quick and agile, reduced cooldown time on failed quests",
+        "+5% Gold & +5% XP",
+        xpMultiplier = 1.05,
+        goldMultiplier = 1.05,
+        cooldownReduction = 0.0
+    ),
+    ELF(
+        "Elf",
+        "15% chance extra loot (gold or XP)",
         xpMultiplier = 1.0,
         goldMultiplier = 1.0,
-        cooldownReduction = 0.5
+        cooldownReduction = 0.0
     )
 }

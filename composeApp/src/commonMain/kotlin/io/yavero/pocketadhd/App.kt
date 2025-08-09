@@ -13,19 +13,9 @@ import io.yavero.pocketadhd.navigation.DefaultAppRootComponent
 import io.yavero.pocketadhd.ui.AppContent
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/**
- * Main ADHD Assistant App
- * 
- * Features:
- * - ADHD-friendly design with calming colors and generous spacing
- * - Offline-only operation with encrypted local storage
- * - Modular feature system (tasks, focus, routines, mood, etc.)
- * - Accessible design with large touch targets and high contrast
- * - Bottom navigation for easy access to main features
- */
 @Composable
 fun App(rootComponent: io.yavero.pocketadhd.navigation.AppRootComponent) {
-    // Apply ADHD-friendly theme
+
     AdhdTheme {
         AppContent(
             component = rootComponent
@@ -33,9 +23,6 @@ fun App(rootComponent: io.yavero.pocketadhd.navigation.AppRootComponent) {
     }
 }
 
-/**
- * Preview version of App that creates its own component
- */
 @Composable
 @Preview
 fun App() {
@@ -54,7 +41,7 @@ private fun AdhdTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
+    val colorScheme = if (true) {
         DarkColorScheme
     } else {
         LightColorScheme

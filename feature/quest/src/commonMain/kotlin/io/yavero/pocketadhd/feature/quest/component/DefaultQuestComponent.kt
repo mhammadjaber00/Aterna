@@ -11,16 +11,6 @@ import io.yavero.pocketadhd.feature.quest.presentation.QuestStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Default implementation of FocusComponent using MVI pattern with Quest system
- *
- * This component owns the QuestStore and handles:
- * - State management via the quest store
- * - Effect collection for notifications and one-time events
- * - Intent processing delegation to the store
- *
- * Quest-specific effects are collected and mapped to appropriate callbacks.
- */
 class DefaultQuestComponent(
     componentContext: ComponentContext,
     private val questStore: QuestStore,
@@ -41,14 +31,14 @@ class DefaultQuestComponent(
     override val uiState: StateFlow<QuestState> = questStore.state
 
     init {
-        // Collect effects and handle them
+
         componentScope.launch {
             questStore.effects.collect { effect ->
                 handleEffect(effect)
             }
         }
 
-        // Clean up when component is destroyed
+
         lifecycle.doOnDestroy {
             componentScope.cancel()
         }
@@ -80,15 +70,15 @@ class DefaultQuestComponent(
             QuestEffect.ShowQuestGaveUp -> onShowQuestGaveUp()
             is QuestEffect.ShowLevelUp -> onShowLevelUp(effect.newLevel)
             QuestEffect.ShowQuestStarted -> {
-                // Handle quest started notification if needed
+
             }
 
             QuestEffect.ShowCooldownStarted -> {
-                // Handle cooldown started notification if needed
+
             }
 
             QuestEffect.ShowCooldownEnded -> {
-                // Handle cooldown ended notification if needed
+
             }
 
             is QuestEffect.ShowError -> onShowError(effect.message)
@@ -99,11 +89,11 @@ class DefaultQuestComponent(
             QuestEffect.VibrateDevice -> onVibrateDevice()
             QuestEffect.ShowHeroCreated -> onShowHeroCreated()
             is QuestEffect.ShowXPGained -> {
-                // Handle XP gained notification if needed
+
             }
 
             is QuestEffect.ShowGoldGained -> {
-                // Handle gold gained notification if needed
+
             }
         }
     }

@@ -14,14 +14,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/**
- * Android implementation of KeyManager using Android Keystore
- * 
- * Stores database encryption keys securely using:
- * - Android Keystore for master key generation and storage
- * - AES/GCM encryption for database key protection
- * - SharedPreferences for encrypted key blob storage
- */
 actual class KeyManager(private val context: Context) {
     
     private val keyStore: KeyStore by lazy {
@@ -41,10 +33,10 @@ actual class KeyManager(private val context: Context) {
     }
     
     actual suspend fun rotateDbKey() = withContext(Dispatchers.IO) {
-        // Generate new key
+
         val newKey = generateDbKey()
-        
-        // Encrypt and store new key
+
+
         val encryptedData = encryptDbKey(newKey)
         storeEncryptedKey(encryptedData)
     }
@@ -54,15 +46,15 @@ actual class KeyManager(private val context: Context) {
     }
     
     private fun generateAndStoreDbKey(): ByteArray {
-        // Generate master key in Keystore if it doesn't exist
+
         if (!keyStore.containsAlias(MASTER_KEY_ALIAS)) {
             generateMasterKey()
         }
-        
-        // Generate database key
+
+
         val dbKey = generateDbKey()
-        
-        // Encrypt and store database key
+
+
         val encryptedData = encryptDbKey(dbKey)
         storeEncryptedKey(encryptedData)
         
@@ -86,7 +78,7 @@ actual class KeyManager(private val context: Context) {
     }
     
     private fun generateDbKey(): ByteArray {
-        val key = ByteArray(32) // 256-bit key for SQLCipher
+        val key = ByteArray(32) 
         SecureRandom().nextBytes(key)
         return key
     }

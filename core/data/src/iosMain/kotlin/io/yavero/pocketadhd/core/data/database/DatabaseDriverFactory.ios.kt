@@ -9,9 +9,8 @@ actual class DatabaseDriverFactory(
     private val keyManager: KeyManager
 ) {
     actual fun createDriver(): SqlDriver {
-        // TODO: Implement SQLCipher encryption for iOS
-        // For now, create unencrypted database but ensure KeyManager is working
-        // The key is generated and stored securely, ready for future SQLCipher integration
+
+
         runBlocking { keyManager.getOrCreateDbKey() }
         
         return NativeSqliteDriver(

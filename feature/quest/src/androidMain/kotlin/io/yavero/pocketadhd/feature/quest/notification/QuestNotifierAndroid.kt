@@ -15,14 +15,6 @@ import androidx.core.app.NotificationManagerCompat
 import io.yavero.pocketadhd.core.notifications.LocalNotifier
 import kotlinx.datetime.Instant
 
-/**
- * Android implementation of FocusNotifier
- *
- * Uses Android's notification system with:
- * - NotificationManager for channels and notifications
- * - LocalNotifier for scheduling end notifications
- * - POST_NOTIFICATIONS permission handling (API 33+)
- */
 class QuestNotifierAndroid(
     private val context: Context,
     private val localNotifier: LocalNotifier
@@ -31,10 +23,10 @@ class QuestNotifierAndroid(
     private val notificationManager = NotificationManagerCompat.from(context)
 
     override suspend fun requestPermissionIfNeeded() {
-        // Use the existing LocalNotifier permission handling
+
         localNotifier.requestPermissionIfNeeded()
 
-        // Ensure our focus channel exists
+
         ensureNotificationChannel()
     }
 
@@ -51,26 +43,26 @@ class QuestNotifierAndroid(
         val notification = NotificationCompat.Builder(context, QuestActions.CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // TODO: Use app icon
+            .setSmallIcon(android.R.drawable.ic_dialog_info) 
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOngoing(true)
             .setAutoCancel(false)
             .apply {
-                // Add countdown if endAt is provided
+
                 endAt?.let { end ->
                     setUsesChronometer(true)
                     setChronometerCountDown(true)
                     setWhen(end.toEpochMilliseconds())
                 }
 
-                // Add action buttons based on session state
+
                 if (endAt != null) {
-                    // Session is running - show pause and cancel actions
+
                     addAction(createAction(QuestActions.ACTION_PAUSE, "Pause", sessionId))
                     addAction(createAction(QuestActions.ACTION_CANCEL, "Cancel", sessionId))
                     addAction(createAction(QuestActions.ACTION_COMPLETE, "Complete", sessionId))
                 } else {
-                    // Session is paused - show resume and cancel actions
+
                     addAction(createAction(QuestActions.ACTION_RESUME, "Resume", sessionId))
                     addAction(createAction(QuestActions.ACTION_CANCEL, "Cancel", sessionId))
                     addAction(createAction(QuestActions.ACTION_COMPLETE, "Complete", sessionId))
@@ -90,7 +82,7 @@ class QuestNotifierAndroid(
     }
 
     override suspend fun scheduleEnd(sessionId: String, endAt: Instant) {
-        // Use the existing LocalNotifier to schedule the end notification
+
         localNotifier.schedule(
             id = "focus_end_$sessionId",
             at = endAt,
@@ -101,7 +93,7 @@ class QuestNotifierAndroid(
     }
 
     override suspend fun cancelScheduledEnd(sessionId: String) {
-        // Cancel the scheduled end notification
+
         localNotifier.cancel("focus_end_$sessionId")
     }
 
@@ -117,10 +109,10 @@ class QuestNotifierAndroid(
         val notification = NotificationCompat.Builder(context, QuestActions.CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // TODO: Use app icon
+            .setSmallIcon(android.R.drawable.ic_dialog_info) 
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound, vibration, lights
+            .setDefaults(NotificationCompat.DEFAULT_ALL) 
             .build()
 
         if (hasNotificationPermission()) {
@@ -154,7 +146,7 @@ class QuestNotifierAndroid(
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            true // Permission not required on older versions
+            true 
         }
     }
 
@@ -180,7 +172,7 @@ class QuestNotifierAndroid(
         )
 
         return NotificationCompat.Action.Builder(
-            0, // No icon for now
+            0, 
             title,
             pendingIntent
         ).build()

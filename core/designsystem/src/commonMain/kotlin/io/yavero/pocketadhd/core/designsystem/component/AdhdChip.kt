@@ -1,14 +1,7 @@
 package io.yavero.pocketadhd.core.designsystem.component
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +20,6 @@ import androidx.compose.ui.unit.dp
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 
-/**
- * Stat chip for displaying key metrics (uses Pill design tokens)
- */
 @Composable
 fun AdhdStatChip(
     label: String,
@@ -83,9 +73,6 @@ fun AdhdStatChip(
     }
 }
 
-/**
- * Mood chip for mood selection (uses Pill design tokens with selection state)
- */
 @Composable
 fun AdhdMoodChip(
     emoji: String,
@@ -149,9 +136,6 @@ fun AdhdMoodChip(
     }
 }
 
-/**
- * Generic chip component for filters, tags, etc.
- */
 @Composable
 fun AdhdChip(
     text: String,

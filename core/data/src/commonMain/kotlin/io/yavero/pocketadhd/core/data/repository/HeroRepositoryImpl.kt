@@ -13,9 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
 
-/**
- * Implementation of HeroRepository using SQLDelight
- */
 class HeroRepositoryImpl(
     private val database: PocketAdhdDatabase
 ) : HeroRepository {
@@ -55,13 +52,13 @@ class HeroRepositoryImpl(
     }
 
     override suspend fun updateHero(hero: Hero) {
-        // Use the same insert method since it's INSERT OR REPLACE
+
         insertHero(hero)
     }
 
     override suspend fun deleteHero() {
-        // Note: We don't have a delete query in the schema, but we could add one if needed
-        // For now, this is a no-op since the schema doesn't include a delete operation
+
+
     }
 
     override suspend fun updateHeroStats(

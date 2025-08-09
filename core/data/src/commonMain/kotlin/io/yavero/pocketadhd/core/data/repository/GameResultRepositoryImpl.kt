@@ -84,7 +84,7 @@ class GameResultRepositoryImpl(
             .map { entities ->
                 entities.map { entity ->
                     GameResult(
-                        id = "", // Not needed for trend data
+                        id = "", 
                         gameType = gameType,
                         timestamp = Instant.fromEpochMilliseconds(entity.timestamp),
                         score = entity.score.toInt(),

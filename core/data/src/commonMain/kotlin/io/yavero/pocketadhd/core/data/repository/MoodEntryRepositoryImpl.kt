@@ -65,12 +65,12 @@ class MoodEntryRepositoryImpl(
             .map { entities ->
                 entities.map { entity ->
                     MoodEntry(
-                        id = "", // Not needed for trend data
+                        id = "", 
                         timestamp = Instant.fromEpochMilliseconds(entity.timestamp),
                         mood = entity.mood.toInt(),
                         focus = entity.focus.toInt(),
                         energy = entity.energy.toInt(),
-                        notes = null // Not needed for trend data
+                        notes = null 
                     )
                 }
             }

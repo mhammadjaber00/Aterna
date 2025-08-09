@@ -4,12 +4,12 @@ import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/**
- * MVI Store for the new ultra-lean Onboarding feature.
- */
 class OnboardingStore(
     private val settingsRepository: SettingsRepository,
     private val scope: CoroutineScope
@@ -24,42 +24,80 @@ class OnboardingStore(
     override fun process(intent: OnboardingIntent) {
         when (intent) {
             is OnboardingIntent.NextPage -> {
-                reduce(OnboardingMsg.NextPage(intent.page))
+                handleNextScene()
             }
 
-            OnboardingIntent.CompletePager -> {
-                reduce(OnboardingMsg.PagerCompleted)
-                reduce(OnboardingMsg.ChangeStage(Stage.CLASS_SELECTION))
+            OnboardingIntent.StartSceneTransition -> {
+                reduce(OnboardingMsg.StartWalkingAnimation)
+
+                scope.launch {
+                    delay(1000)
+                    reduce(OnboardingMsg.CompleteWalkingAnimation)
+                    reduce(OnboardingMsg.StartTransition)
+                    delay(400)
+                    val nextSceneIndex = _state.value.currentSceneIndex + 1
+                    reduce(OnboardingMsg.NextScene(nextSceneIndex))
+                    reduce(OnboardingMsg.CompleteTransition)
+                }
             }
 
-            is OnboardingIntent.SelectClass -> {
-                reduce(OnboardingMsg.UpdateHeroClass(intent.heroClass))
-                reduce(OnboardingMsg.ChangeStage(Stage.HERO_NAME))
+            OnboardingIntent.NextScene -> {
+                val nextSceneIndex = _state.value.currentSceneIndex + 1
+                if (nextSceneIndex < OnboardingScenes.scenes.size) {
+                    reduce(OnboardingMsg.NextScene(nextSceneIndex))
+                }
             }
 
-            OnboardingIntent.SkipHeroName -> {
-                val currentState = _state.value
-                val autoName = generateAutoHeroName(currentState.classType)
-                reduce(OnboardingMsg.UpdateHeroName(autoName))
-                reduce(OnboardingMsg.ChangeStage(Stage.TUTORIAL_QUEST))
+            OnboardingIntent.CompleteWalkingAnimation -> {
+                reduce(OnboardingMsg.CompleteWalkingAnimation)
             }
 
-            is OnboardingIntent.SetHeroName -> {
-                reduce(OnboardingMsg.UpdateHeroName(intent.name))
-                reduce(OnboardingMsg.ChangeStage(Stage.TUTORIAL_QUEST))
-            }
-
-            OnboardingIntent.CompleteTutorial -> {
-                reduce(OnboardingMsg.TutorialCompleted)
-                reduce(OnboardingMsg.ChangeStage(Stage.LOOT_POPUP))
-            }
-
-            OnboardingIntent.DismissLoot -> {
+            OnboardingIntent.Finish -> {
                 finishOnboarding()
             }
 
-            OnboardingIntent.Finish -> finishOnboarding()
-            else -> {} // Handle other intents
+            
+            OnboardingIntent.CompletePager -> {
+                handleNextScene()
+            }
+
+            OnboardingIntent.BackPressed -> {
+                val nextSceneIndex = _state.value.currentSceneIndex - 1
+                reduce(OnboardingMsg.NextScene(nextSceneIndex))
+            }
+
+            else -> {
+
+            }
+        }
+    }
+
+    private fun handleNextScene() {
+        val currentState = _state.value
+
+        if (!currentState.canProceed) {
+            return
+        }
+
+        if (currentState.isLastScene) {
+            finishOnboarding()
+            return
+        }
+
+
+        val currentScene = currentState.currentScene
+        if (currentScene.warriorState == WarriorState.Walking) {
+
+            process(OnboardingIntent.StartSceneTransition)
+        } else {
+
+            scope.launch {
+                reduce(OnboardingMsg.StartTransition)
+                delay(400)
+                val nextSceneIndex = currentState.currentSceneIndex + 1
+                reduce(OnboardingMsg.NextScene(nextSceneIndex))
+                reduce(OnboardingMsg.CompleteTransition)
+            }
         }
     }
 
@@ -70,23 +108,42 @@ class OnboardingStore(
         }
     }
 
-    private fun generateAutoHeroName(heroClass: HeroClass?): String {
-        return when (heroClass) {
-            HeroClass.WARRIOR -> "BraveWarrior"
-            HeroClass.MAGE -> "WiseMage"
-            HeroClass.ROGUE -> "SwiftRogue"
-            null -> "Hero"
-        }
-    }
-
     private fun reduce(msg: OnboardingMsg) {
         _state.value = when (msg) {
-            is OnboardingMsg.NextPage -> _state.value.copy(page = msg.page)
-            is OnboardingMsg.ChangeStage -> _state.value.copy(stage = msg.stage)
-            OnboardingMsg.PagerCompleted -> _state.value.copy(pagerDone = true)
-            is OnboardingMsg.UpdateHeroClass -> _state.value.copy(classType = msg.heroClass)
-            is OnboardingMsg.UpdateHeroName -> _state.value.copy(heroName = msg.name)
-            OnboardingMsg.TutorialCompleted -> _state.value.copy(tutorialDone = true)
+            is OnboardingMsg.NextScene -> {
+                val newIndex = msg.sceneIndex.coerceIn(0, OnboardingScenes.scenes.size - 1)
+                _state.value.copy(currentSceneIndex = newIndex)
+            }
+
+            OnboardingMsg.StartTransition -> {
+                _state.value.copy(isTransitioning = true)
+            }
+
+            OnboardingMsg.CompleteTransition -> {
+                _state.value.copy(isTransitioning = false)
+            }
+
+            OnboardingMsg.StartWalkingAnimation -> {
+                _state.value.copy(isWalkingAnimationPlaying = true)
+            }
+
+            OnboardingMsg.CompleteWalkingAnimation -> {
+                _state.value.copy(isWalkingAnimationPlaying = false)
+            }
+
+            is OnboardingMsg.Error -> {
+                _state.value.copy(error = msg.message)
+            }
+
+            OnboardingMsg.Loading -> {
+                _state.value.copy(isLoading = true)
+            }
+
+            OnboardingMsg.Completed -> {
+                _state.value.copy(isLoading = false)
+            }
+
+            
             else -> _state.value
         }
     }

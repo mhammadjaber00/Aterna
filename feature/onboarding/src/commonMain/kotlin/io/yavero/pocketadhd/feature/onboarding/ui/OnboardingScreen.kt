@@ -1,245 +1,236 @@
 package io.yavero.pocketadhd.feature.onboarding.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.yavero.pocketadhd.feature.onboarding.presentation.HeroClass
-import io.yavero.pocketadhd.feature.onboarding.presentation.OnboardingState
-import io.yavero.pocketadhd.feature.onboarding.presentation.Stage
+import io.yavero.pocketadhd.feature.onboarding.ui.components.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * Main onboarding screen that orchestrates all onboarding stages
- */
 @Composable
 fun OnboardingScreen(
     component: OnboardingRootComponent,
     modifier: Modifier = Modifier
 ) {
     val uiState by component.uiState.collectAsState()
+    val bg = uiState.currentScene.backgroundRes
 
+    val fogTarget = remember(bg) {
+        when (bg) {
+            1001 -> 0.85f
+            1002 -> 0.60f
+            1003 -> 0.25f
+            1004 -> 0.05f
+            else -> 0.50f
+        }
+    }
+    val fog by animateFloatAsState(
+        targetValue = fogTarget,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "fog"
+    )
+
+    var tapEffects by remember { mutableStateOf(emptyList<TapEffect>()) }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        if (uiState.isLastScene) component.onFinish() else component.onNextPage()
+                    }
+                )
+            }
+    ) {
+        BackgroundGradient(bg = bg, modifier = Modifier.matchParentSize())
+
+        StarField(Modifier.matchParentSize())
+
+        SceneSilhouettes(bg = bg, modifier = Modifier.matchParentSize())
+
+        Box(
+            modifier = Modifier.matchParentSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            LoreCaption(
+                text = uiState.currentScene.message,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        }
+
+        MagicalParticles(
+            sceneType = bg,
+            intensity = (1f - fog).coerceIn(0.3f, 1f),
+            modifier = Modifier.matchParentSize()
+        )
+
+        TapEffectsLayer(
+            effects = tapEffects,
+            onEffectExpired = { tapEffects = tapEffects - it },
+            modifier = Modifier.matchParentSize()
+        )
+        BottomNarration(
+            text = uiState.currentScene.message,
+            buttonLabel = if (uiState.isLastScene) "Begin" else "Continue",
+            enabled = uiState.canProceed,
+            onClick = {
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun BackgroundGradient(bg: Int, modifier: Modifier = Modifier) {
+    val trans = updateTransition(targetState = bg, label = "bgGradient")
+
+    val top by trans.animateColor(label = "top") { b ->
+        when (b) {
+            1001 -> Color(0xFF0E0C14)
+            1002 -> Color(0xFF121016)
+            1003 -> Color(0xFF0D0B11)
+            1004 -> Color(0xFF0B0A0F)
+            else -> Color(0xFF0E0C14)
+        }
+    }
+    val bottom by trans.animateColor(label = "bottom") { b ->
+        when (b) {
+            1001 -> Color(0xFF1A1629)
+            1002 -> Color(0xFF161426)
+            1003 -> Color(0xFF131020)
+            1004 -> Color(0xFF171334)
+            else -> Color(0xFF161426)
+        }
+    }
+
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(0f to top, 1f to bottom))
+    )
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun SceneSilhouettes(
+    bg: Int,
+    modifier: Modifier = Modifier
+) {
     AnimatedContent(
-        targetState = uiState.stage,
-        modifier = modifier.fillMaxSize(),
+        targetState = bg,
+        modifier = modifier,
         transitionSpec = {
-            slideInHorizontally(
-                initialOffsetX = { fullWidth -> fullWidth },
-                animationSpec = tween(300)
-            ) togetherWith slideOutHorizontally(
-                targetOffsetX = { fullWidth -> -fullWidth },
-                animationSpec = tween(300)
+            fadeIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + scaleIn(
+                initialScale = 0.95f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ) togetherWith fadeOut(
+                animationSpec = tween(600, easing = FastOutSlowInEasing)
+            ) + scaleOut(
+                targetScale = 1.05f,
+                animationSpec = tween(400, easing = FastOutLinearInEasing)
             )
         },
-        label = "onboarding_stage_transition"
-    ) { stage ->
-        when (stage) {
-            Stage.WELCOME_PAGER -> {
-                WelcomePagerScreen(
-                    onComplete = component::onCompletePager
-                )
-            }
-
-            Stage.CLASS_SELECTION -> {
-                ClassSelectionScreen(
-                    onClassSelected = component::onSelectClass
-                )
-            }
-
-            Stage.HERO_NAME -> {
-                HeroNameScreen(
-                    selectedClass = uiState.classType,
-                    onNameSet = component::onSetHeroName,
-                    onSkip = component::onSkipHeroName
-                )
-            }
-
-            Stage.TUTORIAL_QUEST -> {
-                // TODO: Create TutorialQuestScreen or reuse existing quest screen
-                // For now, auto-complete after a delay to simulate tutorial
-                LaunchedEffect(Unit) {
-                    delay(3000) // Simulate 90s tutorial with 3s for demo
-                    component.onCompleteTutorial()
-                }
-
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "🎯",
-                            fontSize = 64.sp
-                        )
-                        Text(
-                            text = "Tutorial Quest in Progress...",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        Text(
-                            text = "Complete your first quest to earn rewards!",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        CircularProgressIndicator()
-                    }
-                }
-            }
-
-            Stage.LOOT_POPUP -> {
-                // Show loot popup dialog
-                LootPopupDialog(
-                    isVisible = true,
-                    onDismiss = component::onDismissLoot
-                )
-
-                // Background content (could be quest hub preview)
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "🏰 Quest Hub",
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                }
-            }
-
-            Stage.COMPLETE -> {
-                // This stage should immediately navigate to QuestHub
-                LaunchedEffect(Unit) {
-                    component.onFinish()
-                }
-
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Welcome to your adventure!",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
+        label = "silhouettes"
+    ) { state ->
+        Box(Modifier.fillMaxSize()) {
+            when (state) {
+                1001 -> CrystalChamberSilhouette(Modifier.fillMaxSize())
+                1002 -> CampSilhouette(Modifier.fillMaxSize())
+                1003 -> PathSilhouette(Modifier.fillMaxSize())
             }
         }
     }
-
-    // Handle loading state overlay
-    if (uiState.isLoading) {
-        LoadingOverlay()
-    }
-
-    // Handle error state
-    uiState.error?.let { errorMessage ->
-        ErrorSnackbar(
-            message = errorMessage,
-            onDismiss = component::onRetry
-        )
-    }
 }
 
-@Composable
-private fun LoadingOverlay() {
-    // Simple loading overlay - can be enhanced with blur effect
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
+
 
 @Composable
-private fun ErrorSnackbar(
-    message: String,
-    onDismiss: () -> Unit
+private fun LoreCaption(
+    text: String,
+    modifier: Modifier = Modifier,
+    baseDelayMs: Int = 14,
+    commaDelayMs: Int = 80,
+    sentenceDelayMs: Int = 160,
+    startDelayMs: Int = 90,
+    maxWidthFraction: Float = 0.86f
 ) {
-    LaunchedEffect(message) {
-        // Auto-dismiss after 5 seconds
-        delay(5000)
-        onDismiss()
-    }
+    var visibleLength by remember(text) { mutableIntStateOf(0) }
 
-    // Simple error display - in a real app, this would be a proper Snackbar
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.weight(1f)
-                )
-
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        text = "Dismiss",
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+    LaunchedEffect(text) {
+        delay(startDelayMs.toLong())
+        text.forEachIndexed { index, char ->
+            visibleLength = index + 1
+            val delayMs = when (char) {
+                ',' -> commaDelayMs
+                '.', '!', '?' -> sentenceDelayMs
+                else -> baseDelayMs
             }
+            delay(delayMs.toLong())
         }
     }
+
+    val displayText = remember(visibleLength, text) {
+        text.take(visibleLength)
+    }
+
+    Text(
+        text = displayText,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            lineHeight = 26.sp
+        ),
+        color = Color(0xFFE8EAF6),
+        modifier = modifier.fillMaxWidth(maxWidthFraction)
+    )
 }
 
-// Preview function
 @Composable
-fun OnboardingScreenPreview() {
-    MaterialTheme {
-        // Create a mock component for preview
-        val mockComponent = object : OnboardingRootComponent {
-            override val uiState = MutableStateFlow(
-                OnboardingState(
-                    stage = Stage.WELCOME_PAGER,
-                    page = 0
-                )
-            )
-
-            override fun onNextPage() {}
-            override fun onCompletePager() {}
-            override fun onSelectClass(heroClass: HeroClass) {}
-            override fun onSetHeroName(name: String) {}
-            override fun onSkipHeroName() {}
-            override fun onStartTutorial() {}
-            override fun onCompleteTutorial() {}
-            override fun onDismissLoot() {}
-            override fun onFinish() {}
-            override fun onRetry() {}
-            override fun onBackPressed() {}
-        }
-
-        OnboardingScreen(component = mockComponent)
+private fun BottomNarration(
+    text: String,
+    buttonLabel: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFB8C2D5),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
     }
 }

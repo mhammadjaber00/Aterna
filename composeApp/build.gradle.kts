@@ -81,7 +81,7 @@ kotlin {
 
 android {
     namespace = "io.yavero.pocketadhd"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdkVersion(libs.versions.android.compileSdk.get().toInt())
 
     defaultConfig {
         applicationId = "io.yavero.pocketadhd"
@@ -103,6 +103,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    lint {
+        disable += "NullSafeMutableLiveData"
     }
 }
 

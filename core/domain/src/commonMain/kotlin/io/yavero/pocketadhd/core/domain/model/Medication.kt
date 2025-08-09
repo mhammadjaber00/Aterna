@@ -8,9 +8,9 @@ import kotlinx.serialization.Serializable
 data class MedicationPlan(
     val id: String,
     val name: String,
-    val dose: String, // free text e.g., "10mg"
+    val dose: String, 
     val times: List<LocalTime>,
-    val daysOfWeek: List<Int>, // 1..7 (Monday = 1, Sunday = 7)
+    val daysOfWeek: List<Int>, 
     val isActive: Boolean = true
 )
 

@@ -6,12 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 
-/**
- * Koin DI module for Focus feature
- *
- * Provides common dependencies for the focus feature.
- * Platform-specific implementations are provided by platform modules.
- */
 val focusModule = module {
     single<QuestStore> {
         QuestStore(

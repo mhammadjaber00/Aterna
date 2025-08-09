@@ -1,33 +1,25 @@
 package io.yavero.pocketadhd.core.data.remote
 
 import io.yavero.pocketadhd.core.domain.model.ClassType
-import io.yavero.pocketadhd.core.domain.model.ItemPool
-import io.yavero.pocketadhd.core.domain.model.ItemRarity
 import io.yavero.pocketadhd.core.domain.util.LootRoller
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.random.Random
 
-/**
- * Mock implementation of QuestApi for development and testing
- *
- * Simulates server-side quest validation and loot generation
- * with realistic delays and deterministic responses.
- */
 class MockQuestApi : QuestApi {
 
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {
-        // Simulate network delay
+
         delay(500 + Random.nextLong(500))
 
         try {
-            // Parse timestamps
+
             val startTime = Instant.parse(request.questStartTime)
             val endTime = Instant.parse(request.questEndTime)
             val actualDuration = (endTime - startTime).inWholeMinutes
 
-            // Validate quest timing (allow 10% tolerance)
+
             val expectedDuration = request.durationMinutes.toLong()
             val tolerance = (expectedDuration * 0.1).toLong()
 
@@ -40,7 +32,7 @@ class MockQuestApi : QuestApi {
                 )
             }
 
-            if (actualDuration > expectedDuration + tolerance + 60) { // Allow 1 hour grace period
+            if (actualDuration > expectedDuration + tolerance + 60) { 
                 return QuestCompletionResponse(
                     success = false,
                     loot = QuestLootDto(0, 0, emptyList()),
@@ -49,13 +41,13 @@ class MockQuestApi : QuestApi {
                 )
             }
 
-            // Generate server seed based on quest parameters
+
             val serverSeed = generateServerSeed(request)
 
-            // Calculate hero level (mock - in real implementation this would come from database)
+
             val mockHeroLevel = calculateMockHeroLevel(request.heroId)
 
-            // Generate loot using server-side logic
+
             val classType = ClassType.valueOf(request.classType)
             val loot = LootRoller.rollLoot(
                 questDurationMinutes = request.durationMinutes,
@@ -64,7 +56,7 @@ class MockQuestApi : QuestApi {
                 serverSeed = serverSeed
             )
 
-            // Convert to DTO
+
             val lootDto = QuestLootDto(
                 xp = loot.xp,
                 gold = loot.gold,
@@ -79,8 +71,8 @@ class MockQuestApi : QuestApi {
                 }
             )
 
-            // Check for level up (mock calculation)
-            val newXP = mockHeroLevel * 100 + loot.xp // Simplified XP calculation
+
+            val newXP = mockHeroLevel * 100 + loot.xp 
             val newLevel = (newXP / 100) + 1
             val levelUp = newLevel > mockHeroLevel
 
@@ -104,7 +96,7 @@ class MockQuestApi : QuestApi {
     }
 
     override suspend fun validateQuest(request: QuestValidationRequest): QuestValidationResponse {
-        // Simulate network delay
+
         delay(200 + Random.nextLong(300))
 
         try {
@@ -113,7 +105,7 @@ class MockQuestApi : QuestApi {
             val actualDuration = (endTime - startTime).inWholeMinutes
             val expectedDuration = request.durationMinutes.toLong()
 
-            // Basic validation rules
+
             when {
                 actualDuration < 1 -> {
                     return QuestValidationResponse(
@@ -158,27 +150,17 @@ class MockQuestApi : QuestApi {
         }
     }
 
-    /**
-     * Generate a deterministic server seed based on quest parameters
-     */
     private fun generateServerSeed(request: QuestCompletionRequest): Long {
-        // Combine quest parameters to create a deterministic seed
+
         val seedString = "${request.questId}-${request.heroId}-${request.questStartTime}-${request.durationMinutes}"
         return seedString.hashCode().toLong()
     }
 
-    /**
-     * Mock hero level calculation based on heroId
-     * In a real implementation, this would query the database
-     */
     private fun calculateMockHeroLevel(heroId: String): Int {
-        // Simple mock: use heroId hash to determine level (1-10)
+
         val hash = heroId.hashCode()
         return ((hash % 10) + 1).coerceAtLeast(1)
     }
 }
 
-/**
- * Factory function to create mock QuestApi instance
- */
 fun createMockQuestApi(): QuestApi = MockQuestApi()

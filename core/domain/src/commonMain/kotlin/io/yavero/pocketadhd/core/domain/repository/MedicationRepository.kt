@@ -12,7 +12,7 @@ data class AdherenceStats(
 )
 
 interface MedicationRepository {
-    // Medication Plans
+
     fun getAllMedicationPlans(): Flow<List<MedicationPlan>>
     fun getActiveMedicationPlans(): Flow<List<MedicationPlan>>
     fun getMedicationPlanById(id: String): Flow<MedicationPlan?>
@@ -20,8 +20,8 @@ interface MedicationRepository {
     suspend fun updateMedicationPlan(plan: MedicationPlan)
     suspend fun deleteMedicationPlan(id: String)
     suspend fun toggleMedicationPlanActive(id: String)
-    
-    // Medication Intakes
+
+
     fun getAllMedicationIntakes(): Flow<List<MedicationIntake>>
     fun getMedicationIntakeById(id: String): Flow<MedicationIntake?>
     fun getIntakesByPlanId(planId: String): Flow<List<MedicationIntake>>

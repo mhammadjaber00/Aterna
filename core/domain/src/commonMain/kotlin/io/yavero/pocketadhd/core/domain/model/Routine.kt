@@ -8,7 +8,7 @@ data class Routine(
     val id: String,
     val name: String,
     val steps: List<RoutineStep>,
-    val schedule: RoutineSchedule? = null, // days/times optional
+    val schedule: RoutineSchedule? = null, 
     val isActive: Boolean = true
 )
 
@@ -22,6 +22,6 @@ data class RoutineStep(
 
 @Serializable
 data class RoutineSchedule(
-    val daysOfWeek: List<Int>, // 1..7 (Monday = 1, Sunday = 7)
+    val daysOfWeek: List<Int>, 
     val times: List<LocalTime>
 )

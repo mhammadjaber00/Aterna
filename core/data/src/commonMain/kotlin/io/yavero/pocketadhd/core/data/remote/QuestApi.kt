@@ -1,22 +1,11 @@
 package io.yavero.pocketadhd.core.data.remote
 
-import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.core.domain.model.QuestLoot
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
-/**
- * API interface for quest-related server operations
- */
 interface QuestApi {
-    /**
-     * Complete a quest on the server and get validated loot
-     */
     suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse
 
-    /**
-     * Validate quest timing and parameters
-     */
     suspend fun validateQuest(request: QuestValidationRequest): QuestValidationResponse
 }
 
@@ -25,8 +14,8 @@ data class QuestCompletionRequest(
     val heroId: String,
     val questId: String,
     val durationMinutes: Int,
-    val questStartTime: String, // ISO string
-    val questEndTime: String,   // ISO string
+    val questStartTime: String,
+    val questEndTime: String,   
     val classType: String
 )
 
@@ -71,9 +60,6 @@ data class ItemDto(
     val value: Int
 )
 
-/**
- * Extension function to convert DTO to domain model
- */
 fun QuestLootDto.toDomain(): QuestLoot {
     return QuestLoot(
         xp = xp,
@@ -82,9 +68,6 @@ fun QuestLootDto.toDomain(): QuestLoot {
     )
 }
 
-/**
- * Extension function to convert ItemDto to domain model
- */
 fun ItemDto.toDomain(): io.yavero.pocketadhd.core.domain.model.Item {
     return io.yavero.pocketadhd.core.domain.model.Item(
         id = id,

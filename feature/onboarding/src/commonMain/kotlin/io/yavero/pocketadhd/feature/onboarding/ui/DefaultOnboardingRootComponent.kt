@@ -1,112 +1,102 @@
 package io.yavero.pocketadhd.feature.onboarding.ui
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.lifecycle.doOnCreate
 import io.yavero.pocketadhd.core.domain.repository.SettingsRepository
-import io.yavero.pocketadhd.feature.onboarding.presentation.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import io.yavero.pocketadhd.feature.onboarding.presentation.OnboardingScenes
+import io.yavero.pocketadhd.feature.onboarding.presentation.OnboardingUiState
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.asStateFlow
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-/**
- * Default implementation of OnboardingRootComponent for the new ultra-lean flow
- */
 class DefaultOnboardingRootComponent(
     componentContext: ComponentContext,
-    private val onNavigateToQuestHub: () -> Unit
+    private val onNavigateToClassSelect: () -> Unit
 ) : OnboardingRootComponent, ComponentContext by componentContext, KoinComponent {
 
-    private val onboardingStore: OnboardingStore by inject()
     private val settingsRepository: SettingsRepository by inject()
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    override val uiState: StateFlow<OnboardingState> = onboardingStore.state
+    private val _uiState = MutableStateFlow(
+        OnboardingUiState(
+            currentScene = OnboardingScenes.scenes[0],
+            isTransitioning = false,
+            isWalkingAnimationPlaying = false,
+            isLastScene = false,
+            canProceed = true
+        )
+    )
+    override val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
+
+    private var currentSceneIndex = 0
 
     init {
-        // Set up back button handling
-        backHandler.register(BackCallback {
-            onBackPressed()
-        })
 
-        // Check if onboarding is already done and skip if so
         lifecycle.doOnCreate {
             componentScope.launch {
                 val isOnboardingDone = settingsRepository.getOnboardingDone()
                 if (isOnboardingDone) {
-                    // Skip onboarding and go directly to QuestHub
-                    onNavigateToQuestHub()
+
+                    onNavigateToClassSelect()
                     return@launch
                 }
             }
-
-            // Observe effects and handle navigation
-            onboardingStore.effects.onEach { effect ->
-                when (effect) {
-                    is OnboardingEffect.NavigateToQuestHub -> {
-                        onNavigateToQuestHub()
-                    }
-
-                    is OnboardingEffect.ShowError -> {
-                        // Error is already handled in the state, this could trigger additional UI feedback
-                    }
-
-                    is OnboardingEffect.ShowMessage -> {
-                        // Success messages could be handled here if needed
-                    }
-                }
-            }.launchIn(componentScope)
         }
+
+        updateState()
     }
 
     override fun onNextPage() {
-        val currentState = uiState.value
-        onboardingStore.process(OnboardingIntent.NextPage(currentState.page + 1))
-    }
+        if (!_uiState.value.canProceed) return
 
-    override fun onCompletePager() {
-        onboardingStore.process(OnboardingIntent.CompletePager)
-    }
+        componentScope.launch {
 
-    override fun onSelectClass(heroClass: HeroClass) {
-        onboardingStore.process(OnboardingIntent.SelectClass(heroClass))
-    }
+            _uiState.value = _uiState.value.copy(
+                isWalkingAnimationPlaying = true,
+                canProceed = false
+            )
 
-    override fun onSetHeroName(name: String) {
-        onboardingStore.process(OnboardingIntent.SetHeroName(name))
-    }
+            delay(700)
 
-    override fun onSkipHeroName() {
-        onboardingStore.process(OnboardingIntent.SkipHeroName)
-    }
 
-    override fun onStartTutorial() {
-        onboardingStore.process(OnboardingIntent.StartTutorial)
-    }
+            _uiState.value = _uiState.value.copy(
+                isWalkingAnimationPlaying = false,
+                isTransitioning = true
+            )
 
-    override fun onCompleteTutorial() {
-        onboardingStore.process(OnboardingIntent.CompleteTutorial)
-    }
+            if (currentSceneIndex < OnboardingScenes.scenes.size - 1) {
+                currentSceneIndex++
+                updateState()
+            }
 
-    override fun onDismissLoot() {
-        onboardingStore.process(OnboardingIntent.DismissLoot)
+
+            delay(300)
+            _uiState.value = _uiState.value.copy(
+                isTransitioning = false,
+                canProceed = true
+            )
+        }
     }
 
     override fun onFinish() {
-        onboardingStore.process(OnboardingIntent.Finish)
+        componentScope.launch {
+
+            settingsRepository.setOnboardingDone(true)
+
+            onNavigateToClassSelect()
+        }
     }
 
-    override fun onRetry() {
-        onboardingStore.process(OnboardingIntent.Retry)
-    }
+    private fun updateState() {
+        val currentScene = OnboardingScenes.scenes[currentSceneIndex]
+        val isLastScene = currentSceneIndex == OnboardingScenes.scenes.size - 1
 
-    override fun onBackPressed() {
-        onboardingStore.process(OnboardingIntent.BackPressed)
+        _uiState.value = _uiState.value.copy(
+            currentScene = currentScene,
+            isLastScene = isLastScene
+        )
     }
 }

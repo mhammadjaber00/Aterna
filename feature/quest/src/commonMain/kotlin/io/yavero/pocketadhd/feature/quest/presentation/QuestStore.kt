@@ -5,7 +5,9 @@ import io.yavero.pocketadhd.core.data.remote.QuestCompletionRequest
 import io.yavero.pocketadhd.core.data.remote.toDomain
 import io.yavero.pocketadhd.core.domain.error.getUserMessage
 import io.yavero.pocketadhd.core.domain.error.toAppError
-import io.yavero.pocketadhd.core.domain.model.*
+import io.yavero.pocketadhd.core.domain.model.ClassType
+import io.yavero.pocketadhd.core.domain.model.Hero
+import io.yavero.pocketadhd.core.domain.model.Quest
 import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.HeroRepository
@@ -22,16 +24,6 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-/**
- * MVI Store for Quest feature that manages quest lifecycle, timer, and hero progression.
- *
- * Key responsibilities:
- * - Quest lifecycle management (start, complete, give up)
- * - Timer logic with tick emissions every second
- * - Hero progression and cooldown management
- * - Loot generation and rewards
- * - Integration with repositories and notifications
- */
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
 class QuestStore(
     private val heroRepository: HeroRepository,
@@ -49,7 +41,7 @@ class QuestStore(
 
     private val refresh = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
-    // Timer that emits every second - preserved from FocusStore
+
     private val ticker = flow {
         while (true) {
             emit(Clock.System.now())
@@ -88,7 +80,7 @@ class QuestStore(
         val activeQuestFlow = questRepository.getActiveQuest()
 
         return combine(heroFlow, activeQuestFlow, ticker) { hero, activeQuest, currentTime ->
-            // If no hero exists, create a default one
+
             if (hero == null) {
                 scope.launch {
                     createDefaultHero(ClassType.WARRIOR)
@@ -96,28 +88,26 @@ class QuestStore(
                 return@combine QuestMsg.DataLoaded(null, activeQuest)
             }
 
-            // Handle timer updates for active quest
+
             if (activeQuest != null && activeQuest.isActive) {
                 val elapsed = currentTime - activeQuest.startTime
                 val totalDuration = activeQuest.durationMinutes.minutes
                 val remaining = totalDuration - elapsed
 
                 if (remaining <= Duration.ZERO) {
-                    // Quest time is up - auto-complete
+
                     scope.launch { completeQuest() }
                     QuestMsg.TimerTick(Duration.ZERO, 1.0f)
                 } else {
                     val progress = elapsed.inWholeSeconds.toFloat() / totalDuration.inWholeSeconds.toFloat()
                     QuestMsg.TimerTick(remaining, progress)
                 }
-            }
-            // Handle cooldown updates
-            else if (hero.isCooldownActive == true) {
+            } else if (hero.isCooldownActive == true) {
                 val cooldownEnd = hero.cooldownEndTime ?: return@combine QuestMsg.DataLoaded(hero, activeQuest)
                 val remaining = cooldownEnd - currentTime
 
                 if (remaining <= Duration.ZERO) {
-                    // Cooldown ended
+
                     scope.launch { endCooldown() }
                     QuestMsg.CooldownEnded
                 } else {
@@ -134,7 +124,7 @@ class QuestStore(
             try {
                 val currentState = _state.value
 
-                // Validation checks
+
                 if (currentState.hasActiveQuest) {
                     _effects.tryEmit(QuestEffect.ShowError("A quest is already active"))
                     return@launch
@@ -145,10 +135,10 @@ class QuestStore(
                     return@launch
                 }
 
-                // Get or create hero
+
                 val hero = currentState.hero ?: createDefaultHero(classType)
 
-                // Create new quest
+
                 val quest = Quest(
                     id = Uuid.random().toString(),
                     heroId = hero.id,
@@ -156,11 +146,11 @@ class QuestStore(
                     startTime = Clock.System.now()
                 )
 
-                // Save quest
+
                 questRepository.insertQuest(quest)
                 reduce(QuestMsg.QuestStarted(quest))
 
-                // Show notification
+
                 questNotifier.requestPermissionIfNeeded()
                 val endTime = quest.startTime.plus(durationMinutes.minutes)
                 questNotifier.showOngoing(
@@ -187,14 +177,14 @@ class QuestStore(
                 val activeQuest = currentState.activeQuest ?: return@launch
                 val hero = currentState.hero ?: return@launch
 
-                // Complete the quest
+
                 val completedQuest = activeQuest.copy(
                     endTime = Clock.System.now(),
                     completed = true
                 )
                 questRepository.updateQuest(completedQuest)
 
-                // Use server API for quest validation and loot generation
+
                 val questCompletionRequest = QuestCompletionRequest(
                     heroId = hero.id,
                     questId = activeQuest.id,
@@ -213,7 +203,7 @@ class QuestStore(
 
                 val loot = response.loot.toDomain()
 
-                // Update hero with rewards
+
                 val newXP = hero.xp + loot.xp
                 val newLevel = calculateLevel(newXP)
                 val leveledUp = newLevel > hero.level
@@ -228,10 +218,10 @@ class QuestStore(
 
                 heroRepository.updateHero(updatedHero)
 
-                // Cancel notification
+
                 questNotifier.cancelScheduledEnd(activeQuest.id)
 
-                // Emit effects
+
                 reduce(QuestMsg.QuestCompleted(completedQuest, loot))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
 
@@ -256,14 +246,14 @@ class QuestStore(
                 val activeQuest = currentState.activeQuest ?: return@launch
                 val hero = currentState.hero ?: return@launch
 
-                // Mark quest as gave up
+
                 val gaveUpQuest = activeQuest.copy(
                     endTime = Clock.System.now(),
                     gaveUp = true
                 )
                 questRepository.updateQuest(gaveUpQuest)
 
-                // Start cooldown based on class type
+
                 val cooldownMinutes = when (hero.classType) {
                     ClassType.ROGUE -> (activeQuest.durationMinutes * (1.0 - hero.classType.cooldownReduction)).toInt()
                     else -> activeQuest.durationMinutes
@@ -278,10 +268,10 @@ class QuestStore(
 
                 heroRepository.updateHero(updatedHero)
 
-                // Cancel notification
+
                 questNotifier.cancelScheduledEnd(activeQuest.id)
 
-                // Emit messages and effects
+
                 reduce(QuestMsg.QuestGaveUp(gaveUpQuest))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
                 reduce(QuestMsg.CooldownStarted(cooldownMinutes.minutes))
@@ -299,8 +289,8 @@ class QuestStore(
     }
 
     private fun handleTick() {
-        // Timer ticks are handled automatically in buildState()
-        // This is here for explicit intent handling if needed
+
+
     }
 
     private fun checkCooldown() {
@@ -341,7 +331,7 @@ class QuestStore(
     }
 
     private fun calculateLevel(xp: Int): Int {
-        // Simple level calculation: 100 XP per level
+
         return (xp / 100) + 1
     }
 

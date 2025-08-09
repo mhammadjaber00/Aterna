@@ -1,11 +1,15 @@
 package io.yavero.pocketadhd.navigation
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
+import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
+import io.yavero.pocketadhd.feature.onboarding.ui.DefaultClassSelectComponent
+import io.yavero.pocketadhd.feature.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.pocketadhd.feature.quest.component.DefaultQuestComponent
 import io.yavero.pocketadhd.feature.quest.presentation.QuestStore
-import io.yavero.pocketadhd.feature.onboarding.ui.DefaultOnboardingRootComponent
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -30,6 +34,13 @@ class DefaultAppRootComponent(
             is Config.Onboarding -> AppRootComponent.Child.Onboarding(
                 DefaultOnboardingRootComponent(
                     componentContext = componentContext,
+                    onNavigateToClassSelect = ::navigateToClassSelect
+                )
+            )
+
+            is Config.ClassSelect -> AppRootComponent.Child.ClassSelect(
+                DefaultClassSelectComponent(
+                    componentContext = componentContext,
                     onNavigateToQuestHub = ::navigateToQuestHub
                 )
             )
@@ -41,6 +52,10 @@ class DefaultAppRootComponent(
                 )
             )
         }
+
+    override fun navigateToClassSelect() {
+        navigation.bringToFront(Config.ClassSelect)
+    }
 
     override fun navigateToQuestHub() {
         navigation.bringToFront(Config.QuestHub)

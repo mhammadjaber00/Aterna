@@ -7,8 +7,8 @@ import kotlinx.serialization.Serializable
 data class MoodEntry(
     val id: String,
     val timestamp: Instant,
-    val mood: Int,  // -2..+2 (very bad to very good)
-    val focus: Int, // 0..4 (none to excellent)
-    val energy: Int,// 0..4 (none to high)
+    val mood: Int,
+    val focus: Int,
+    val energy: Int,
     val notes: String? = null
 )

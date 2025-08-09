@@ -1,22 +1,15 @@
 package io.yavero.pocketadhd.core.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
 import io.yavero.pocketadhd.core.data.database.PocketAdhdDatabase
 import io.yavero.pocketadhd.core.data.database.QuestLogEntity
 import io.yavero.pocketadhd.core.domain.model.Quest
 import io.yavero.pocketadhd.core.domain.repository.QuestRepository
 import io.yavero.pocketadhd.core.domain.repository.QuestStats
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
 
-/**
- * Implementation of QuestRepository using SQLDelight
- */
 class QuestRepositoryImpl(
     private val database: PocketAdhdDatabase
 ) : QuestRepository {
@@ -65,8 +58,8 @@ class QuestRepositoryImpl(
         startDate: Instant,
         endDate: Instant
     ): List<Quest> {
-        // Note: This would require a custom query in QuestLog.sq for date range filtering
-        // For now, we'll get all quests and filter in memory
+
+
         return questQueries.selectQuestsByHero(heroId)
             .executeAsList()
             .filter { entity ->
@@ -85,28 +78,28 @@ class QuestRepositoryImpl(
             endTime = quest.endTime?.epochSeconds,
             completed = if (quest.completed) 1L else 0L,
             gaveUp = if (quest.gaveUp) 1L else 0L,
-            xpGained = 0L, // Will be updated when quest completes
-            goldGained = 0L, // Will be updated when quest completes
+            xpGained = 0L,
+            goldGained = 0L, 
             serverValidated = if (quest.serverValidated) 1L else 0L,
             createdAt = quest.startTime.epochSeconds
         )
     }
 
     override suspend fun updateQuest(quest: Quest) {
-        // Update the quest completion status
+
         questQueries.updateQuestCompletion(
             endTime = quest.endTime?.epochSeconds,
             completed = if (quest.completed) 1L else 0L,
-            xpGained = 0L, // This would be set from the loot calculation
-            goldGained = 0L, // This would be set from the loot calculation
+            xpGained = 0L,
+            goldGained = 0L, 
             serverValidated = if (quest.serverValidated) 1L else 0L,
             id = quest.id
         )
     }
 
     override suspend fun deleteQuest(questId: String) {
-        // Note: We don't have a delete query in the schema, but we could add one if needed
-        // For now, this is a no-op since the schema doesn't include a delete operation
+
+
     }
 
     override suspend fun updateQuestCompletion(
@@ -137,8 +130,7 @@ class QuestRepositoryImpl(
             id = questId
         )
 
-        // Also need to update the gaveUp flag - this would require a separate query
-        // For now, we'll use the existing update method
+
     }
 
     override suspend fun getQuestStats(heroId: String): QuestStats {
@@ -158,7 +150,7 @@ class QuestRepositoryImpl(
             completedQuests.toFloat() / totalQuests.toFloat()
         } else 0f
 
-        // Calculate current streak (consecutive completed quests from most recent)
+
         val recentQuests = quests.sortedByDescending { it.createdAt }
         var currentStreak = 0
         for (quest in recentQuests) {

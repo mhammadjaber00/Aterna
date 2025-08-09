@@ -12,7 +12,7 @@ actual class DatabaseDriverFactory(
     private val keyManager: KeyManager
 ) {
     actual fun createDriver(): SqlDriver {
-        // Get encryption key from secure storage
+
         val passphrase = runBlocking { keyManager.getOrCreateDbKey() }
         
         val factory = SupportOpenHelperFactory(passphrase)

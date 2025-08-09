@@ -62,7 +62,7 @@ class RoutineRepositoryImpl(
                 isActive = if (routine.isActive) 1L else 0L
             )
 
-            // Insert routine steps
+
             routine.steps.forEachIndexed { index, step ->
                 routineQueries.insertRoutineStep(
                     id = step.id,
@@ -85,7 +85,7 @@ class RoutineRepositoryImpl(
                 id = routine.id
             )
 
-            // Delete existing steps and insert new ones
+
             routineQueries.deleteStepsByRoutineId(routine.id)
             routine.steps.forEachIndexed { index, step ->
                 routineQueries.insertRoutineStep(

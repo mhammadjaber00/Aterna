@@ -6,15 +6,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 
-/**
- * Koin DI module for onboarding feature
- */
 val onboardingModule = module {
 
-    // Onboarding Store
+
     single<OnboardingStore> {
         OnboardingStore(
-            settingsRepository = get(), // Provided by dataModule
+            settingsRepository = get(), 
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )
     }
