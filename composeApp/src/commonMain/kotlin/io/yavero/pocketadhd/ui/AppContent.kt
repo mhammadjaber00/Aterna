@@ -1,6 +1,7 @@
 package io.yavero.pocketadhd.ui
 
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -28,7 +29,8 @@ fun AppContent(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-    ) { paddingValues ->
+        contentWindowInsets = WindowInsets(0)
+    ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

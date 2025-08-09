@@ -198,8 +198,6 @@ private fun OrbButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     }
 }
 
-/* ───── Portal / Timer ───── */
-
 @Composable
 private fun QuestPortalArea(
     uiState: QuestState,

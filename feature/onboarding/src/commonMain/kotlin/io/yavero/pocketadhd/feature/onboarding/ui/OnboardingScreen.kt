@@ -12,13 +12,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.yavero.kahf.fx.CometSky
+import io.yavero.kahf.fx.CometStyle
 import io.yavero.pocketadhd.feature.onboarding.ui.components.*
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
+import kotlin.math.min
 
 @Composable
 fun OnboardingScreen(
@@ -48,35 +55,57 @@ fun OnboardingScreen(
 
     var tapEffects by remember { mutableStateOf(emptyList<TapEffect>()) }
 
+    val skyStyle = remember {
+        CometStyle(
+            curveStrength = -0.4f,
+            baseSpeedPxPerSec = 200f
+        )
+    }
+
+    var skipCaption: (() -> Boolean)? by remember { mutableStateOf(null) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
+                detectTapGestures { pos ->
+                    val consumed = skipCaption?.invoke() == true
+                    if (!consumed) {
+                        tapEffects = tapEffects + TapEffect(pos, Clock.System.now().toEpochMilliseconds())
                         if (uiState.isLastScene) component.onFinish() else component.onNextPage()
                     }
-                )
+                }
             }
     ) {
         BackgroundGradient(bg = bg, modifier = Modifier.matchParentSize())
+
+        CometSky(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer { alpha = (1f - fog).coerceIn(0.35f, 1f) },
+            style = skyStyle
+        )
 
         StarField(Modifier.matchParentSize())
 
         SceneSilhouettes(bg = bg, modifier = Modifier.matchParentSize())
 
         Box(
-            modifier = Modifier.matchParentSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier
+                .matchParentSize()
+                .padding(vertical = 120.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
+            CaptionScrim(Modifier.fillMaxWidth(0.94f).height(160.dp))
             LoreCaption(
                 text = uiState.currentScene.message,
+                skipOnTap = false,
+                registerSkipHandler = { skipCaption = it },
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
 
         MagicalParticles(
-            sceneType = bg,
             intensity = (1f - fog).coerceIn(0.3f, 1f),
             modifier = Modifier.matchParentSize()
         )
@@ -86,17 +115,27 @@ fun OnboardingScreen(
             onEffectExpired = { tapEffects = tapEffects - it },
             modifier = Modifier.matchParentSize()
         )
+
         BottomNarration(
-            text = uiState.currentScene.message,
-            buttonLabel = if (uiState.isLastScene) "Begin" else "Continue",
             enabled = uiState.canProceed,
-            onClick = {
-            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         )
     }
+}
+
+@Composable
+private fun CaptionScrim(modifier: Modifier = Modifier) {
+    Box(
+        modifier.background(
+            Brush.verticalGradient(
+                0f to Color.Transparent,
+                0.5f to Color(0xFF0A0B14).copy(alpha = 0.55f),
+                1f to Color.Transparent
+            )
+        )
+    )
 }
 
 @Composable
@@ -159,66 +198,172 @@ private fun SceneSilhouettes(
         },
         label = "silhouettes"
     ) { state ->
-        Box(Modifier.fillMaxSize()) {
-            when (state) {
-                1001 -> CrystalChamberSilhouette(Modifier.fillMaxSize())
-                1002 -> CampSilhouette(Modifier.fillMaxSize())
-                1003 -> PathSilhouette(Modifier.fillMaxSize())
-            }
+        when (state) {
+            1001 -> CrystalChamberSilhouette(Modifier.fillMaxSize())
+            1002 -> PaleFogOverlay(Modifier.fillMaxSize())
+            1003 -> PathSilhouette(Modifier.fillMaxSize())
+            1004 -> SwordAndWandSilhouette(Modifier.fillMaxSize())
         }
     }
 }
 
-
-
 @Composable
-private fun LoreCaption(
+fun LoreCaption(
     text: String,
     modifier: Modifier = Modifier,
     baseDelayMs: Int = 14,
-    commaDelayMs: Int = 80,
-    sentenceDelayMs: Int = 160,
+    commaDelayMs: Int = 90,
+    sentenceDelayMs: Int = 180,
     startDelayMs: Int = 90,
-    maxWidthFraction: Float = 0.86f
+    maxWidthFraction: Float = 0.86f,
+    skipOnTap: Boolean = true,
+    highlightWords: List<String> = listOf("Warrior", "Mage", "quest", "habit", "Evergloam"),
+    registerSkipHandler: ((() -> Boolean) -> Unit)? = null
 ) {
     var visibleLength by remember(text) { mutableIntStateOf(0) }
+    var done by remember(text) { mutableStateOf(false) }
+    var skipRequested by remember(text) { mutableStateOf(false) }
 
+    // punctuation "pop"
+    val pop = remember { Animatable(1f) }
+
+    // blinking cursor
+    val blink by rememberInfiniteTransition(label = "caption_cursor")
+        .animateFloat(
+            initialValue = 0.25f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(600, easing = LinearEasing), RepeatMode.Reverse),
+            label = "blink"
+        )
+
+    // expose a skipper to parent & re-use internally
+    val doSkip: () -> Boolean = {
+        if (!done) {
+            skipRequested = true
+            visibleLength = text.length
+            done = true
+            true
+        } else false
+    }
+
+    LaunchedEffect(text, registerSkipHandler) {
+        registerSkipHandler?.invoke { doSkip() }
+    }
+
+    // typing coroutine with cancel/skip awareness
     LaunchedEffect(text) {
+        skipRequested = false
+        visibleLength = 0
+        done = false
+
         delay(startDelayMs.toLong())
-        text.forEachIndexed { index, char ->
+        val rnd = kotlin.random.Random(text.hashCode())
+
+        for ((index, ch) in text.withIndex()) {
+            if (skipRequested) break
+
             visibleLength = index + 1
-            val delayMs = when (char) {
-                ',' -> commaDelayMs
-                '.', '!', '?' -> sentenceDelayMs
-                else -> baseDelayMs
+
+            val extra = rnd.nextInt(-3, 5).coerceAtLeast(0)
+            val stepDelay = when (ch) {
+                ',' -> commaDelayMs + extra
+                '.', '!', '?' -> {
+                    pop.snapTo(1f)
+                    pop.animateTo(1.06f, tween(120))
+                    pop.animateTo(1f, tween(120))
+                    sentenceDelayMs + extra
+                }
+
+                else -> baseDelayMs + extra
             }
-            delay(delayMs.toLong())
+
+            // split the delay into small chunks so we can bail out mid-wait
+            var remaining = stepDelay
+            while (remaining > 0 && !skipRequested) {
+                val chunk = min(24, remaining)
+                delay(chunk.toLong())
+                remaining -= chunk
+            }
+            if (skipRequested) break
+        }
+
+        if (skipRequested) {
+            visibleLength = text.length
+        }
+        done = true
+    }
+
+    val display = remember(visibleLength, text) { text.take(visibleLength) }
+
+    val annotated = remember(display, highlightWords) {
+        buildAnnotatedString {
+            append(display)
+            val lower = display.lowercase()
+            highlightWords.forEach { w ->
+                val key = w.lowercase()
+                var start = 0
+                while (true) {
+                    val idx = lower.indexOf(key, start)
+                    if (idx == -1) break
+                    addStyle(
+                        SpanStyle(
+                            brush = Brush.linearGradient(
+                                listOf(Color(0xFFFFF2C4), Color(0xFFFFD36B))
+                            ),
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        idx, idx + w.length
+                    )
+                    start = idx + w.length
+                }
+            }
         }
     }
 
-    val displayText = remember(visibleLength, text) {
-        text.take(visibleLength)
-    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth(maxWidthFraction)
+            .then(
+                if (skipOnTap)
+                    Modifier.pointerInput(text) {
+                        detectTapGestures { doSkip() }
+                    }
+                else Modifier
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = annotated,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                lineHeight = 26.sp
+            ),
+            color = Color(0xFFE8EAF6),
+            modifier = Modifier.graphicsLayer {
+                scaleX = pop.value
+                scaleY = pop.value
+            }
+        )
 
-    Text(
-        text = displayText,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            lineHeight = 26.sp
-        ),
-        color = Color(0xFFE8EAF6),
-        modifier = modifier.fillMaxWidth(maxWidthFraction)
-    )
+        if (!done) {
+            Spacer(Modifier.width(4.dp))
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .width(2.dp)
+                    .graphicsLayer { alpha = blink }
+                    .background(Color(0xFFE8EAF6).copy(alpha = 0.8f))
+            )
+        }
+    }
 }
 
 @Composable
 private fun BottomNarration(
-    text: String,
-    buttonLabel: String,
     enabled: Boolean,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -226,11 +371,11 @@ private fun BottomNarration(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFB8C2D5),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 16.dp)
+            "Tap anywhere to continue",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.graphicsLayer { alpha = if (enabled) 1f else .5f }
         )
+        Spacer(Modifier.fillMaxWidth().height(10.dp))
     }
 }

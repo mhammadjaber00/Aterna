@@ -17,7 +17,7 @@ data class Particle(
 )
 
 @Composable
-fun MagicalParticles(sceneType: Int, intensity: Float, modifier: Modifier = Modifier) {
+fun MagicalParticles(intensity: Float, modifier: Modifier = Modifier) {
     val particles = remember {
         List(20) { i ->
             Particle(

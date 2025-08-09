@@ -53,25 +53,25 @@ object OnboardingScenes {
         Scene(
             id = 1,
             backgroundRes = CAMP_BACKGROUND,
-            message = "Under a patient sky, Aterna remembers the Evergloam— a crystal that once sharpened every mind and steadied every hand.",
+            message = "Under a patient sky, Aterna gathers its champions. Here, your mind will be your map, your days your quest log. each moment a chance to ready yourself for the road ahead.",
             warriorState = WarriorState.Idle
         ),
         Scene(
             id = 2,
             backgroundRes = PATH_BACKGROUND,
-            message = "Then came the Pale Fog. Soft as sleep, greedy as time. Days blurred; the crystal’s heart fell quiet.",
+            message = "Then came the Pale Fog—soft as sleep, greedy as time. Distractions crept in, stealing focus, scattering goals. But with discipline, the path clears beneath your feet.",
             warriorState = WarriorState.Walking
         ),
         Scene(
             id = 3,
             backgroundRes = DUNGEON_GATE_BACKGROUND,
-            message = "Yet some still cut a path through the hush. Each focused task is a strike on the dungeon’s chains; each small win, a spark in Evergloam’s core.",
+            message = "Every completed task is a strike against the chains. Each habit forged is a torch lit in the dark. Progress here is not given! it’s earned, quest by quest.",
             warriorState = WarriorState.SwordReady
         ),
         Scene(
             id = 4,
             backgroundRes = OPEN_GATE_BACKGROUND,
-            message = "Choose your discipline—Warrior or Mage—and step through. Every quest is a torch. Every habit, a blade.",
+            message = "Choose your discipline: Warrior for gold, Mage for wisdom. Step through, and the world will shape itself to your focus. Every quest you take sharpens the blade; every habit kept lights the way.",
             warriorState = WarriorState.Idle
         )
     )
