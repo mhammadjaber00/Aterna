@@ -4,7 +4,6 @@ import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +30,10 @@ class OnboardingStore(
                 reduce(OnboardingMsg.StartWalkingAnimation)
 
                 scope.launch {
-                    delay(1000)
+//                    delay(1000)
                     reduce(OnboardingMsg.CompleteWalkingAnimation)
                     reduce(OnboardingMsg.StartTransition)
-                    delay(400)
+//                    delay(400)
                     val nextSceneIndex = _state.value.currentSceneIndex + 1
                     reduce(OnboardingMsg.NextScene(nextSceneIndex))
                     reduce(OnboardingMsg.CompleteTransition)
@@ -93,7 +92,7 @@ class OnboardingStore(
 
             scope.launch {
                 reduce(OnboardingMsg.StartTransition)
-                delay(400)
+//                delay(400)
                 val nextSceneIndex = currentState.currentSceneIndex + 1
                 reduce(OnboardingMsg.NextScene(nextSceneIndex))
                 reduce(OnboardingMsg.CompleteTransition)

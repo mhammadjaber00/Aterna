@@ -991,11 +991,23 @@ fun PaleFogOverlay(
     intensity: Float = 0.85f,   // 0..1
 ) {
     val trans = rememberInfiniteTransition(label = "paleFog")
-    val drift by trans.animateFloat(
-        0f, 1f,
-        animationSpec = infiniteRepeatable(tween(14000, easing = LinearEasing)),
-        label = "drift"
+
+    val driftFar by trans.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(12000, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "driftFar"
     )
+    val driftMid by trans.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(10000, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "driftMid"
+    )
+    val driftNear by trans.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(8000, easing = EaseInOutSine), RepeatMode.Reverse),
+        label = "driftNear"
+    )
+
     val breathe by trans.animateFloat(
         0.85f, 1.15f,
         animationSpec = infiniteRepeatable(tween(3600, easing = EaseInOutSine), RepeatMode.Reverse),
@@ -1011,10 +1023,10 @@ fun PaleFogOverlay(
         val fogA = Color(0xFFBFC6E8).copy(alpha = 0.06f * intensity)
         val fogB = Color(0xFFE6ECFF).copy(alpha = 0.035f * intensity)
 
-        fun band(y: Float, amp: Float, speed: Float, width: Float, seed: Float) {
+        fun band(phase: Float, y: Float, amp: Float, width: Float, seed: Float) {
             val p = Path()
             val steps = 28
-            val ph = (drift * speed + seed) * (2f * PI).toFloat()
+            val ph = (phase + seed) * (2f * PI).toFloat()
             val top = y - width / 2f
             val bot = y + width / 2f
             p.moveTo(0f, top)
@@ -1032,11 +1044,10 @@ fun PaleFogOverlay(
             drawPath(path = p, brush = Brush.verticalGradient(listOf(fogA, fogB, fogA)))
         }
 
-        // layered wisps (far → near)
-        band(y = h * 0.30f, amp = 22f, speed = 0.5f, width = 70f, seed = 0.1f)
-        band(y = h * 0.45f, amp = 28f, speed = 0.8f, width = 90f, seed = 0.6f)
-        band(y = h * 0.62f, amp = 34f, speed = 1.1f, width = 110f, seed = 1.2f)
-        band(y = h * 0.76f, amp = 26f, speed = 0.9f, width = 90f, seed = 1.8f)
+        // 3 layered horizontal fog bands (far → near) with parallax
+        band(phase = driftFar, y = h * 0.36f, amp = 22f, width = 80f, seed = 0.15f)
+        band(phase = driftMid, y = h * 0.52f, amp = 28f, width = 100f, seed = 0.65f)
+        band(phase = driftNear, y = h * 0.68f, amp = 34f, width = 120f, seed = 1.25f)
 
         // “clearing” over the path
         val clearR = min(w, h) * 0.36f * breathe

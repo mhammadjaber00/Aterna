@@ -13,7 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
@@ -67,6 +70,12 @@ fun OnboardingScreen(
         idx to 4
     }
 
+    val pagePos by animateFloatAsState(
+        targetValue = step.toFloat(),
+        animationSpec = tween(600, easing = EaseInOutSine),
+        label = "pagePos"
+    )
+
     var tapEffects by remember { mutableStateOf(emptyList<TapEffect>()) }
 
     val skyStyle = remember {
@@ -117,7 +126,23 @@ fun OnboardingScreen(
             modifier = Modifier
                 .matchParentSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(vertical = 64.dp),
+                .padding(vertical = 64.dp)
+                .then(
+                    if (bg == 1002) Modifier.drawBehind {
+                        val w = size.width
+                        val h = size.height
+                        val center = Offset(w * 0.5f, h * 0.22f)
+                        val r = min(w, h) * 0.40f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                0f to Color.White.copy(alpha = 0.085f),
+                                1f to Color.Transparent
+                            ),
+                            radius = r,
+                            center = center
+                        )
+                    } else Modifier
+                ),
             contentAlignment = Alignment.TopCenter
         ) {
             LoreCaption(

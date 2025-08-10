@@ -5,10 +5,13 @@ import com.arkivanov.essenty.lifecycle.doOnCreate
 import io.yavero.pocketadhd.core.domain.repository.SettingsRepository
 import io.yavero.pocketadhd.feature.onboarding.presentation.OnboardingScenes
 import io.yavero.pocketadhd.feature.onboarding.presentation.OnboardingUiState
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -59,7 +62,7 @@ class DefaultOnboardingRootComponent(
                 canProceed = false
             )
 
-            delay(700)
+//            delay(700)
 
 
             _uiState.value = _uiState.value.copy(
@@ -73,7 +76,7 @@ class DefaultOnboardingRootComponent(
             }
 
 
-            delay(300)
+//            delay(300)
             _uiState.value = _uiState.value.copy(
                 isTransitioning = false,
                 canProceed = true
