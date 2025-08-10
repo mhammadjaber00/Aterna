@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.core.ui.components.PixelHeroAvatar
+import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 import kotlin.math.PI
 import kotlin.math.cos
@@ -92,12 +93,12 @@ private data class ClassPalette(
 
 private val ClassPalettes = mapOf(
     ClassType.WARRIOR to ClassPalette(
-        core = Color(0xFFEA9E43),
-        gradient = Brush.horizontalGradient(listOf(Color(0xFFF6C46E), Color(0xFFEA9E43)))
+        core = AdhdColors.GoldAccent,
+        gradient = Brush.horizontalGradient(listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent))
     ),
     ClassType.MAGE to ClassPalette(
-        core = Color(0xFF5F6FEA),
-        gradient = Brush.horizontalGradient(listOf(Color(0xFF7C8CF8), Color(0xFF5F6FEA)))
+        core = AdhdColors.GoldAccent,
+        gradient = Brush.horizontalGradient(listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent))
     )
 )
 
@@ -112,7 +113,10 @@ fun ClassSelectionScreen(
     onConfirm: (ClassType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(modifier = modifier.fillMaxSize()) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = AdhdColors.AternaNight
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -142,14 +146,15 @@ fun ClassSelectionScreen(
 private fun ClassSelectionHeader() {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            text = "Choose Your Path",
+            text = "Choose Your Class",
             style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold
+            fontWeight = FontWeight.ExtraBold,
+            color = AdhdColors.Ink
         )
         Text(
-            text = "All classes are balanced—pick your vibe.",
+            text = "Both are balanced—pick what motivates you.",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = AdhdColors.Ink.copy(alpha = 0.8f)
         )
     }
 }
@@ -165,7 +170,7 @@ private fun ClassOptions(
         onClick = { onSelect(ClassType.WARRIOR) },
         perkIcon = Icons.Default.MonetizationOn,
         perkText = "+10% Gold",
-        flavor = "Treasure-hoarding bruiser."
+        flavor = "Turns effort into Gold."
     )
 
     MysticClassCard(
@@ -174,7 +179,7 @@ private fun ClassOptions(
         onClick = { onSelect(ClassType.MAGE) },
         perkIcon = Icons.Default.AutoAwesome,
         perkText = "+10% XP",
-        flavor = "Turns wisdom into levels."
+        flavor = "Turns insight into XP."
     )
 }
 

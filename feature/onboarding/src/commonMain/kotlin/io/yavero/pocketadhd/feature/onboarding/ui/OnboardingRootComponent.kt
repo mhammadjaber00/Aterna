@@ -8,4 +8,5 @@ interface OnboardingRootComponent {
     
     fun onNextPage()
     fun onFinish()
+    fun onSkip()
 }

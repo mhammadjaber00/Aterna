@@ -5,13 +5,15 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.yavero.kahf.fx.CometSky
 import io.yavero.kahf.fx.CometStyle
+import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.feature.onboarding.ui.components.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
@@ -52,6 +55,17 @@ fun OnboardingScreen(
         ),
         label = "fog"
     )
+
+    val (step, total) = remember(bg) {
+        val idx = when (bg) {
+            1001 -> 0
+            1002 -> 1
+            1003 -> 2
+            1004 -> 3
+            else -> 0
+        }
+        idx to 4
+    }
 
     var tapEffects by remember { mutableStateOf(emptyList<TapEffect>()) }
 
@@ -90,18 +104,27 @@ fun OnboardingScreen(
 
         SceneSilhouettes(bg = bg, modifier = Modifier.matchParentSize())
 
+        OnboardingProgress(
+            current = step,
+            total = total,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(top = 12.dp)
+        )
+
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .padding(vertical = 120.dp),
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(vertical = 64.dp),
             contentAlignment = Alignment.TopCenter
         ) {
-            CaptionScrim(Modifier.fillMaxWidth(0.94f).height(160.dp))
             LoreCaption(
                 text = uiState.currentScene.message,
                 skipOnTap = false,
                 registerSkipHandler = { skipCaption = it },
-                modifier = Modifier.padding(horizontal = 20.dp)
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
 
@@ -116,26 +139,29 @@ fun OnboardingScreen(
             modifier = Modifier.matchParentSize()
         )
 
-        BottomNarration(
+        BottomNotice(
             enabled = uiState.canProceed,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
         )
-    }
-}
 
-@Composable
-private fun CaptionScrim(modifier: Modifier = Modifier) {
-    Box(
-        modifier.background(
-            Brush.verticalGradient(
-                0f to Color.Transparent,
-                0.5f to Color(0xFF0A0B14).copy(alpha = 0.55f),
-                1f to Color.Transparent
+        TextButton(
+            onClick = { component.onSkip() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = "Skip",
+                color = AdhdColors.GoldAccent,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
             )
-        )
-    )
+        }
+    }
 }
 
 @Composable
@@ -144,20 +170,20 @@ private fun BackgroundGradient(bg: Int, modifier: Modifier = Modifier) {
 
     val top by trans.animateColor(label = "top") { b ->
         when (b) {
-            1001 -> Color(0xFF0E0C14)
-            1002 -> Color(0xFF121016)
-            1003 -> Color(0xFF0D0B11)
-            1004 -> Color(0xFF0B0A0F)
-            else -> Color(0xFF0E0C14)
+            1001 -> AdhdColors.AternaNight
+            1002 -> AdhdColors.AternaNight
+            1003 -> AdhdColors.AternaNight
+            1004 -> AdhdColors.AternaNight
+            else -> AdhdColors.AternaNight
         }
     }
     val bottom by trans.animateColor(label = "bottom") { b ->
         when (b) {
-            1001 -> Color(0xFF1A1629)
-            1002 -> Color(0xFF161426)
-            1003 -> Color(0xFF131020)
-            1004 -> Color(0xFF171334)
-            else -> Color(0xFF161426)
+            1001 -> AdhdColors.AternaNightAlt
+            1002 -> AdhdColors.AternaNightAlt
+            1003 -> AdhdColors.AternaNightAlt
+            1004 -> AdhdColors.AternaNightAlt
+            else -> AdhdColors.AternaNightAlt
         }
     }
 
@@ -217,7 +243,7 @@ fun LoreCaption(
     startDelayMs: Int = 90,
     maxWidthFraction: Float = 0.86f,
     skipOnTap: Boolean = true,
-    highlightWords: List<String> = listOf("Warrior", "Mage", "quest", "habit", "Evergloam"),
+    highlightWords: List<String> = listOf("Warrior", "Mage", "quest", "habit"),
     registerSkipHandler: ((() -> Boolean) -> Unit)? = null
 ) {
     var visibleLength by remember(text) { mutableIntStateOf(0) }
@@ -308,7 +334,7 @@ fun LoreCaption(
                     addStyle(
                         SpanStyle(
                             brush = Brush.linearGradient(
-                                listOf(Color(0xFFFFF2C4), Color(0xFFFFD36B))
+                                listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent)
                             ),
                             fontWeight = FontWeight.SemiBold
                         ),
@@ -341,7 +367,7 @@ fun LoreCaption(
                 textAlign = TextAlign.Center,
                 lineHeight = 26.sp
             ),
-            color = Color(0xFFE8EAF6),
+            color = AdhdColors.Ink,
             modifier = Modifier.graphicsLayer {
                 scaleX = pop.value
                 scaleY = pop.value
@@ -355,19 +381,19 @@ fun LoreCaption(
                     .height(20.dp)
                     .width(2.dp)
                     .graphicsLayer { alpha = blink }
-                    .background(Color(0xFFE8EAF6).copy(alpha = 0.8f))
+                    .background(AdhdColors.Ink.copy(alpha = 0.8f))
             )
         }
     }
 }
 
 @Composable
-private fun BottomNarration(
+private fun BottomNotice(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.padding(20.dp),
+        modifier = modifier.padding(horizontal = 64.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -377,5 +403,39 @@ private fun BottomNarration(
             modifier = Modifier.graphicsLayer { alpha = if (enabled) 1f else .5f }
         )
         Spacer(Modifier.fillMaxWidth().height(10.dp))
+    }
+}
+
+@Composable
+private fun OnboardingProgress(
+    current: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(total) { i ->
+            val selected = i == current
+            val scale by animateFloatAsState(if (selected) 1f else 0.85f, label = "dotScale")
+            val alpha by animateFloatAsState(if (selected) 1f else 0.55f, label = "dotAlpha")
+
+            Box(
+                Modifier
+                    .size(8.dp)
+                    .graphicsLayer {
+                        this.scaleX = scale
+                        this.scaleY = scale
+                        this.alpha = alpha
+                    }
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) AdhdColors.GoldAccent
+                        else AdhdColors.Ink.copy(alpha = 1f)
+                    )
+            )
+        }
     }
 }

@@ -84,6 +84,13 @@ object AdhdColors {
     val MoodNeutral = Color(0xFF71717A)
     val MoodGood = Color(0xFF2E7D32)
     val MoodVeryGood = Color(0xFF1B5E20)
+
+    // Aterna Onboarding Palette
+    val AternaNight = Color(0xFF0B0F1A)
+    val AternaNightAlt = Color(0xFF141A2A)
+    val GoldAccent = Color(0xFFF4D06F)
+    val GoldSoft = Color(0xFFF9E6A8)
+    val Ink = Color(0xFFE8ECF8)
 }
 
 val LightColorScheme = lightColorScheme(

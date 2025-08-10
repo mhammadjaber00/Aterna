@@ -90,6 +90,13 @@ class DefaultOnboardingRootComponent(
         }
     }
 
+    override fun onSkip() {
+        componentScope.launch {
+            settingsRepository.setOnboardingDone(true)
+            onNavigateToClassSelect()
+        }
+    }
+
     private fun updateState() {
         val currentScene = OnboardingScenes.scenes[currentSceneIndex]
         val isLastScene = currentSceneIndex == OnboardingScenes.scenes.size - 1
