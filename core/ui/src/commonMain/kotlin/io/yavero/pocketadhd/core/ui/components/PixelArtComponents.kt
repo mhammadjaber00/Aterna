@@ -2,9 +2,6 @@ package io.yavero.pocketadhd.core.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,89 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
-import io.yavero.pocketadhd.core.domain.model.ClassType
 
-
-@Composable
-fun PixelClassBadge(
-    classType: ClassType,
-    modifier: Modifier = Modifier
-) {
-    Canvas(
-        modifier = modifier.size(16.dp)
-    ) {
-        val pixelSize = this.size.width / 16f 
-        
-        when (classType) {
-            ClassType.WARRIOR -> drawWarriorBadge(pixelSize)
-            ClassType.MAGE -> drawMageBadge(pixelSize)
-            ClassType.ELF -> drawElfBadge(pixelSize)
-            ClassType.ROGUE -> drawRogueBadge(pixelSize)
-        }
-    }
-}
-
-private fun DrawScope.drawWarriorBadge(pixelSize: Float) {
-
-    val shield = Color(0xFF7C2D12)
-    val lightShield = Color(0xFFA16207)
-
-    drawPixelRect(6, 4, 4, 6, shield, pixelSize)
-    drawPixelRect(7, 5, 2, 4, lightShield, pixelSize)
-    drawPixelRect(8, 6, 1, 2, Color.White, pixelSize)
-}
-
-private fun DrawScope.drawMageBadge(pixelSize: Float) {
-    
-    val crystal = Color(0xFFE0E7FF)
-    val purple = Color(0xFF6366F1)
-
-    drawPixelRect(6, 5, 4, 4, purple, pixelSize)
-    drawPixelRect(7, 6, 2, 2, crystal, pixelSize)
-    drawPixelRect(7, 6, 1, 1, Color.White, pixelSize)
-}
-
-private fun DrawScope.drawElfBadge(pixelSize: Float) {
-
-    val leafGreen = Color(0xFF228B22)
-    val arrow = Color(0xFF8B4513)
-
-
-    drawPixelRect(6, 6, 2, 3, leafGreen, pixelSize)
-    drawPixelRect(7, 7, 1, 1, Color(0xFF32CD32), pixelSize)
-
-
-    drawPixelRect(9, 7, 3, 1, arrow, pixelSize)
-    drawPixelRect(12, 6, 1, 3, arrow, pixelSize) 
-}
-
-private fun DrawScope.drawRogueBadge(pixelSize: Float) {
-
-    val gold = Color(0xFFFFD700)
-    val blade = Color(0xFFC0C0C0)
-
-
-    drawPixelRect(5, 6, 3, 3, gold, pixelSize)
-    drawPixelRect(6, 7, 1, 1, Color.White, pixelSize)
-
-
-    drawPixelRect(9, 7, 2, 1, blade, pixelSize)
-    drawPixelRect(11, 6, 1, 3, blade, pixelSize) 
-}
-
-
-@Composable
-private fun PixelClassBadgePreviews() {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(16.dp)
-    ) {
-        PixelClassBadge(ClassType.WARRIOR)
-        PixelClassBadge(ClassType.MAGE)
-        PixelClassBadge(ClassType.ELF)
-        PixelClassBadge(ClassType.ROGUE)
-    }
-}
 
 @Composable
 fun PixelDungeonEntrance(
@@ -171,32 +86,6 @@ private fun DrawScope.drawDungeonGate(pixelSize: Float, isActive: Boolean, torch
     drawPixelRect(2, 21, 20, 2, stone, pixelSize)
 }
 
-@Composable
-fun PixelGoldCoin(
-    modifier: Modifier = Modifier,
-    animated: Boolean = false
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "coin_animation")
-
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (animated) 360f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "coin_rotation"
-    )
-
-    Canvas(
-        modifier = modifier.size(24.dp)
-    ) {
-        val pixelSize = this.size.width / 12f 
-
-        drawGoldCoin(pixelSize, rotation)
-    }
-}
-
 private fun DrawScope.drawGoldCoin(pixelSize: Float, rotation: Float) {
     val gold = Color(0xFFF59E0B)
     val lightGold = Color(0xFFFBBF24)
@@ -218,20 +107,6 @@ private fun DrawScope.drawGoldCoin(pixelSize: Float, rotation: Float) {
     drawPixelRect(5, 5, 2, 1, darkGold, pixelSize)
     drawPixelRect(6, 4, 1, 1, darkGold, pixelSize)
     drawPixelRect(6, 6, 1, 1, darkGold, pixelSize)
-}
-
-@Composable
-fun PixelXPOrb(
-    progress: Float,
-    modifier: Modifier = Modifier
-) {
-    Canvas(
-        modifier = modifier.size(24.dp)
-    ) {
-        val pixelSize = this.size.width / 12f 
-
-        drawXPOrb(pixelSize, progress)
-    }
 }
 
 private fun DrawScope.drawXPOrb(pixelSize: Float, progress: Float) {

@@ -12,4 +12,10 @@ sealed interface Config {
 
     @Serializable
     data object QuestHub : Config
+
+    @Serializable
+    data class Timer(
+        val initialMinutes: Int = 25,
+        val classType: String = "WARRIOR"
+    ) : Config
 }

@@ -6,9 +6,11 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
+import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.feature.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.pocketadhd.feature.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.pocketadhd.feature.quest.component.DefaultQuestComponent
+import io.yavero.pocketadhd.feature.quest.presentation.QuestIntent
 import io.yavero.pocketadhd.feature.quest.presentation.QuestStore
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -48,8 +50,16 @@ class DefaultAppRootComponent(
             is Config.QuestHub -> AppRootComponent.Child.QuestHub(
                 DefaultQuestComponent(
                     componentContext = componentContext,
-                    questStore = questStore
+                    questStore = questStore,
+                    onNavigateToTimerCallback = { initialMinutes, classType ->
+                        navigateToTimer(initialMinutes, classType.name)
+                    }
                 )
+            )
+
+            is Config.Timer -> AppRootComponent.Child.Timer(
+                initialMinutes = config.initialMinutes,
+                classType = config.classType
             )
         }
 
@@ -59,5 +69,19 @@ class DefaultAppRootComponent(
 
     override fun navigateToQuestHub() {
         navigation.bringToFront(Config.QuestHub)
+    }
+
+    override fun navigateToTimer(initialMinutes: Int, classType: String) {
+        navigation.bringToFront(Config.Timer(initialMinutes, classType))
+    }
+
+    override fun startQuest(durationMinutes: Int, classType: String) {
+        val classTypeEnum = try {
+            ClassType.valueOf(classType)
+        } catch (e: IllegalArgumentException) {
+            ClassType.WARRIOR
+        }
+        questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum))
+        navigateToQuestHub()
     }
 }

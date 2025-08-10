@@ -15,6 +15,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.feature.onboarding.ui.ClassSelectComponent
 import io.yavero.pocketadhd.feature.onboarding.ui.OnboardingScreen
+import io.yavero.pocketadhd.feature.quest.TimerScreen
 import io.yavero.pocketadhd.feature.quest.component.QuestComponent
 import io.yavero.pocketadhd.feature.quest.select.ClassSelectionScreen
 import io.yavero.pocketadhd.navigation.AppRootComponent
@@ -48,6 +49,11 @@ fun AppContent(
                     is AppRootComponent.Child.Onboarding -> OnboardingScreen(component = instance.component)
                     is AppRootComponent.Child.ClassSelect -> ClassSelectScreen(component = instance.component)
                     is AppRootComponent.Child.QuestHub -> QuestHubScreen(component = instance.component)
+                    is AppRootComponent.Child.Timer -> TimerScreenWrapper(
+                        initialMinutes = instance.initialMinutes,
+                        classType = instance.classType,
+                        component = component
+                    )
                 }
             }
         }
@@ -70,4 +76,28 @@ private fun ClassSelectScreen(component: ClassSelectComponent) {
 @Composable
 private fun QuestHubScreen(component: QuestComponent) {
     FeatureQuestScreen(component = component)
+}
+
+@Composable
+private fun TimerScreenWrapper(
+    initialMinutes: Int,
+    classType: String,
+    component: AppRootComponent
+) {
+    val classTypeEnum = try {
+        ClassType.valueOf(classType)
+    } catch (e: IllegalArgumentException) {
+        ClassType.WARRIOR
+    }
+
+    TimerScreen(
+        initialMinutes = initialMinutes,
+        classType = classTypeEnum,
+        onConfirm = { duration ->
+            component.startQuest(duration, classType)
+        },
+        onDismiss = {
+            component.navigateToQuestHub()
+        }
+    )
 }

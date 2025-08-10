@@ -1,8 +1,6 @@
 package io.yavero.pocketadhd.core.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,8 +23,6 @@ fun PixelHeroAvatar(
         when (classType) {
             ClassType.MAGE -> drawMageAvatar(pixelSize)
             ClassType.WARRIOR -> drawWarriorAvatar(pixelSize)
-            ClassType.ROGUE -> drawRogueAvatar(pixelSize)
-            ClassType.ELF -> drawElfAvatar(pixelSize)
         }
     }
 }
@@ -166,17 +162,6 @@ private fun DrawScope.drawElfAvatar(pixelSize: Float) {
     drawPixelRect(3, 5, 1, 1, arrow, pixelSize)
 }
 
-@Composable
-fun PixelHeroAvatarPreviews() {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        PixelHeroAvatar(ClassType.WARRIOR)
-        PixelHeroAvatar(ClassType.MAGE)
-        PixelHeroAvatar(ClassType.ROGUE)
-        PixelHeroAvatar(ClassType.ELF)
-    }
-}
 
 private fun DrawScope.drawPixelRect(
     x: Int,

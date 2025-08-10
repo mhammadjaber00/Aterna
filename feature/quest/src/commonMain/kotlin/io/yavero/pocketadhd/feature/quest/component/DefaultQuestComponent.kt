@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 class DefaultQuestComponent(
     componentContext: ComponentContext,
     private val questStore: QuestStore,
+    private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
@@ -62,6 +63,10 @@ class DefaultQuestComponent(
 
     override fun onClearError() {
         questStore.process(QuestIntent.ClearError)
+    }
+
+    override fun onNavigateToTimer(initialMinutes: Int, classType: ClassType) {
+        onNavigateToTimerCallback(initialMinutes, classType)
     }
 
     private fun handleEffect(effect: QuestEffect) {

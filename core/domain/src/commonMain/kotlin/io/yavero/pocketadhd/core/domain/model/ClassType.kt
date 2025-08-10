@@ -24,18 +24,4 @@ enum class ClassType(
         goldMultiplier = 1.0,
         cooldownReduction = 0.0
     ),
-    ROGUE(
-        "Rogue",
-        "+5% Gold & +5% XP",
-        xpMultiplier = 1.05,
-        goldMultiplier = 1.05,
-        cooldownReduction = 0.0
-    ),
-    ELF(
-        "Elf",
-        "15% chance extra loot (gold or XP)",
-        xpMultiplier = 1.0,
-        goldMultiplier = 1.0,
-        cooldownReduction = 0.0
-    )
 }

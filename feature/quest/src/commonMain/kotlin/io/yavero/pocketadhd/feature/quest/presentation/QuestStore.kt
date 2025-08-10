@@ -253,11 +253,7 @@ class QuestStore(
                 )
                 questRepository.updateQuest(gaveUpQuest)
 
-
-                val cooldownMinutes = when (hero.classType) {
-                    ClassType.ROGUE -> (activeQuest.durationMinutes * (1.0 - hero.classType.cooldownReduction)).toInt()
-                    else -> activeQuest.durationMinutes
-                }
+                val cooldownMinutes = activeQuest.durationMinutes
 
                 val cooldownEnd = Clock.System.now().plus(cooldownMinutes.minutes)
                 val updatedHero = hero.copy(

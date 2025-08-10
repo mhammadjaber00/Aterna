@@ -3,25 +3,18 @@ package io.yavero.pocketadhd.feature.quest
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -35,6 +28,7 @@ import io.yavero.pocketadhd.core.designsystem.component.IconOrb
 import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.core.domain.model.Hero
 import io.yavero.pocketadhd.core.ui.components.*
+import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.core.ui.theme.AternaColors
 import io.yavero.pocketadhd.core.ui.theme.AternaRadii
 import io.yavero.pocketadhd.feature.quest.component.*
@@ -57,8 +51,6 @@ fun QuestScreen(
     var showStatsPopup by remember { mutableStateOf(false) }
     var showInventoryPopup by remember { mutableStateOf(false) }
     var showAnalyticsPopup by remember { mutableStateOf(false) }
-    var showStartQuestDialog by remember { mutableStateOf(false) }
-    var quickPresetMinutes by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -67,8 +59,8 @@ fun QuestScreen(
     ) { _ ->
 
         Box(Modifier.fillMaxSize()) {
-            ScreenBackground()
-            SparkleField()
+            MagicalBackground()
+//            SparkleField()
 
             when {
                 uiState.isLoading -> LoadingState(Modifier.align(Alignment.Center))
@@ -95,10 +87,11 @@ fun QuestScreen(
                         onStopQuest = { component.onGiveUpQuest() },
                         onCompleteQuest = { component.onCompleteQuest() },
                         onQuickSelect = { minutes ->
-                            quickPresetMinutes = minutes
-                            showStartQuestDialog = true
+                            component.onNavigateToTimer(minutes, uiState.hero?.classType ?: ClassType.WARRIOR)
                         },
-                        onShowStartQuest = { showStartQuestDialog = true },
+                        onShowStartQuest = {
+                            component.onNavigateToTimer(25, uiState.hero?.classType ?: ClassType.WARRIOR)
+                        },
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(horizontal = 16.dp)
@@ -128,21 +121,6 @@ fun QuestScreen(
         AnalyticsPopupDialog(hero = uiState.hero, onDismiss = { showAnalyticsPopup = false })
     }
 
-    if (showStartQuestDialog) {
-        QuestDurationRitual(
-            initialMinutes = (quickPresetMinutes ?: 25),
-            classType = uiState.hero?.classType ?: ClassType.WARRIOR,
-            onConfirm = { duration ->
-                component.onStartQuest(duration, uiState.hero?.classType ?: ClassType.WARRIOR)
-                showStartQuestDialog = false
-                quickPresetMinutes = null
-            },
-            onDismiss = {
-                showStartQuestDialog = false
-                quickPresetMinutes = null
-            }
-        )
-    }
 }
 
 @Composable
@@ -188,19 +166,19 @@ private fun HeroHeader(
             IconOrb(
                 onClick = onShowStats,
                 modifier = Modifier.semantics { contentDescription = "View stats" },
-                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = MaterialTheme.colorScheme.outline
             ) { PixelScrollIcon() }
             IconOrb(
                 onClick = onShowInventory,
                 modifier = Modifier.semantics { contentDescription = "View inventory" },
-                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = MaterialTheme.colorScheme.outline
             ) { PixelBackpackIcon() }
             IconOrb(
                 onClick = onShowAnalytics,
                 modifier = Modifier.semantics { contentDescription = "View analytics" },
-                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = MaterialTheme.colorScheme.outline
             ) { PixelPotionIcon() }
         }
@@ -232,12 +210,10 @@ private fun QuestPortalArea(
                 modifier = Modifier
                     .size(portalSize)
                     .drawBehind {
-                        // soft outer glow
                         drawCircle(
                             brush = Brush.radialGradient(listOf(glow, Color.Transparent)),
                             radius = size.minDimension / 2f
                         )
-                        // subtle inner shadow (push room "in")
                         drawCircle(
                             brush = Brush.radialGradient(
                                 0f to Color.Black.copy(alpha = 0.38f),
@@ -352,7 +328,7 @@ private fun QuestPortalArea(
                 Text(
                     "The Dungeon Awaits.",
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AdhdColors.GoldSoft,
                     textAlign = TextAlign.Center
                 )
                 Text(
@@ -362,19 +338,20 @@ private fun QuestPortalArea(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Quick Start chips
                 QuickStartRow(
-                    presets = listOf(10, 25, 50, 90),
+                    presets = listOf(10, 30, 60, 120),
                     onSelect = onQuickSelect
                 )
 
                 Button(
                     onClick = onShowStartQuest,
                     shape = RoundedCornerShape(AternaRadii.Button),
-                    modifier = Modifier.height(54.dp).semantics {
-                        role = Role.Button
-                        contentDescription = "Begin Quest"
-                    }
+                    modifier = Modifier
+                        .height(54.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Begin Quest"
+                        }
                 ) { Text("Begin Quest", fontWeight = FontWeight.Bold) }
             }
         }
@@ -386,65 +363,35 @@ private fun QuickStartRow(
     presets: List<Int>,
     onSelect: (Int) -> Unit
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         presets.forEach { m ->
-            AssistChip(
+            OutlinedButton(
                 onClick = { onSelect(m) },
-                label = { Text("${m}m") },
-                leadingIcon = null
-            )
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text("${m}m")
+            }
         }
     }
 }
 
-/** Optimized sparkle field: one clock, no per-spark Animatable allocations. */
-@Composable
-private fun SparkleField(count: Int = 24) {
-    val sparkleColor = MaterialTheme.colorScheme.onSurface
-    val t by rememberInfiniteTransition(label = "sparkClock").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "t"
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val w = size.width
-                val h = size.height
-                repeat(count) { i ->
-                    val phase = (t + i * 0.07f) % 1f
-                    val x = w * (i + 1f) / (count + 1f)
-                    val y = h * ((i % (count / 2)) + 1f) / (count / 2f + 1f)
-                    drawCircle(
-                        color = sparkleColor.copy(alpha = 0.06f + 0.12f * phase),
-                        radius = 1.6f + 1.4f * phase,
-                        center = Offset(x, y)
-                    )
-                }
-            }
-    )
-}
 
 @Composable
 private fun AnalyticsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("📈 Analytics", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        title = { Text("Analytics", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("📅 This Week: ${hero?.totalFocusMinutes ?: 0} minutes")
                 Text("🔥 Current Streak: ${hero?.dailyStreak ?: 0} days")
                 Text("🏆 Quests Completed: 12")
                 Text("⭐ Average Session: 25 minutes")
-                Text("📊 Success Rate: 85%")
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Detailed analytics coming soon!",
@@ -457,171 +404,3 @@ private fun AnalyticsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: M
     )
 }
 
-@Composable
-fun DungeonVignette() {
-    val bg1 = MaterialTheme.colorScheme.surface
-    val bg2 = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .75f)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .drawBehind {
-                drawRect(bg1)
-                drawCircle(
-                    brush = Brush.radialGradient(listOf(Color.Transparent, bg2)),
-                    radius = size.minDimension * .7f,
-                    center = center
-                )
-            }
-    ) {
-        SparkleField()
-    }
-}
-
-@Composable
-private fun heatBrush(progress01: Float): Brush {
-    val c1 = lerp(Color(0xFF5B7CFA), Color(0xFFFFA94D), progress01)
-    val c2 = lerp(Color(0xFF79D0FF), Color(0xFFFF5A3C), progress01)
-    return Brush.sweepGradient(listOf(c1, c2, c1))
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-fun QuestDurationRitual(
-    initialMinutes: Int = 25,
-    minMinutes: Int = 10,
-    maxMinutes: Int = 120,
-    stepMinutes: Int = 5,
-    classType: ClassType = ClassType.WARRIOR,
-    onConfirm: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var minutes by remember { mutableIntStateOf(initialMinutes.coerceIn(minMinutes, maxMinutes)) }
-    val progress = ((minutes - minMinutes) / (maxMinutes - minMinutes).toFloat()).coerceIn(0f, 1f)
-    val haptic = LocalHapticFeedback.current
-
-    var isSealing by remember { mutableStateOf(false) }
-    var sealProgress by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(isSealing) {
-        if (isSealing) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            animate(0f, 1f, animationSpec = tween(1000, easing = FastOutSlowInEasing)) { value, _ ->
-                sealProgress = value
-            }
-            kotlinx.coroutines.delay(200)
-            onConfirm(minutes)
-        }
-    }
-
-    var previousMinutes by remember { mutableIntStateOf(minutes) }
-    LaunchedEffect(minutes) {
-        if (minutes != previousMinutes) {
-            if ((minutes - previousMinutes) % stepMinutes == 0) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            }
-            if (minutes in listOf(60, 90, 120) && previousMinutes !in listOf(60, 90, 120)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
-            previousMinutes = minutes
-        }
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        DungeonVignette()
-
-        Box(Modifier.fillMaxSize().padding(20.dp)) {
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(WindowInsets.statusBars.asPaddingValues()),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("⏳ Start Quest", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-                Text(
-                    "Close",
-                    modifier = Modifier
-                        .clickable { if (!isSealing) onDismiss() }
-                        .padding(8.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(top = 24.dp, bottom = 96.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                RitualRing(
-                    value = minutes,
-                    onValueChange = { minutes = it },
-                    min = minMinutes,
-                    max = maxMinutes,
-                    step = stepMinutes,
-                    diameter = 320.dp,
-                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                    activeBrush = ringPaletteFor(classType).active,
-                    fireEnabled = progress >= 0.7f,
-                    isSealing = isSealing,
-                    sealProgress = sealProgress,
-                    classType = classType
-                )
-
-                Spacer(Modifier.height(32.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes) }) {
-                        Text("– ${stepMinutes}m")
-                    }
-                    OutlinedButton(onClick = { minutes = (minutes + stepMinutes).coerceAtMost(maxMinutes) }) {
-                        Text("+ ${stepMinutes}m")
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                Text("$minutes minutes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                val line = when {
-                    minutes < 25 -> "Quick task."
-                    minutes < 60 -> "Steady quest."
-                    minutes < 90 -> "Long march."
-                    minutes < 120 -> "Great undertaking."
-                    else -> "Legendary run."
-                }
-                Text(line, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Row(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    enabled = !isSealing,
-                    modifier = Modifier.weight(1f)
-                ) { Text("Cancel") }
-                Button(
-                    onClick = { isSealing = true },
-                    enabled = !isSealing,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (isSealing) Text("Sealing...") else Text("Start Quest")
-                }
-            }
-        }
-
-        if (isSealing) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f * sealProgress))
-            )
-        }
-    }
-}

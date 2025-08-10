@@ -112,26 +112,4 @@ class LootRollerTest {
         assertEquals(1.1, expectedLowLevelMultiplier, "Low level multiplier should be 1.1")
         assertEquals(2.0, expectedHighLevelMultiplier, "High level multiplier should be 2.0")
     }
-
-    @Test
-    fun `base reward calculation should be correct`() {
-        val questDuration = 30
-        val heroLevel = 1
-        val classType = ClassType.ROGUE 
-        val seed = 33333L
-
-        val loot = LootRoller.rollLoot(questDuration, heroLevel, classType, seed)
-
-
-
-
-
-        assertEquals(330, loot.xp, "Base XP calculation should be correct")
-
-
-
-
-
-        assertEquals(33, loot.gold, "Base gold calculation should be correct")
-    }
 }

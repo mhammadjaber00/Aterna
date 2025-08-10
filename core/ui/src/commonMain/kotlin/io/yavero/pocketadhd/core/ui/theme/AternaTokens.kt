@@ -32,7 +32,5 @@ object AternaColors {
     fun forClass(type: ClassType) = when (type) {
         ClassType.WARRIOR -> Warrior
         ClassType.MAGE -> Mage
-        ClassType.ROGUE -> Rogue
-        ClassType.ELF -> Elf
     }
 }
