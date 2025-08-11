@@ -37,6 +37,15 @@ interface QuestRepository {
     suspend fun markQuestGaveUp(questId: String, endTime: Instant)
 
     suspend fun getQuestStats(heroId: String): QuestStats
+
+    // Planner & log persistence
+    suspend fun saveQuestPlan(questId: String, plans: List<io.yavero.pocketadhd.core.domain.model.quest.PlannedEvent>)
+    suspend fun getQuestPlan(questId: String): List<io.yavero.pocketadhd.core.domain.model.quest.PlannedEvent>
+    suspend fun clearQuestPlan(questId: String)
+
+    suspend fun appendQuestEvent(event: io.yavero.pocketadhd.core.domain.model.quest.QuestEvent)
+    suspend fun getQuestEvents(questId: String): List<io.yavero.pocketadhd.core.domain.model.quest.QuestEvent>
+    suspend fun getLastResolvedEventIdx(questId: String): Int
 }
 
 data class QuestStats(

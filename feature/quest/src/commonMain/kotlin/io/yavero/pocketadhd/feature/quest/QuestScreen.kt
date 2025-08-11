@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import io.yavero.pocketadhd.core.designsystem.component.IconOrb
 import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.core.domain.model.Hero
+import io.yavero.pocketadhd.core.domain.model.quest.EventType
+import io.yavero.pocketadhd.core.domain.model.quest.QuestEvent
 import io.yavero.pocketadhd.core.ui.components.*
 import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.core.ui.theme.AternaColors
@@ -302,6 +304,12 @@ private fun QuestPortalArea(
                     ) { Text("Stop Quest") }
                     Button(onClick = onCompleteQuest) { Text("Complete Quest") }
                 }
+
+                Spacer(Modifier.height(8.dp))
+                EventFeedList(
+                    events = uiState.eventFeed,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
             }
 
             uiState.isInCooldown -> {
@@ -315,7 +323,6 @@ private fun QuestPortalArea(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                // Keep CTA visible but disabled for clarity
                 Button(
                     onClick = {},
                     enabled = false,
@@ -404,3 +411,55 @@ private fun AnalyticsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: M
     )
 }
 
+
+@Composable
+private fun EventFeedList(
+    events: List<QuestEvent>,
+    modifier: Modifier = Modifier
+) {
+    if (events.isEmpty()) return
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            "Recent events",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                events.forEach { e ->
+                    val tint = when (e.type) {
+                        EventType.CHEST -> AdhdColors.GoldAccent
+                        EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
+                        EventType.QUIRKY -> AdhdColors.Primary300
+                        EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            modifier = Modifier.size(8.dp),
+                            shape = CircleShape,
+                            color = tint
+                        ) {}
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = e.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

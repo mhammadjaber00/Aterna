@@ -12,16 +12,16 @@ enum class ClassType(
 ) {
     WARRIOR(
         "Warrior",
-        "+10% Gold",
-        xpMultiplier = 1.0,
-        goldMultiplier = 1.1,
+        "+20% Gold",
+        xpMultiplier = 1.2,
+        goldMultiplier = 1.0,
         cooldownReduction = 0.0
     ),
     MAGE(
         "Mage",
-        "+10% XP",
-        xpMultiplier = 1.1,
-        goldMultiplier = 1.0,
+        "+30% XP",
+        xpMultiplier = 1.0,
+        goldMultiplier = 1.3,
         cooldownReduction = 0.0
     ),
 }

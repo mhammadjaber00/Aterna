@@ -15,6 +15,7 @@ class QuestRepositoryImpl(
 ) : QuestRepository {
 
     private val questQueries = database.questLogQueries
+    private val questEventsQueries = database.questEventsQueries
 
     override fun getActiveQuest(): Flow<Quest?> {
         return questQueries.selectQuestsByHero("")
@@ -79,7 +80,7 @@ class QuestRepositoryImpl(
             completed = if (quest.completed) 1L else 0L,
             gaveUp = if (quest.gaveUp) 1L else 0L,
             xpGained = 0L,
-            goldGained = 0L, 
+            goldGained = 0L,
             serverValidated = if (quest.serverValidated) 1L else 0L,
             createdAt = quest.startTime.epochSeconds
         )
@@ -91,7 +92,7 @@ class QuestRepositoryImpl(
             endTime = quest.endTime?.epochSeconds,
             completed = if (quest.completed) 1L else 0L,
             xpGained = 0L,
-            goldGained = 0L, 
+            goldGained = 0L,
             serverValidated = if (quest.serverValidated) 1L else 0L,
             id = quest.id
         )
@@ -169,6 +170,102 @@ class QuestRepositoryImpl(
             completionRate = completionRate,
             currentStreak = currentStreak
         )
+    }
+
+    override suspend fun saveQuestPlan(
+        questId: String,
+        plans: List<io.yavero.pocketadhd.core.domain.model.quest.PlannedEvent>
+    ) {
+        questEventsQueries.deletePlansByQuest(questId)
+        plans.forEach { p ->
+            questEventsQueries.insertPlan(
+                questId = questId,
+                idx = p.idx.toLong(),
+                dueAt = p.dueAt.epochSeconds,
+                type = p.type.name,
+                isMajor = if (p.isMajor) 1L else 0L,
+                mobTier = p.mobTier?.name
+            )
+        }
+    }
+
+    override suspend fun getQuestPlan(questId: String): List<io.yavero.pocketadhd.core.domain.model.quest.PlannedEvent> {
+        return questEventsQueries.selectPlansByQuest(questId)
+            .executeAsList()
+            .map { e ->
+                io.yavero.pocketadhd.core.domain.model.quest.PlannedEvent(
+                    questId = questId,
+                    idx = e.idx.toInt(),
+                    dueAt = Instant.fromEpochSeconds(e.dueAt),
+                    type = io.yavero.pocketadhd.core.domain.model.quest.EventType.valueOf(e.type),
+                    isMajor = e.isMajor == 1L,
+                    mobTier = e.mobTier?.let { io.yavero.pocketadhd.core.domain.model.quest.MobTier.valueOf(it) }
+                )
+            }
+    }
+
+    override suspend fun clearQuestPlan(questId: String) {
+        questEventsQueries.deletePlansByQuest(questId)
+    }
+
+    override suspend fun appendQuestEvent(event: io.yavero.pocketadhd.core.domain.model.quest.QuestEvent) {
+        questEventsQueries.insertEvent(
+            questId = event.questId,
+            idx = event.idx.toLong(),
+            at = event.at.epochSeconds,
+            type = event.type.name,
+            message = event.message,
+            xpDelta = event.xpDelta.toLong(),
+            goldDelta = event.goldDelta.toLong(),
+            outcome = encodeOutcome(event.outcome)
+        )
+    }
+
+    override suspend fun getQuestEvents(questId: String): List<io.yavero.pocketadhd.core.domain.model.quest.QuestEvent> {
+        return questEventsQueries.selectEventsByQuest(questId)
+            .executeAsList()
+            .map { e ->
+                io.yavero.pocketadhd.core.domain.model.quest.QuestEvent(
+                    questId = e.questId,
+                    idx = e.idx.toInt(),
+                    at = Instant.fromEpochSeconds(e.at),
+                    type = io.yavero.pocketadhd.core.domain.model.quest.EventType.valueOf(e.type),
+                    message = e.message,
+                    xpDelta = e.xpDelta.toInt(),
+                    goldDelta = e.goldDelta.toInt(),
+                    outcome = decodeOutcome(e.outcome)
+                )
+            }
+    }
+
+    override suspend fun getLastResolvedEventIdx(questId: String): Int {
+        val lastIdx = questEventsQueries
+            .selectLastResolvedIdx(questId)
+            .executeAsOneOrNull()
+            ?.max   // or ?.MAX depending on SQLDelight’s codegen casing
+            ?: -1L
+
+        return lastIdx.toInt()
+    }
+
+    private fun encodeOutcome(outcome: io.yavero.pocketadhd.core.domain.model.quest.EventOutcome): String? {
+        return when (outcome) {
+            is io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
+            is io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.Flee -> "flee:${outcome.mobName}:${outcome.mobLevel}"
+            io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.None -> null
+        }
+    }
+
+    private fun decodeOutcome(s: String?): io.yavero.pocketadhd.core.domain.model.quest.EventOutcome {
+        if (s == null) return io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.None
+        val parts = s.split(":")
+        return if (parts.size == 3) {
+            val kind = parts[0]
+            val name = parts[1]
+            val lvl = parts[2].toIntOrNull() ?: 0
+            if (kind == "win") io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.Win(name, lvl)
+            else io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.Flee(name, lvl)
+        } else io.yavero.pocketadhd.core.domain.model.quest.EventOutcome.None
     }
 
     private fun mapEntityToDomain(entity: QuestLogEntity): Quest {

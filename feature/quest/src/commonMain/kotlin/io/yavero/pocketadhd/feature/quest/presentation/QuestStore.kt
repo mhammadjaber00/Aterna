@@ -8,10 +8,13 @@ import io.yavero.pocketadhd.core.domain.error.toAppError
 import io.yavero.pocketadhd.core.domain.model.ClassType
 import io.yavero.pocketadhd.core.domain.model.Hero
 import io.yavero.pocketadhd.core.domain.model.Quest
+import io.yavero.pocketadhd.core.domain.model.quest.PlannerSpec
 import io.yavero.pocketadhd.core.domain.mvi.MviStore
 import io.yavero.pocketadhd.core.domain.mvi.createEffectsFlow
 import io.yavero.pocketadhd.core.domain.repository.HeroRepository
 import io.yavero.pocketadhd.core.domain.repository.QuestRepository
+import io.yavero.pocketadhd.core.domain.util.QuestPlanner
+import io.yavero.pocketadhd.core.domain.util.QuestResolver
 import io.yavero.pocketadhd.feature.quest.notification.QuestNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
@@ -77,9 +81,12 @@ class QuestStore(
 
     private fun buildState(): Flow<QuestMsg> {
         val heroFlow = heroRepository.getHero()
-        val activeQuestFlow = questRepository.getActiveQuest()
+        val questsFlow = heroFlow.flatMapLatest { hero ->
+            if (hero == null) flowOf(emptyList()) else questRepository.getQuestsByHero(hero.id)
+        }
 
-        return combine(heroFlow, activeQuestFlow, ticker) { hero, activeQuest, currentTime ->
+        return combine(heroFlow, questsFlow, ticker) { hero, quests, currentTime ->
+            val activeQuest = quests.firstOrNull { it.endTime == null && !it.gaveUp }
 
             if (hero == null) {
                 scope.launch {
@@ -88,14 +95,23 @@ class QuestStore(
                 return@combine QuestMsg.DataLoaded(null, activeQuest)
             }
 
-
             if (activeQuest != null && activeQuest.isActive) {
+                // fast-forward due events and update feed deterministically
+                scope.launch {
+                    try {
+                        val h = hero
+                        if (h != null) {
+                            ensurePlanIfMissing(h, activeQuest)
+                            replayDueEvents(h, activeQuest, currentTime)
+                        }
+                    } catch (_: Throwable) {
+                    }
+                }
                 val elapsed = currentTime - activeQuest.startTime
                 val totalDuration = activeQuest.durationMinutes.minutes
                 val remaining = totalDuration - elapsed
 
                 if (remaining <= Duration.ZERO) {
-
                     scope.launch { completeQuest() }
                     QuestMsg.TimerTick(Duration.ZERO, 1.0f)
                 } else {
@@ -107,7 +123,6 @@ class QuestStore(
                 val remaining = cooldownEnd - currentTime
 
                 if (remaining <= Duration.ZERO) {
-
                     scope.launch { endCooldown() }
                     QuestMsg.CooldownEnded
                 } else {
@@ -157,6 +172,11 @@ class QuestStore(
                     sessionId = quest.id,
                     title = "Quest Active",
                     text = "${durationMinutes} minute ${classType.displayName} quest",
+                    endAt = endTime
+                )
+                // Schedule backup end notification in case the app is backgrounded or killed
+                questNotifier.scheduleEnd(
+                    sessionId = quest.id,
                     endAt = endTime
                 )
 
@@ -220,7 +240,13 @@ class QuestStore(
 
 
                 questNotifier.cancelScheduledEnd(activeQuest.id)
+                questNotifier.clearOngoing(activeQuest.id)
 
+                questNotifier.showCompleted(
+                    sessionId = activeQuest.id,
+                    title = "Quest Complete",
+                    text = "+${loot.xp} XP, +${loot.gold} gold"
+                )
 
                 reduce(QuestMsg.QuestCompleted(completedQuest, loot))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
@@ -266,7 +292,7 @@ class QuestStore(
 
 
                 questNotifier.cancelScheduledEnd(activeQuest.id)
-
+                questNotifier.clearOngoing(activeQuest.id)
 
                 reduce(QuestMsg.QuestGaveUp(gaveUpQuest))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
@@ -287,6 +313,52 @@ class QuestStore(
     private fun handleTick() {
 
 
+    }
+
+    private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
+        val currentPlan = questRepository.getQuestPlan(quest.id)
+        if (currentPlan.isNotEmpty()) return
+        val seed = computeSeed(hero, quest)
+        val spec = PlannerSpec(
+            durationMinutes = quest.durationMinutes,
+            seed = seed,
+            startAt = quest.startTime,
+            heroLevel = hero.level,
+            classType = hero.classType
+        )
+        val planned = QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
+        questRepository.saveQuestPlan(quest.id, planned)
+    }
+
+    private suspend fun replayDueEvents(hero: Hero, quest: Quest, now: Instant) {
+        val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
+        val plan = questRepository.getQuestPlan(quest.id)
+        if (plan.isEmpty()) return
+        val seed = computeSeed(hero, quest)
+        val ctx = QuestResolver.Context(
+            questId = quest.id,
+            baseSeed = seed,
+            heroLevel = hero.level,
+            classType = hero.classType
+        )
+        var newCount = 0
+        plan.filter { it.dueAt <= now && it.idx > lastIdx }
+            .sortedBy { it.idx }
+            .forEach { p ->
+                val ev = QuestResolver.resolve(ctx, p)
+                questRepository.appendQuestEvent(ev)
+                newCount++
+            }
+        val all = questRepository.getQuestEvents(quest.id)
+        val latest = if (all.size > 6) all.takeLast(6) else all
+        reduce(QuestMsg.FeedUpdated(latest, bumpPulse = newCount > 0))
+    }
+
+    private fun computeSeed(hero: Hero, quest: Quest): Long {
+        val a = quest.startTime.toEpochMilliseconds()
+        val b = quest.id.hashCode().toLong()
+        val c = hero.id.hashCode().toLong()
+        return a xor b xor c
     }
 
     private fun checkCooldown() {
@@ -378,6 +450,11 @@ class QuestStore(
                 activeQuest = msg.quest,
                 timeRemaining = Duration.ZERO,
                 questProgress = 0f
+            )
+
+            is QuestMsg.FeedUpdated -> state.copy(
+                eventFeed = msg.events,
+                eventPulseCounter = if (msg.bumpPulse) state.eventPulseCounter + 1 else state.eventPulseCounter
             )
 
             is QuestMsg.HeroCreated -> state.copy(hero = msg.hero)

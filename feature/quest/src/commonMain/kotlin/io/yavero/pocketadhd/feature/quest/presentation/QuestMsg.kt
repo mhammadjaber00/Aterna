@@ -3,6 +3,7 @@ package io.yavero.pocketadhd.feature.quest.presentation
 import io.yavero.pocketadhd.core.domain.model.Hero
 import io.yavero.pocketadhd.core.domain.model.Quest
 import io.yavero.pocketadhd.core.domain.model.QuestLoot
+import io.yavero.pocketadhd.core.domain.model.quest.QuestEvent
 import io.yavero.pocketadhd.core.domain.mvi.MviMsg
 import kotlin.time.Duration
 
@@ -37,4 +38,9 @@ sealed interface QuestMsg : MviMsg {
     data class CooldownTick(val timeRemaining: Duration) : QuestMsg
 
     data object CooldownEnded : QuestMsg
+
+    data class FeedUpdated(
+        val events: List<QuestEvent>,
+        val bumpPulse: Boolean = true
+    ) : QuestMsg
 }

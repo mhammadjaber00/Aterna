@@ -14,7 +14,9 @@ data class QuestState(
     val timeRemaining: Duration = Duration.ZERO,
     val questProgress: Float = 0f,
     val isInCooldown: Boolean = false,
-    val cooldownTimeRemaining: Duration = Duration.ZERO
+    val cooldownTimeRemaining: Duration = Duration.ZERO,
+    val eventFeed: List<io.yavero.pocketadhd.core.domain.model.quest.QuestEvent> = emptyList(),
+    val eventPulseCounter: Int = 0
 ) : MviState, LoadingState {
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true

@@ -29,6 +29,11 @@ kotlin {
 
     iosArm64()
     iosSimulatorArm64()
+
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
     
     sourceSets {
         commonMain.dependencies {
