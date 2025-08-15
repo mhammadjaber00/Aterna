@@ -12,14 +12,14 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import io.yavero.pocketadhd.core.domain.model.ClassType
-import io.yavero.pocketadhd.feature.onboarding.ui.ClassSelectComponent
-import io.yavero.pocketadhd.feature.onboarding.ui.OnboardingScreen
-import io.yavero.pocketadhd.feature.quest.TimerScreen
-import io.yavero.pocketadhd.feature.quest.component.QuestComponent
-import io.yavero.pocketadhd.feature.quest.select.ClassSelectionScreen
+import io.yavero.pocketadhd.domain.model.ClassType
+import io.yavero.pocketadhd.features.onboarding.ui.ClassSelectComponent
+import io.yavero.pocketadhd.features.onboarding.ui.OnboardingScreen
+import io.yavero.pocketadhd.features.quest.TimerScreen
+import io.yavero.pocketadhd.features.quest.component.QuestComponent
+import io.yavero.pocketadhd.features.quest.select.ClassSelectionScreen
 import io.yavero.pocketadhd.navigation.AppRootComponent
-import io.yavero.pocketadhd.feature.quest.QuestScreen as FeatureQuestScreen
+import io.yavero.pocketadhd.features.quest.QuestScreen as FeatureQuestScreen
 
 @Composable
 fun AppContent(
@@ -93,7 +93,7 @@ private fun TimerScreenWrapper(
     TimerScreen(
         initialMinutes = initialMinutes,
         classType = classTypeEnum,
-        onConfirm = { duration ->
+        onConfirm = { duration: Int ->
             component.startQuest(duration, classType)
         },
         onDismiss = {

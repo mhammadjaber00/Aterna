@@ -6,11 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
-import io.yavero.pocketadhd.core.ui.theme.DarkColorScheme
-import io.yavero.pocketadhd.core.ui.theme.LightColorScheme
 import io.yavero.pocketadhd.navigation.DefaultAppRootComponent
 import io.yavero.pocketadhd.ui.AppContent
+import io.yavero.pocketadhd.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.ui.theme.DarkColorScheme
+import io.yavero.pocketadhd.ui.theme.LightColorScheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable

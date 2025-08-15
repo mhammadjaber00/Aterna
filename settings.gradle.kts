@@ -29,15 +29,3 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
-
-// Core modules
-include(":core:ui")
-include(":core:designsystem")
-include(":core:domain")
-include(":core:data")
-include(":core:notifications")
-include(":core:export")
-
-// Feature modules
-include(":feature:quest")
-include(":feature:onboarding")

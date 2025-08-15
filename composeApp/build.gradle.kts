@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -34,6 +35,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.sqlcipher)
+            implementation(libs.sqldelight.driver.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -60,21 +62,36 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines.core)
+
+            // Database
+            implementation(libs.sqldelight.coroutines)
+
+            // Settings
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
             
-            // Core modules
-            implementation(project(":core:domain"))
-            implementation(project(":core:data"))
-            implementation(project(":core:ui"))
-            implementation(project(":core:designsystem"))
-            implementation(project(":core:notifications"))
-            implementation(project(":core:export"))
-            
-            // Feature modules
-            implementation(project(":feature:quest"))
-            implementation(project(":feature:onboarding"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotest.assertions)
+            implementation(libs.koin.test)
+            implementation(libs.turbine)
+        }
+
+        val iosMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.sqldelight.driver.native)
+            }
+        }
+
+        iosArm64Main {
+            dependsOn(iosMain)
+        }
+
+        iosSimulatorArm64Main {
+            dependsOn(iosMain)
         }
     }
 }
@@ -106,6 +123,14 @@ android {
     }
     lint {
         disable += "NullSafeMutableLiveData"
+    }
+}
+
+sqldelight {
+    databases {
+        create("PocketAdhdDatabase") {
+            packageName.set("io.yavero.pocketadhd.data.database")
+        }
     }
 }
 
