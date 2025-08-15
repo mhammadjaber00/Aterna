@@ -1,4 +1,4 @@
-rootProject.name = "kahv"
+rootProject.name = "aterna"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

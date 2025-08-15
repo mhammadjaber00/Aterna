@@ -25,7 +25,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
-            binaryOptions["bundleId"] = "io.yavero.pocketadhd.pocketadhd"
+            binaryOptions["bundleId"] = "io.yavero.aterna.aterna"
             linkerOpts("-lsqlite3")
         }
     }
@@ -97,11 +97,11 @@ kotlin {
 }
 
 android {
-    namespace = "io.yavero.pocketadhd"
+    namespace = "io.yavero.aterna"
     compileSdkVersion(libs.versions.android.compileSdk.get().toInt())
 
     defaultConfig {
-        applicationId = "io.yavero.pocketadhd"
+        applicationId = "io.yavero.aterna"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -128,8 +128,8 @@ android {
 
 sqldelight {
     databases {
-        create("PocketAdhdDatabase") {
-            packageName.set("io.yavero.pocketadhd.data.database")
+        create("AternaDatabase") {
+            packageName.set("io.yavero.aterna.data.database")
         }
     }
 }

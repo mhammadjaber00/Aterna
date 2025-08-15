@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 
     <application
-            android:name=".PocketAdhdApplication"
+            android:name=".AternaApplication"
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
@@ -24,13 +24,13 @@
         </activity>
 
         <receiver
-                android:name="io.yavero.pocketadhd.feature.quest.notification.QuestActionReceiver"
+                android:name="io.yavero.aterna.feature.quest.notification.QuestActionReceiver"
                 android:exported="false">
             <intent-filter>
-                <action android:name="io.yavero.pocketadhd.QUEST_PAUSE"/>
-                <action android:name="io.yavero.pocketadhd.QUEST_RESUME"/>
-                <action android:name="io.yavero.pocketadhd.QUEST_CANCEL"/>
-                <action android:name="io.yavero.pocketadhd.QUEST_COMPLETE"/>
+                <action android:name="io.yavero.aterna.QUEST_PAUSE"/>
+                <action android:name="io.yavero.aterna.QUEST_RESUME"/>
+                <action android:name="io.yavero.aterna.QUEST_CANCEL"/>
+                <action android:name="io.yavero.aterna.QUEST_COMPLETE"/>
             </intent-filter>
         </receiver>
     </application>
