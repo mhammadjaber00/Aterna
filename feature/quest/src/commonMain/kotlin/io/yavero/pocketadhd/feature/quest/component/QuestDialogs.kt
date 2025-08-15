@@ -1,11 +1,15 @@
 package io.yavero.pocketadhd.feature.quest.component
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,8 +20,12 @@ import io.yavero.pocketadhd.core.designsystem.component.AdhdCard
 import io.yavero.pocketadhd.core.designsystem.component.AdhdPrimaryButton
 import io.yavero.pocketadhd.core.domain.model.Hero
 import io.yavero.pocketadhd.core.domain.model.QuestLoot
+import io.yavero.pocketadhd.core.domain.model.quest.EventType
+import io.yavero.pocketadhd.core.domain.model.quest.QuestEvent
+import io.yavero.pocketadhd.core.ui.theme.AdhdColors
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
+import io.yavero.pocketadhd.core.ui.theme.AternaColors
 
 @Composable
 fun LootDisplayDialog(
@@ -239,5 +247,94 @@ fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier
             textAlign = TextAlign.Center
         )
         AdhdPrimaryButton(text = "Try Again", onClick = onRetry)
+    }
+}
+
+@Composable
+fun AnalyticsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Analytics", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("📅 This Week: ${hero?.totalFocusMinutes ?: 0} minutes")
+                Text("🔥 Current Streak: ${hero?.dailyStreak ?: 0} days")
+                Text("🏆 Quests Completed: 12")
+                Text("⭐ Average Session: 25 minutes")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Detailed analytics coming soon!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdventureLogSheet(
+    events: List<QuestEvent>,
+    loading: Boolean,
+    onDismiss: () -> Unit
+) {
+    var filter by rememberSaveable { mutableStateOf(LogFilter.All) }
+    val filtered = remember(events, filter) { events.filterBy(filter) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Adventure Log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip("All", filter == LogFilter.All) { filter = LogFilter.All }
+                FilterChip("Battles", filter == LogFilter.Battles) { filter = LogFilter.Battles }
+                FilterChip("Loot", filter == LogFilter.Loot) { filter = LogFilter.Loot }
+                FilterChip("Quirks", filter == LogFilter.Quirks) { filter = LogFilter.Quirks }
+            }
+            Spacer(Modifier.height(4.dp))
+
+            when {
+                loading -> Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                filtered.isEmpty() -> Text("No entries yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    filtered.forEach { e ->
+                        val tint = when (e.type) {
+                            EventType.CHEST -> AdhdColors.GoldAccent
+                            EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
+                            EventType.QUIRKY -> AternaColors.Ink
+                            EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                            tonalElevation = 0.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(Modifier.size(8.dp).background(tint, CircleShape))
+                                Spacer(Modifier.width(8.dp))
+                                Text(e.message, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text("Close") }
+            }
+        }
     }
 }
