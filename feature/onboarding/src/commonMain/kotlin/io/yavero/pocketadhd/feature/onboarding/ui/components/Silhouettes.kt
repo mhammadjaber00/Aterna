@@ -166,11 +166,11 @@ fun PathSilhouette(
             // crown (teardrop)
             val crownPath = Path().apply {
                 moveTo(x + swayPx, y - height)
-                quadraticBezierTo(
+                quadraticTo(
                     x - width * 0.8f + swayPx, y - height * 0.45f,
                     x + swayPx, y - height * 0.10f
                 )
-                quadraticBezierTo(
+                quadraticTo(
                     x + width * 0.8f + swayPx, y - height * 0.45f,
                     x + swayPx, y - height
                 )

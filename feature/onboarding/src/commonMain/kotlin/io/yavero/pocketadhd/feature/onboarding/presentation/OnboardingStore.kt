@@ -141,9 +141,6 @@ class OnboardingStore(
             OnboardingMsg.Completed -> {
                 _state.value.copy(isLoading = false)
             }
-
-            
-            else -> _state.value
         }
     }
 }

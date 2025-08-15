@@ -47,7 +47,8 @@ actual class KeyManager {
         Random.nextBytes(key)
         return key
     }
-    
+
+    @OptIn(BetaInteropApi::class)
     private fun storeDbKey(key: ByteArray) {
 
         val userDefaults = NSUserDefaults.standardUserDefaults

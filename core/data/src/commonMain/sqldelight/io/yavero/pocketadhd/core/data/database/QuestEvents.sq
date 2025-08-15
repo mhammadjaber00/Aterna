@@ -45,4 +45,8 @@ INSERT INTO QuestEventEntity (questId, idx, at, type, message, xpDelta, goldDelt
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 selectLastResolvedIdx:
-SELECT max(idx) FROM QuestEventEntity WHERE questId = ?;
+SELECT COALESCE(MAX(idx), -1) AS last_idx FROM QuestEventEntity WHERE questId = ?;
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_event_quest_idx ON QuestEventEntity(questId, idx);
+CREATE INDEX IF NOT EXISTS idx_plan_quest_idx  ON QuestPlanEntity(questId, idx);

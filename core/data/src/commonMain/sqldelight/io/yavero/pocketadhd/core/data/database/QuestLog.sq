@@ -29,3 +29,8 @@ updateQuestCompletion:
 UPDATE QuestLogEntity 
 SET endTime = ?, completed = ?, xpGained = ?, goldGained = ?, serverValidated = ?
 WHERE id = ?;
+
+updateQuestGaveUp:
+UPDATE QuestLogEntity
+SET endTime = ?, completed = 0, gaveUp = 1, xpGained = 0, goldGained = 0, serverValidated = 0
+WHERE id = ?;

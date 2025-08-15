@@ -45,13 +45,17 @@ class QuestStore(
 
     private val refresh = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
-
     private val ticker = flow {
         while (true) {
             emit(Clock.System.now())
             delay(1000)
         }
     }.shareIn(scope, started = SharingStarted.WhileSubscribed(), replay = 1)
+
+    private companion object {
+        // v1: 1-line Whisper Slot; bump to 6 if you want more preview items
+        const val PREVIEW_WINDOW = 1
+    }
 
     init {
         scope.launch {
@@ -76,6 +80,7 @@ class QuestStore(
             QuestIntent.Complete -> completeQuest()
             QuestIntent.CheckCooldown -> checkCooldown()
             QuestIntent.ClearError -> clearError()
+            QuestIntent.LoadAdventureLog -> loadAdventureLog()
         }
     }
 
@@ -89,24 +94,20 @@ class QuestStore(
             val activeQuest = quests.firstOrNull { it.endTime == null && !it.gaveUp }
 
             if (hero == null) {
-                scope.launch {
-                    createDefaultHero(ClassType.WARRIOR)
-                }
+                scope.launch { createDefaultHero(ClassType.WARRIOR) }
                 return@combine QuestMsg.DataLoaded(null, activeQuest)
             }
 
             if (activeQuest != null && activeQuest.isActive) {
-                // fast-forward due events and update feed deterministically
+                // fast-forward due events and update preview feed deterministically
                 scope.launch {
                     try {
-                        val h = hero
-                        if (h != null) {
-                            ensurePlanIfMissing(h, activeQuest)
-                            replayDueEvents(h, activeQuest, currentTime)
-                        }
+                        ensurePlanIfMissing(hero, activeQuest)
+                        replayDueEvents(hero, activeQuest, currentTime)
                     } catch (_: Throwable) {
                     }
                 }
+
                 val elapsed = currentTime - activeQuest.startTime
                 val totalDuration = activeQuest.durationMinutes.minutes
                 val remaining = totalDuration - elapsed
@@ -138,21 +139,16 @@ class QuestStore(
         scope.launch {
             try {
                 val currentState = _state.value
-
-
                 if (currentState.hasActiveQuest) {
                     _effects.tryEmit(QuestEffect.ShowError("A quest is already active"))
                     return@launch
                 }
-
                 if (currentState.isInCooldown) {
                     _effects.tryEmit(QuestEffect.ShowError("Hero is in cooldown period"))
                     return@launch
                 }
 
-
                 val hero = currentState.hero ?: createDefaultHero(classType)
-
 
                 val quest = Quest(
                     id = Uuid.random().toString(),
@@ -161,10 +157,8 @@ class QuestStore(
                     startTime = Clock.System.now()
                 )
 
-
                 questRepository.insertQuest(quest)
                 reduce(QuestMsg.QuestStarted(quest))
-
 
                 questNotifier.requestPermissionIfNeeded()
                 val endTime = quest.startTime.plus(durationMinutes.minutes)
@@ -174,14 +168,9 @@ class QuestStore(
                     text = "${durationMinutes} minute ${classType.displayName} quest",
                     endAt = endTime
                 )
-                // Schedule backup end notification in case the app is backgrounded or killed
-                questNotifier.scheduleEnd(
-                    sessionId = quest.id,
-                    endAt = endTime
-                )
+                questNotifier.scheduleEnd(sessionId = quest.id, endAt = endTime)
 
                 _effects.tryEmit(QuestEffect.ShowQuestStarted)
-
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(QuestEffect.ShowError(appError.getUserMessage()))
@@ -197,33 +186,28 @@ class QuestStore(
                 val activeQuest = currentState.activeQuest ?: return@launch
                 val hero = currentState.hero ?: return@launch
 
-
                 val completedQuest = activeQuest.copy(
                     endTime = Clock.System.now(),
                     completed = true
                 )
                 questRepository.updateQuest(completedQuest)
 
-
-                val questCompletionRequest = QuestCompletionRequest(
-                    heroId = hero.id,
-                    questId = activeQuest.id,
-                    durationMinutes = activeQuest.durationMinutes,
-                    questStartTime = activeQuest.startTime.toString(),
-                    questEndTime = completedQuest.endTime!!.toString(),
-                    classType = hero.classType.name
+                val response = questApi.completeQuest(
+                    QuestCompletionRequest(
+                        heroId = hero.id,
+                        questId = activeQuest.id,
+                        durationMinutes = activeQuest.durationMinutes,
+                        questStartTime = activeQuest.startTime.toString(),
+                        questEndTime = completedQuest.endTime!!.toString(),
+                        classType = hero.classType.name
+                    )
                 )
-
-                val response = questApi.completeQuest(questCompletionRequest)
-
                 if (!response.success) {
                     _effects.tryEmit(QuestEffect.ShowError(response.message ?: "Quest validation failed"))
                     return@launch
                 }
 
                 val loot = response.loot.toDomain()
-
-
                 val newXP = hero.xp + loot.xp
                 val newLevel = calculateLevel(newXP)
                 val leveledUp = newLevel > hero.level
@@ -235,13 +219,10 @@ class QuestStore(
                     totalFocusMinutes = hero.totalFocusMinutes + activeQuest.durationMinutes,
                     lastActiveDate = Clock.System.now()
                 )
-
                 heroRepository.updateHero(updatedHero)
-
 
                 questNotifier.cancelScheduledEnd(activeQuest.id)
                 questNotifier.clearOngoing(activeQuest.id)
-
                 questNotifier.showCompleted(
                     sessionId = activeQuest.id,
                     title = "Quest Complete",
@@ -252,11 +233,8 @@ class QuestStore(
                 reduce(QuestMsg.HeroUpdated(updatedHero))
 
                 _effects.tryEmit(QuestEffect.ShowQuestCompleted(loot))
-                if (leveledUp) {
-                    _effects.tryEmit(QuestEffect.ShowLevelUp(newLevel))
-                }
+                if (leveledUp) _effects.tryEmit(QuestEffect.ShowLevelUp(newLevel))
                 _effects.tryEmit(QuestEffect.PlayQuestCompleteSound)
-
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(QuestEffect.ShowError(appError.getUserMessage()))
@@ -272,24 +250,20 @@ class QuestStore(
                 val activeQuest = currentState.activeQuest ?: return@launch
                 val hero = currentState.hero ?: return@launch
 
-
                 val gaveUpQuest = activeQuest.copy(
                     endTime = Clock.System.now(),
                     gaveUp = true
                 )
-                questRepository.updateQuest(gaveUpQuest)
+                questRepository.markQuestGaveUp(activeQuest.id, gaveUpQuest.endTime!!)
 
                 val cooldownMinutes = activeQuest.durationMinutes
-
                 val cooldownEnd = Clock.System.now().plus(cooldownMinutes.minutes)
                 val updatedHero = hero.copy(
                     isInCooldown = true,
                     cooldownEndTime = cooldownEnd,
                     lastActiveDate = Clock.System.now()
                 )
-
                 heroRepository.updateHero(updatedHero)
-
 
                 questNotifier.cancelScheduledEnd(activeQuest.id)
                 questNotifier.clearOngoing(activeQuest.id)
@@ -301,7 +275,6 @@ class QuestStore(
                 _effects.tryEmit(QuestEffect.ShowQuestGaveUp)
                 _effects.tryEmit(QuestEffect.ShowCooldownStarted)
                 _effects.tryEmit(QuestEffect.PlayQuestFailSound)
-
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(QuestEffect.ShowError(appError.getUserMessage()))
@@ -310,9 +283,7 @@ class QuestStore(
         }
     }
 
-    private fun handleTick() {
-
-
+    private fun handleTick() { /* no-op for now */
     }
 
     private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
@@ -334,10 +305,10 @@ class QuestStore(
         val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
         val plan = questRepository.getQuestPlan(quest.id)
         if (plan.isEmpty()) return
-        val seed = computeSeed(hero, quest)
+
         val ctx = QuestResolver.Context(
             questId = quest.id,
-            baseSeed = seed,
+            baseSeed = computeSeed(hero, quest),
             heroLevel = hero.level,
             classType = hero.classType
         )
@@ -349,9 +320,12 @@ class QuestStore(
                 questRepository.appendQuestEvent(ev)
                 newCount++
             }
+
+        // Update preview feed (v1: 1 item for Whisper Slot)
         val all = questRepository.getQuestEvents(quest.id)
-        val latest = if (all.size > 6) all.takeLast(6) else all
-        reduce(QuestMsg.FeedUpdated(latest, bumpPulse = newCount > 0))
+        val preview = all.takeLast(PREVIEW_WINDOW)
+        reduce(QuestMsg.FeedUpdated(preview, bumpPulse = newCount > 0))
+        // Full log is loaded on demand via LoadAdventureLog
     }
 
     private fun computeSeed(hero: Hero, quest: Quest): Long {
@@ -366,19 +340,15 @@ class QuestStore(
             val hero = _state.value.hero ?: return@launch
             if (hero.isCooldownActive) {
                 val remaining = hero.cooldownEndTime?.let { it - Clock.System.now() } ?: Duration.ZERO
-                if (remaining <= Duration.ZERO) {
-                    endCooldown()
-                }
+                if (remaining <= Duration.ZERO) endCooldown()
+                else reduce(QuestMsg.CooldownTick(remaining))
             }
         }
     }
 
     private suspend fun endCooldown() {
         val hero = _state.value.hero ?: return
-        val updatedHero = hero.copy(
-            isInCooldown = false,
-            cooldownEndTime = null
-        )
+        val updatedHero = hero.copy(isInCooldown = false, cooldownEndTime = null)
         heroRepository.updateHero(updatedHero)
         reduce(QuestMsg.HeroUpdated(updatedHero))
         reduce(QuestMsg.CooldownEnded)
@@ -398,14 +368,18 @@ class QuestStore(
         return hero
     }
 
-    private fun calculateLevel(xp: Int): Int {
-
-        return (xp / 100) + 1
-    }
+    private fun calculateLevel(xp: Int): Int = (xp / 100) + 1
 
     private fun clearError() {
+        scope.launch { reduce(QuestMsg.Error("")) }
+    }
+
+    private fun loadAdventureLog() {
         scope.launch {
-            reduce(QuestMsg.Error(""))
+            reduce(QuestMsg.AdventureLogLoading)
+            val q = _state.value.activeQuest
+            val all = if (q != null) questRepository.getQuestEvents(q.id) else emptyList()
+            reduce(QuestMsg.AdventureLogLoaded(all))
         }
     }
 
@@ -413,43 +387,39 @@ class QuestStore(
         _state.value = reduceMessage(_state.value, msg)
     }
 
-    private fun reduceMessage(state: QuestState, msg: QuestMsg): QuestState {
-        return when (msg) {
+    private fun reduceMessage(state: QuestState, msg: QuestMsg): QuestState =
+        when (msg) {
             QuestMsg.Loading -> state.copy(isLoading = true, error = null)
 
             is QuestMsg.DataLoaded -> state.copy(
-                isLoading = false,
-                error = null,
-                hero = msg.hero,
-                activeQuest = msg.activeQuest
+                isLoading = false, error = null,
+                hero = msg.hero, activeQuest = msg.activeQuest
             )
 
-            is QuestMsg.Error -> state.copy(
-                isLoading = false,
-                error = msg.message.takeIf { it.isNotBlank() }
-            )
+            is QuestMsg.Error -> state.copy(isLoading = false, error = msg.message.takeIf { it.isNotBlank() })
 
-            is QuestMsg.TimerTick -> state.copy(
-                timeRemaining = msg.timeRemaining,
-                questProgress = msg.progress
-            )
+            is QuestMsg.TimerTick -> state.copy(timeRemaining = msg.timeRemaining, questProgress = msg.progress)
 
             is QuestMsg.QuestStarted -> state.copy(
                 activeQuest = msg.quest,
                 timeRemaining = msg.quest.durationMinutes.minutes,
-                questProgress = 0f
+                questProgress = 0f,
+                adventureLog = emptyList(), // reset log for new run
+                lastLoot = null
             )
 
             is QuestMsg.QuestCompleted -> state.copy(
                 activeQuest = msg.quest,
                 timeRemaining = Duration.ZERO,
-                questProgress = 1f
+                questProgress = 1f,
+                lastLoot = msg.loot
             )
 
             is QuestMsg.QuestGaveUp -> state.copy(
                 activeQuest = msg.quest,
                 timeRemaining = Duration.ZERO,
-                questProgress = 0f
+                questProgress = 0f,
+                lastLoot = null
             )
 
             is QuestMsg.FeedUpdated -> state.copy(
@@ -458,22 +428,13 @@ class QuestStore(
             )
 
             is QuestMsg.HeroCreated -> state.copy(hero = msg.hero)
-
             is QuestMsg.HeroUpdated -> state.copy(hero = msg.hero)
 
-            is QuestMsg.CooldownStarted -> state.copy(
-                isInCooldown = true,
-                cooldownTimeRemaining = msg.cooldownDuration
-            )
+            is QuestMsg.CooldownStarted -> state.copy(isInCooldown = true, cooldownTimeRemaining = msg.cooldownDuration)
+            is QuestMsg.CooldownTick -> state.copy(isInCooldown = true, cooldownTimeRemaining = msg.timeRemaining)
+            QuestMsg.CooldownEnded -> state.copy(isInCooldown = false, cooldownTimeRemaining = Duration.ZERO)
 
-            is QuestMsg.CooldownTick -> state.copy(
-                cooldownTimeRemaining = msg.timeRemaining
-            )
-
-            QuestMsg.CooldownEnded -> state.copy(
-                isInCooldown = false,
-                cooldownTimeRemaining = Duration.ZERO
-            )
+            QuestMsg.AdventureLogLoading -> state.copy(isAdventureLogLoading = true)
+            is QuestMsg.AdventureLogLoaded -> state.copy(isAdventureLogLoading = false, adventureLog = msg.events)
         }
-    }
 }

@@ -32,17 +32,10 @@ class DefaultQuestComponent(
     override val uiState: StateFlow<QuestState> = questStore.state
 
     init {
-
         componentScope.launch {
-            questStore.effects.collect { effect ->
-                handleEffect(effect)
-            }
+            questStore.effects.collect { effect -> handleEffect(effect) }
         }
-
-
-        lifecycle.doOnDestroy {
-            componentScope.cancel()
-        }
+        lifecycle.doOnDestroy { componentScope.cancel() }
     }
 
     override fun onStartQuest(durationMinutes: Int, classType: ClassType) {
@@ -64,9 +57,12 @@ class DefaultQuestComponent(
     override fun onClearError() {
         questStore.process(QuestIntent.ClearError)
     }
-
     override fun onNavigateToTimer(initialMinutes: Int, classType: ClassType) {
         onNavigateToTimerCallback(initialMinutes, classType)
+    }
+
+    override fun onLoadAdventureLog() {
+        questStore.process(QuestIntent.LoadAdventureLog)
     }
 
     private fun handleEffect(effect: QuestEffect) {
@@ -74,18 +70,9 @@ class DefaultQuestComponent(
             is QuestEffect.ShowQuestCompleted -> onShowQuestCompleted(effect.loot)
             QuestEffect.ShowQuestGaveUp -> onShowQuestGaveUp()
             is QuestEffect.ShowLevelUp -> onShowLevelUp(effect.newLevel)
-            QuestEffect.ShowQuestStarted -> {
-
-            }
-
-            QuestEffect.ShowCooldownStarted -> {
-
-            }
-
-            QuestEffect.ShowCooldownEnded -> {
-
-            }
-
+            QuestEffect.ShowQuestStarted -> {}
+            QuestEffect.ShowCooldownStarted -> {}
+            QuestEffect.ShowCooldownEnded -> {}
             is QuestEffect.ShowError -> onShowError(effect.message)
             is QuestEffect.ShowSuccess -> onShowSuccess(effect.message)
             is QuestEffect.ShowLootReward -> onShowLootReward(effect.loot)
@@ -93,13 +80,8 @@ class DefaultQuestComponent(
             QuestEffect.PlayQuestFailSound -> onPlayQuestFailSound()
             QuestEffect.VibrateDevice -> onVibrateDevice()
             QuestEffect.ShowHeroCreated -> onShowHeroCreated()
-            is QuestEffect.ShowXPGained -> {
-
-            }
-
-            is QuestEffect.ShowGoldGained -> {
-
-            }
+            is QuestEffect.ShowXPGained -> {}
+            is QuestEffect.ShowGoldGained -> {}
         }
     }
 }

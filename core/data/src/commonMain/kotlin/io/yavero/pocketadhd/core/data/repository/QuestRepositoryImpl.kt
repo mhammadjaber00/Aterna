@@ -122,16 +122,10 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun markQuestGaveUp(questId: String, endTime: Instant) {
-        questQueries.updateQuestCompletion(
+        questQueries.updateQuestGaveUp(
             endTime = endTime.epochSeconds,
-            completed = 0L,
-            xpGained = 0L,
-            goldGained = 0L,
-            serverValidated = 0L,
             id = questId
         )
-
-
     }
 
     override suspend fun getQuestStats(heroId: String): QuestStats {
@@ -239,13 +233,10 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun getLastResolvedEventIdx(questId: String): Int {
-        val lastIdx = questEventsQueries
+        return questEventsQueries
             .selectLastResolvedIdx(questId)
-            .executeAsOneOrNull()
-            ?.max   // or ?.MAX depending on SQLDelight’s codegen casing
-            ?: -1L
-
-        return lastIdx.toInt()
+            .executeAsOne()
+            .toInt()
     }
 
     private fun encodeOutcome(outcome: io.yavero.pocketadhd.core.domain.model.quest.EventOutcome): String? {

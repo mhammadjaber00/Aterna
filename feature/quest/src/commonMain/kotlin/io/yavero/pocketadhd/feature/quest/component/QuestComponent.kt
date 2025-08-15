@@ -13,5 +13,6 @@ interface QuestComponent {
     fun onRefresh()
     fun onClearError()
     fun onNavigateToTimer(initialMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
-}
 
+    fun onLoadAdventureLog()
+}

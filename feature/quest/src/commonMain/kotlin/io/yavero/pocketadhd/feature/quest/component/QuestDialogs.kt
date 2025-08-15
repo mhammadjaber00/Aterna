@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import io.yavero.pocketadhd.core.designsystem.component.AdhdCard
 import io.yavero.pocketadhd.core.designsystem.component.AdhdPrimaryButton
 import io.yavero.pocketadhd.core.domain.model.Hero
+import io.yavero.pocketadhd.core.domain.model.QuestLoot
 import io.yavero.pocketadhd.core.ui.theme.AdhdSpacing
 import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 
@@ -22,10 +23,11 @@ import io.yavero.pocketadhd.core.ui.theme.AdhdTypography
 fun LootDisplayDialog(
     quest: io.yavero.pocketadhd.core.domain.model.Quest,
     hero: Hero?,
+    loot: QuestLoot? = null,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val loot = remember(quest, hero) {
+    val displayLoot = loot ?: remember(quest, hero) {
         if (hero != null) {
             io.yavero.pocketadhd.core.domain.util.LootRoller.rollLoot(
                 questDurationMinutes = quest.durationMinutes,
