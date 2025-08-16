@@ -1,8 +1,10 @@
 package io.yavero.aterna.notifications
 
 import android.content.Context
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 actual class NotificationScheduler(
     private val context: Context,
     private val localNotifier: LocalNotifier = LocalNotifier(context)

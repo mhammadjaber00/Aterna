@@ -1,8 +1,10 @@
 package io.yavero.aterna.notifications
 
-import kotlinx.datetime.Instant
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 expect class LocalNotifier {
     suspend fun requestPermissionIfNeeded(): PermissionResult
     

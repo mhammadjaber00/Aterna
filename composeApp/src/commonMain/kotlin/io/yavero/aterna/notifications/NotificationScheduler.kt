@@ -1,7 +1,9 @@
 package io.yavero.aterna.notifications
 
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 expect class NotificationScheduler {
     suspend fun scheduleTaskReminder(
         taskId: String,

@@ -9,7 +9,6 @@ sealed interface QuestIntent : MviIntent {
     data object Tick : QuestIntent
     data object GiveUp : QuestIntent
     data object Complete : QuestIntent
-    data object CheckCooldown : QuestIntent
     data object ClearError : QuestIntent
 
     data object LoadAdventureLog : QuestIntent

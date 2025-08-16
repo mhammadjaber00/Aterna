@@ -98,14 +98,62 @@ fun QuestScreen(
                             .padding(WindowInsets.safeDrawing.asPaddingValues())
                             .padding(top = 12.dp)
                     ) {
-                        HeaderCapsule(
-                            hero = uiState.hero,
-                            statsBadge = statsBadge,
-                            inventoryBadge = inventoryBadge,
-                            onToggleStats = { statsBadge = false; showStatsPopup = true },
-                            onToggleInventory = { inventoryBadge = false; showInventoryPopup = true },
-                            onToggleAnalytics = { showAnalyticsPopup = true }
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            HeaderCapsule(
+                                hero = uiState.hero,
+                                statsBadge = statsBadge,
+                                inventoryBadge = inventoryBadge,
+                                onToggleStats = { statsBadge = false; showStatsPopup = true },
+                                onToggleInventory = { inventoryBadge = false; showInventoryPopup = true },
+                                onToggleAnalytics = { showAnalyticsPopup = true }
+                            )
+
+                            // Curse chip
+                            AnimatedVisibility(
+                                visible = uiState.isCursed,
+                                enter = fadeIn() + slideInVertically(),
+                                exit = fadeOut() + slideOutVertically()
+                            ) {
+                                var showCurseInfo by rememberSaveable { mutableStateOf(false) }
+                                val curseTime by remember(uiState.curseMinutes, uiState.curseSeconds) {
+                                    derivedStateOf {
+                                        val s = uiState.curseSeconds.toString().padStart(2, '0')
+                                        "${uiState.curseMinutes}:$s"
+                                    }
+                                }
+
+                                Card(
+                                    modifier = Modifier
+                                        .padding(top = 8.dp)
+                                        .clickable { showCurseInfo = true },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFF8B2635).copy(alpha = 0.9f)
+                                    ),
+                                    shape = RoundedCornerShape(20.dp)
+                                ) {
+                                    Text(
+                                        text = "Cursed −50% • $curseTime",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+
+                                if (showCurseInfo) {
+                                    AlertDialog(
+                                        onDismissRequest = { showCurseInfo = false },
+                                        title = { Text("Curse of Cowardice") },
+                                        text = { Text("You retreated early. Until it fades, gold and XP are halved.") },
+                                        confirmButton = {
+                                            TextButton(onClick = { showCurseInfo = false }) {
+                                                Text("Understood")
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     QuestPortalArea(
@@ -134,11 +182,45 @@ fun QuestScreen(
                             .padding(WindowInsets.safeDrawing.asPaddingValues())
                             .padding(bottom = 22.dp)
                     ) {
-                        ActionBar(
-                            canSlideComplete = true,
-                            onHoldStop = { component.onGiveUpQuest() },
-                            onSlideComplete = { component.onCompleteQuest() }
-                        )
+                        var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
+
+                        Button(
+                            onClick = { showRetreatConfirm = true },
+                            shape = RoundedCornerShape(AternaRadii.Button),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF7A7A),
+                                contentColor = Color.Black
+                            ),
+                            modifier = Modifier.height(54.dp)
+                        ) { Text("Retreat", fontWeight = FontWeight.Bold) }
+
+                        if (showRetreatConfirm) {
+                            val remaining by remember(
+                                uiState.timeRemainingMinutes,
+                                uiState.timeRemainingSeconds
+                            ) {
+                                derivedStateOf {
+                                    val s = uiState.timeRemainingSeconds.toString().padStart(2, '0')
+                                    "${uiState.timeRemainingMinutes}:$s"
+                                }
+                            }
+                            AlertDialog(
+                                onDismissRequest = { showRetreatConfirm = false },
+                                title = { Text("Retreat from Quest?") },
+                                text = {
+                                    Text("If you retreat now, a dark curse will cling to your hero for the next $remaining. During this time, all gold and XP rewards are reduced by 50%. You’ll keep what you’ve already secured.")
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
+                                        Text("Retreat")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showRetreatConfirm = false }) { Text("Keep Going") }
+                                },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
                     }
 
                     AnimatedVisibility(
@@ -258,27 +340,6 @@ private fun QuestPortalArea(
 
         when {
             uiState.hasActiveQuest -> {}
-            uiState.isInCooldown -> {
-                Text(
-                    "Hero Resting",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                Text(
-                    "Recovery: ${uiState.cooldownMinutes}:${uiState.cooldownSeconds.toString().padStart(2, '0')}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Button(
-                    onClick = {},
-                    enabled = false,
-                    shape = RoundedCornerShape(AternaRadii.Button),
-                    modifier = Modifier.height(54.dp)
-                ) {
-                    Text("Begin Quest")
-                }
-            }
-
             else -> {
                 Text(
                     "The Dungeon Awaits.",

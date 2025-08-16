@@ -9,10 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
 class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
 
@@ -20,6 +21,7 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
     private val questNotifier: QuestNotifier by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    @OptIn(ExperimentalTime::class)
     override fun onReceive(context: Context, intent: Intent) {
         val sessionId = intent.getStringExtra(QuestActions.EXTRA_SESSION_ID) ?: return
         val actionType = intent.getStringExtra(QuestActions.EXTRA_ACTION_TYPE) ?: return

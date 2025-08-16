@@ -25,14 +25,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import aterna.composeapp.generated.resources.Res
+import aterna.composeapp.generated.resources.skip
+import aterna.composeapp.generated.resources.tap_anywhere_to_continue
 import io.yavero.aterna.features.onboarding.ui.components.*
 import io.yavero.aterna.fx.CometSky
 import io.yavero.aterna.fx.CometStyle
 import io.yavero.aterna.ui.theme.AternaColors
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.min
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun OnboardingScreen(
     component: OnboardingRootComponent,
@@ -180,7 +186,7 @@ fun OnboardingScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = "Skip",
+                text = stringResource(Res.string.skip),
                 color = AternaColors.GoldAccent,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -422,7 +428,7 @@ private fun BottomNotice(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Tap anywhere to continue",
+            stringResource(Res.string.tap_anywhere_to_continue),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.graphicsLayer { alpha = if (enabled) 1f else .5f }

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import kotlin.math.*
+import kotlin.time.ExperimentalTime
 
 @Composable
 fun PathSilhouette(
@@ -916,6 +917,7 @@ private val C_orbDk = Color(0xFF6EA2FF)
 private val C_rimDk = Color(0xFF2E3D7A)
 
 // --- draw functions with shimmer/pulse --------------------------------------
+@OptIn(ExperimentalTime::class)
 fun DrawScope.drawSword(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
     val px = pixelPx(scale)
 
@@ -939,11 +941,12 @@ fun DrawScope.drawSword(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
         }
     }
 
-    val t = (kotlinx.datetime.Clock.System.now().toEpochMilliseconds() / 160L % 4).toInt()
+    val t = (kotlin.time.Clock.System.now().toEpochMilliseconds() / 160L % 4).toInt()
     val mask = SWORD_SHIM[t]
     drawSprite(center, mask, px, alpha = 0.65f) { ch -> if (ch == '9') C_white else null }
 }
 
+@OptIn(ExperimentalTime::class)
 fun DrawScope.drawWand(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
     val px = pixelPx(scale)
 
@@ -965,7 +968,7 @@ fun DrawScope.drawWand(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
     // centered orb pulse (fixed)
     val orbCenter = center + Offset(px * 0.5f, -(7.5f - 2f) * px)
     val pulse = 0.7f + 0.3f * sin(
-        (kotlinx.datetime.Clock.System.now().toEpochMilliseconds() % 1400L) / 1400f * 2f * PI
+        (kotlin.time.Clock.System.now().toEpochMilliseconds() % 1400L) / 1400f * 2f * PI
     ).toFloat()
     val glowR = px * 1.5f * scale * pulse
 

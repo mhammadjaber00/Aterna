@@ -13,8 +13,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.yavero.aterna.notifications.LocalNotifier
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class QuestNotifierAndroid(
     private val context: Context,
     private val localNotifier: LocalNotifier

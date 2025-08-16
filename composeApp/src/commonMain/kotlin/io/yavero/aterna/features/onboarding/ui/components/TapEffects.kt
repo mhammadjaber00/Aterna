@@ -8,13 +8,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 data class TapEffect(
     val position: Offset,
     val startTime: Long
 )
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun TapEffectsLayer(
     effects: List<TapEffect>,

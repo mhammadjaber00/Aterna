@@ -11,8 +11,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class HeroRepositoryImpl(
     private val database: AternaDatabase
 ) : HeroRepository {
@@ -45,8 +47,6 @@ class HeroRepositoryImpl(
             totalFocusMinutes = hero.totalFocusMinutes.toLong(),
             dailyStreak = hero.dailyStreak.toLong(),
             lastActiveDate = hero.lastActiveDate.epochSeconds,
-            isInCooldown = if (hero.isInCooldown) 1L else 0L,
-            cooldownEndTime = hero.cooldownEndTime?.epochSeconds,
             createdAt = hero.createdAt.epochSeconds
         )
     }
@@ -57,8 +57,7 @@ class HeroRepositoryImpl(
     }
 
     override suspend fun deleteHero() {
-
-
+        heroQueries.deleteHero()
     }
 
     override suspend fun updateHeroStats(
@@ -75,19 +74,7 @@ class HeroRepositoryImpl(
             gold = gold.toLong(),
             totalFocusMinutes = totalFocusMinutes.toLong(),
             dailyStreak = dailyStreak.toLong(),
-            lastActiveDate = kotlinx.datetime.Clock.System.now().epochSeconds,
-            id = heroId
-        )
-    }
-
-    override suspend fun updateHeroCooldown(
-        heroId: String,
-        isInCooldown: Boolean,
-        cooldownEndTime: Instant?
-    ) {
-        heroQueries.updateHeroCooldown(
-            isInCooldown = if (isInCooldown) 1L else 0L,
-            cooldownEndTime = cooldownEndTime?.epochSeconds,
+            lastActiveDate = kotlin.time.Clock.System.now().epochSeconds,
             id = heroId
         )
     }
@@ -103,8 +90,6 @@ class HeroRepositoryImpl(
             totalFocusMinutes = entity.totalFocusMinutes.toInt(),
             dailyStreak = entity.dailyStreak.toInt(),
             lastActiveDate = Instant.fromEpochSeconds(entity.lastActiveDate),
-            isInCooldown = entity.isInCooldown == 1L,
-            cooldownEndTime = entity.cooldownEndTime?.let { Instant.fromEpochSeconds(it) },
             createdAt = Instant.fromEpochSeconds(entity.createdAt)
         )
     }

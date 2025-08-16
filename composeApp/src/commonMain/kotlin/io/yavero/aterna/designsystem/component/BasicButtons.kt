@@ -13,7 +13,7 @@ import io.yavero.aterna.ui.theme.AternaSpacing
 import io.yavero.aterna.ui.theme.AternaTypography
 
 @Composable
-fun AdhdPrimaryButton(
+fun AternaPrimaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -49,7 +49,7 @@ fun AdhdPrimaryButton(
 }
 
 @Composable
-fun AdhdSecondaryButton(
+fun AternaSecondaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -87,7 +87,7 @@ fun AdhdSecondaryButton(
 }
 
 @Composable
-fun AdhdOutlinedButton(
+fun AternaOutlinedButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -124,7 +124,7 @@ fun AdhdOutlinedButton(
 }
 
 @Composable
-fun AdhdTextButton(
+fun AternaTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

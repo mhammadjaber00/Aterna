@@ -1,7 +1,10 @@
 package io.yavero.aterna.domain.util
 
 import kotlinx.datetime.*
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 object TimeRange {
 
     fun todayRange(timeZone: TimeZone = TimeZone.currentSystemDefault()): Pair<Instant, Instant> {

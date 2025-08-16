@@ -13,6 +13,9 @@ val focusModule = module {
             heroRepository = get(),
             questRepository = get(),
             questNotifier = get(),
+            statusEffectRepository = get(),
+            rewardService = get(),
+            bankingStrategy = get(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )
     }

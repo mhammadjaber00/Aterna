@@ -1,9 +1,13 @@
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import io.yavero.aterna.data.database.AternaDatabase
+import io.yavero.aterna.data.database.SelectTasksByDueDate
+import io.yavero.aterna.data.database.TaskEntity
 import io.yavero.aterna.domain.model.Subtask
 import io.yavero.aterna.domain.model.Task
 import io.yavero.aterna.domain.repository.TaskRepository
@@ -11,10 +15,10 @@ import io.yavero.aterna.domain.service.TaskNotificationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class TaskRepositoryImpl(
     private val database: AternaDatabase,
@@ -148,7 +152,7 @@ class TaskRepositoryImpl(
         }
     }
 
-    private fun mapEntityToDomain(entity: io.yavero.aterna.data.database.TaskEntity): Task {
+    private fun mapEntityToDomain(entity: TaskEntity): Task {
         val subtasks = database.taskQueries.selectSubtasksByTaskId(entity.id)
             .executeAsList()
             .map { subtaskEntity ->
@@ -177,7 +181,7 @@ class TaskRepositoryImpl(
         )
     }
 
-    private fun mapSelectTasksByDueDateToDomain(entity: io.yavero.aterna.data.database.SelectTasksByDueDate): Task {
+    private fun mapSelectTasksByDueDateToDomain(entity: SelectTasksByDueDate): Task {
         val subtasks = database.taskQueries.selectSubtasksByTaskId(entity.id)
             .executeAsList()
             .map { subtaskEntity ->

@@ -4,7 +4,9 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.*
 import kotlin.math.max
 import kotlin.random.Random
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 object QuestResolver {
     data class Context(
         val questId: String,

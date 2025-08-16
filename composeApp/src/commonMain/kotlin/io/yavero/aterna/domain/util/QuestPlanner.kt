@@ -4,11 +4,13 @@ import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.MobTier
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.PlannerSpec
-import kotlinx.datetime.Instant
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 object QuestPlanner {
     fun plan(spec: PlannerSpec): List<PlannedEvent> {
         val rng = Random(spec.seed)

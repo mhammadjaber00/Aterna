@@ -3,10 +3,12 @@ package io.yavero.aterna.data.remote
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.util.LootRoller
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class MockQuestApi : QuestApi {
 
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {

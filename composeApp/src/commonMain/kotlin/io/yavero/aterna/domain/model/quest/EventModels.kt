@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.domain.model.quest
 
 import io.yavero.aterna.domain.model.ClassType
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Serializable
 enum class EventType { CHEST, TRINKET, QUIRKY, MOB }

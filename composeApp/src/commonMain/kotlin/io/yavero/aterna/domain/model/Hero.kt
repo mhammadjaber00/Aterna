@@ -1,9 +1,11 @@
 package io.yavero.aterna.domain.model
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class Hero(
     val id: String,
@@ -15,12 +17,7 @@ data class Hero(
     val totalFocusMinutes: Int = 0,
     val dailyStreak: Int = 0,
     val lastActiveDate: Instant,
-    val isInCooldown: Boolean = false,
-    val cooldownEndTime: Instant? = null,
     val createdAt: Instant = Clock.System.now()
 ) {
     val xpToNextLevel: Int get() = (level * 100) - xp
-    val isCooldownActive: Boolean
-        get() = isInCooldown &&
-                cooldownEndTime?.let { it > Clock.System.now() } == true
 }

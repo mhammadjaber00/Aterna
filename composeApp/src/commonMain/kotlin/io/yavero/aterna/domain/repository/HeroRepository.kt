@@ -22,10 +22,4 @@ interface HeroRepository {
         totalFocusMinutes: Int,
         dailyStreak: Int
     )
-
-    suspend fun updateHeroCooldown(
-        heroId: String,
-        isInCooldown: Boolean,
-        cooldownEndTime: kotlinx.datetime.Instant?
-    )
 }

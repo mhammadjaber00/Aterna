@@ -1,7 +1,9 @@
 package io.yavero.aterna.features.quest.notification
 
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 interface QuestNotifier {
 
     suspend fun requestPermissionIfNeeded()

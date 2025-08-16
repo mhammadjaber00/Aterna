@@ -18,31 +18,31 @@ data class QuestState(
     val timeRemaining: Duration = Duration.ZERO,
     val questProgress: Float = 0f,
 
-    val isInCooldown: Boolean = false,
-    val cooldownTimeRemaining: Duration = Duration.ZERO,
-
     val eventFeed: List<QuestEvent> = emptyList(),
     val eventPulseCounter: Int = 0,
 
     val adventureLog: List<QuestEvent> = emptyList(),
     val isAdventureLogLoading: Boolean = false,
 
-    val lastLoot: QuestLoot? = null
+    val lastLoot: QuestLoot? = null,
+    val curseTimeRemaining: Duration = Duration.ZERO
 ) : MviState, LoadingState {
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true
     val isQuestCompleted: Boolean get() = activeQuest?.completed == true
-    val canStartQuest: Boolean get() = !hasActiveQuest && !isInCooldown && hero != null
+    val canStartQuest: Boolean get() = !hasActiveQuest && hero != null
     val questDurationMinutes: Int get() = activeQuest?.durationMinutes ?: 0
 
     val progressPercentage: Int get() = (questProgress * 100).toInt()
 
     val timeRemainingMinutes: Int get() = timeRemaining.inWholeMinutes.toInt()
     val timeRemainingSeconds: Int get() = (timeRemaining.inWholeSeconds % 60).toInt()
-    val cooldownMinutes: Int get() = cooldownTimeRemaining.inWholeMinutes.toInt()
-    val cooldownSeconds: Int get() = (cooldownTimeRemaining.inWholeSeconds % 60).toInt()
+
+    val isCursed: Boolean get() = curseTimeRemaining > Duration.ZERO
+    val curseMinutes: Int get() = curseTimeRemaining.inWholeMinutes.toInt()
+    val curseSeconds: Int get() = (curseTimeRemaining.inWholeSeconds % 60).toInt()
 }
 
 enum class QuestSessionState {
-    IDLE, ACTIVE, COMPLETED, GAVE_UP, COOLDOWN
+    IDLE, ACTIVE, COMPLETED, GAVE_UP
 }

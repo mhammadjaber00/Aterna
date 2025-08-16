@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import io.yavero.aterna.navigation.AppRootComponent
 import io.yavero.aterna.navigation.DefaultAppRootComponent
 import io.yavero.aterna.ui.AppContent
 import io.yavero.aterna.ui.theme.AternaTypography
@@ -14,7 +15,7 @@ import io.yavero.aterna.ui.theme.LightColorScheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun App(rootComponent: io.yavero.aterna.navigation.AppRootComponent) {
+fun App(rootComponent: AppRootComponent) {
 
     AternaTheme {
         AppContent(

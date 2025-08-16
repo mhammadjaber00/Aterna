@@ -2,8 +2,9 @@ package io.yavero.aterna.domain.service
 
 import io.yavero.aterna.domain.model.Task
 import io.yavero.aterna.notifications.LocalNotifier
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 interface TaskNotificationService {
     suspend fun scheduleTaskReminder(task: Task)
@@ -11,6 +12,7 @@ interface TaskNotificationService {
     suspend fun rescheduleTaskReminder(task: Task)
 }
 
+@OptIn(ExperimentalTime::class)
 class TaskNotificationServiceImpl(
     private val localNotifier: LocalNotifier
 ) : TaskNotificationService {

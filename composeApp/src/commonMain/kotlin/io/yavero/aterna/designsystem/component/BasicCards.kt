@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import io.yavero.aterna.ui.theme.AternaSpacing
 
 @Composable
-fun AdhdCard(
+fun AternaCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
@@ -50,7 +50,7 @@ fun AdhdCard(
 }
 
 @Composable
-fun AdhdOutlinedCard(
+fun AternaOutlinedCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,

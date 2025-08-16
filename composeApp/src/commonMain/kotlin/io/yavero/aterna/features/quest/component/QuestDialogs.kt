@@ -14,23 +14,26 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.designsystem.component.AdhdCard
-import io.yavero.aterna.designsystem.component.AdhdPrimaryButton
-import io.yavero.aterna.domain.model.Hero
-import io.yavero.aterna.domain.model.QuestLoot
+import aterna.composeapp.generated.resources.*
+import io.yavero.aterna.designsystem.component.AternaCard
+import io.yavero.aterna.designsystem.component.AternaPrimaryButton
+import io.yavero.aterna.domain.model.*
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaSpacing
 import io.yavero.aterna.ui.theme.AternaTypography
+import org.jetbrains.compose.resources.stringResource
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun LootDisplayDialog(
-    quest: io.yavero.aterna.domain.model.Quest,
+    quest: Quest,
     hero: Hero?,
     loot: QuestLoot? = null,
     events: List<QuestEvent> = emptyList(),
@@ -39,7 +42,7 @@ fun LootDisplayDialog(
 ) {
     val displayLoot = loot ?: remember(quest, hero) {
         if (hero != null) {
-            io.yavero.aterna.domain.util.LootRoller.rollLoot(
+            LootRoller.rollLoot(
                 questDurationMinutes = quest.durationMinutes,
                 heroLevel = hero.level,
                 classType = hero.classType,
@@ -62,7 +65,7 @@ fun LootDisplayDialog(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Quest Completed!",
+                        text = stringResource(Res.string.quest_completed_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -71,16 +74,19 @@ fun LootDisplayDialog(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)) {
                     Text(
-                        "Congratulations! You've completed a ${quest.durationMinutes}-minute quest.",
+                        stringResource(
+                            Res.string.quest_completed_message,
+                            quest.durationMinutes
+                        ),
                         style = AternaTypography.Default.bodyMedium
                     )
-                    AdhdCard {
+                    AternaCard {
                         Column(
                             modifier = Modifier.padding(AternaSpacing.Medium),
                             verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                         ) {
                             Text(
-                                "Rewards Earned:",
+                                stringResource(Res.string.rewards_earned),
                                 style = AternaTypography.Default.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -96,7 +102,7 @@ fun LootDisplayDialog(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    "+${loot.xp} XP",
+                                    stringResource(Res.string.xp_reward_format, loot.xp),
                                     style = AternaTypography.Default.bodyMedium,
                                     color = MaterialTheme.colorScheme.tertiary
                                 )
@@ -113,7 +119,7 @@ fun LootDisplayDialog(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    "+${loot.gold} Gold",
+                                    stringResource(Res.string.gold_reward_format, loot.gold),
                                     style = AternaTypography.Default.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
@@ -126,18 +132,15 @@ fun LootDisplayDialog(
                                         horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                                     ) {
                                         val icon = when (item.itemType) {
-                                            io.yavero.aterna.domain.model.ItemType.WEAPON -> Icons.Default.Build
-                                            io.yavero.aterna.domain.model.ItemType.ARMOR -> Icons.Default.Shield
-                                            io.yavero.aterna.domain.model.ItemType.CONSUMABLE -> Icons.Default.LocalDrink
+                                            ItemType.WEAPON -> Icons.Default.Build
+                                            ItemType.ARMOR -> Icons.Default.Shield
+                                            ItemType.CONSUMABLE -> Icons.Default.LocalDrink
                                             else -> Icons.Default.Inventory
                                         }
                                         val tint = when (item.rarity) {
-                                            io.yavero.aterna.domain.model.ItemRarity.LEGENDARY -> Color(
-                                                0xFFF59E0B
-                                            )
-
-                                            io.yavero.aterna.domain.model.ItemRarity.EPIC -> Color(0xFF8B5CF6)
-                                            io.yavero.aterna.domain.model.ItemRarity.RARE -> Color(0xFF3B82F6)
+                                            ItemRarity.LEGENDARY -> AternaColors.RarityLegendary
+                                            ItemRarity.EPIC -> AternaColors.RarityEpic
+                                            ItemRarity.RARE -> AternaColors.RarityRare
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         }
                                         Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
@@ -155,7 +158,7 @@ fun LootDisplayDialog(
                         }
                     }
 
-                    AdhdCard {
+                    AternaCard {
                         Column(
                             modifier = Modifier
                                 .padding(AternaSpacing.Medium)
@@ -164,14 +167,14 @@ fun LootDisplayDialog(
                             verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                         ) {
                             Text(
-                                "Adventure Log:",
+                                stringResource(Res.string.adventure_log),
                                 style = AternaTypography.Default.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
 
                             if (events.isEmpty()) {
                                 Text(
-                                    "No entries recorded this quest.",
+                                    stringResource(Res.string.no_entries_recorded),
                                     style = AternaTypography.Default.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -209,7 +212,7 @@ fun LootDisplayDialog(
                     }
                 }
             },
-            confirmButton = { AdhdPrimaryButton(text = "Collect", onClick = onDismiss) }
+            confirmButton = { AternaPrimaryButton(text = stringResource(Res.string.collect), onClick = onDismiss) }
         )
     }
 }
@@ -220,7 +223,7 @@ fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Mo
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "⚔️ Hero Chronicle ⚔️",
+                stringResource(Res.string.hero_chronicle),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -228,16 +231,16 @@ fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Mo
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 hero?.let { h ->
-                    Text("Level: ${h.level}")
-                    Text("XP: ${h.xp}")
-                    Text("Gold: ${h.gold}")
-                    Text("Focus Minutes: ${h.totalFocusMinutes}")
-                    Text("Daily Streak: ${h.dailyStreak}")
-                    Text("Class: ${h.classType.displayName}")
-                } ?: Text("No hero data available")
+                    Text(stringResource(Res.string.level_format, h.level))
+                    Text(stringResource(Res.string.xp_format, h.xp))
+                    Text(stringResource(Res.string.gold_format, h.gold))
+                    Text(stringResource(Res.string.focus_minutes_format, h.totalFocusMinutes))
+                    Text(stringResource(Res.string.daily_streak_format, h.dailyStreak))
+                    Text(stringResource(Res.string.class_format, h.classType.displayName))
+                } ?: Text(stringResource(Res.string.no_hero_data))
             }
         },
-        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(Res.string.close)) } }
     )
 }
 
@@ -245,23 +248,29 @@ fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Mo
 fun InventoryPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("🎒 Inventory", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        title = {
+            Text(
+                stringResource(Res.string.inventory_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("🗡️ Iron Sword")
-                Text("🛡️ Leather Armor")
-                Text("⚗️ Health Potion x3")
-                Text("💎 Magic Crystal")
-                Text("📜 Scroll of Wisdom")
+                Text(stringResource(Res.string.iron_sword))
+                Text(stringResource(Res.string.leather_armor))
+                Text(stringResource(Res.string.health_potion))
+                Text(stringResource(Res.string.magic_crystal))
+                Text(stringResource(Res.string.scroll_of_wisdom))
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "More items coming soon!",
+                    stringResource(Res.string.more_items_coming),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
-        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(Res.string.close)) } }
     )
 }
 
@@ -274,7 +283,7 @@ fun LoadingState(modifier: Modifier = Modifier) {
     ) {
         CircularProgressIndicator()
         Text(
-            "Loading quest data...",
+            stringResource(Res.string.loading_quest_data),
             style = AternaTypography.Default.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -301,7 +310,7 @@ fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        AdhdPrimaryButton(text = "Try Again", onClick = onRetry)
+        AternaPrimaryButton(text = "Try Again", onClick = onRetry)
     }
 }
 
@@ -343,7 +352,7 @@ fun AdventureLogSheet(
             Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            
+
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Adventure Log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

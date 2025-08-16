@@ -1,8 +1,10 @@
 package io.yavero.aterna.features.quest.notification
 
 import io.yavero.aterna.notifications.LocalNotifier
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class QuestNotifierIos(
     private val localNotifier: LocalNotifier
 ) : QuestNotifier {
@@ -29,7 +31,7 @@ class QuestNotifierIos(
 
         localNotifier.schedule(
             id = "focus_ongoing_$sessionId",
-            at = kotlinx.datetime.Clock.System.now(),
+            at = kotlin.time.Clock.System.now(),
             title = title,
             body = notificationText
         )
@@ -63,7 +65,7 @@ class QuestNotifierIos(
 
         localNotifier.schedule(
             id = "focus_completed_$sessionId",
-            at = kotlinx.datetime.Clock.System.now(),
+            at = kotlin.time.Clock.System.now(),
             title = title,
             body = text
         )

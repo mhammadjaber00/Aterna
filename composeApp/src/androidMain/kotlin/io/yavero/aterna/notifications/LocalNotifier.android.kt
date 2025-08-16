@@ -13,9 +13,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 actual class LocalNotifier(private val context: Context) {
     
     private val notificationManager = NotificationManagerCompat.from(context)
@@ -69,20 +71,12 @@ actual class LocalNotifier(private val context: Context) {
 
 
         val triggerTime = at.toEpochMilliseconds()
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                pendingIntent
-            )
-        }
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            triggerTime,
+            pendingIntent
+        )
     }
     
     actual suspend fun scheduleRepeating(

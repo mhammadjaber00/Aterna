@@ -6,8 +6,10 @@ import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import kotlinx.coroutines.flow.Flow
-import kotlinx.datetime.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 interface QuestRepository {
     @Deprecated("Use getQuestsByHero(heroId) and filter active quest in consumer")
     fun getActiveQuest(): Flow<Quest?>

@@ -10,26 +10,34 @@ import io.yavero.aterna.domain.mvi.MviStore
 import io.yavero.aterna.domain.mvi.createEffectsFlow
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
+import io.yavero.aterna.domain.repository.StatusEffectRepository
+import io.yavero.aterna.domain.service.RewardService
 import io.yavero.aterna.domain.util.QuestPlanner
 import io.yavero.aterna.domain.util.QuestResolver
+import io.yavero.aterna.domain.util.RewardBankingStrategy
 import io.yavero.aterna.features.quest.notification.QuestNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class QuestStore(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
     private val questNotifier: QuestNotifier,
+    private val statusEffectRepository: StatusEffectRepository,
+    private val rewardService: RewardService,
+    private val bankingStrategy: RewardBankingStrategy,
     private val scope: CoroutineScope
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
 
@@ -64,6 +72,24 @@ class QuestStore(
                 }
                 .collect { msg -> reduce(msg) }
         }
+
+        // Track curse countdown
+        scope.launch {
+            ticker.collect { currentTime ->
+                val curseEffect = statusEffectRepository.getActiveBy(
+                    io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
+                    currentTime.toEpochMilliseconds()
+                )
+
+                if (curseEffect != null) {
+                    val remaining = (curseEffect.expiresAtEpochMs - currentTime.toEpochMilliseconds()).coerceAtLeast(0)
+                    val remainingDuration = remaining.milliseconds
+                    reduce(QuestMsg.CurseTick(remainingDuration))
+                } else {
+                    reduce(QuestMsg.CurseTick(Duration.ZERO))
+                }
+            }
+        }
     }
 
     override fun process(intent: QuestIntent) {
@@ -73,7 +99,6 @@ class QuestStore(
             QuestIntent.Tick -> handleTick()
             QuestIntent.GiveUp -> giveUpQuest()
             QuestIntent.Complete -> completeQuest()
-            QuestIntent.CheckCooldown -> checkCooldown()
             QuestIntent.ClearError -> clearError()
             QuestIntent.LoadAdventureLog -> loadAdventureLog()
         }
@@ -86,6 +111,7 @@ class QuestStore(
         }
 
         return combine(heroFlow, questsFlow, ticker) { hero, quests, currentTime ->
+            scope.launch { statusEffectRepository.purgeExpired(currentTime.toEpochMilliseconds()) }
             val activeQuest = quests.firstOrNull { it.endTime == null && !it.gaveUp }
 
             if (hero == null) {
@@ -114,16 +140,6 @@ class QuestStore(
                     val progress = elapsed.inWholeSeconds.toFloat() / totalDuration.inWholeSeconds.toFloat()
                     QuestMsg.TimerTick(remaining, progress)
                 }
-            } else if (hero.isCooldownActive == true) {
-                val cooldownEnd = hero.cooldownEndTime ?: return@combine QuestMsg.DataLoaded(hero, activeQuest)
-                val remaining = cooldownEnd - currentTime
-
-                if (remaining <= Duration.ZERO) {
-                    scope.launch { endCooldown() }
-                    QuestMsg.CooldownEnded
-                } else {
-                    QuestMsg.CooldownTick(remaining)
-                }
             } else {
                 QuestMsg.DataLoaded(hero, activeQuest)
             }
@@ -136,10 +152,6 @@ class QuestStore(
                 val currentState = _state.value
                 if (currentState.hasActiveQuest) {
                     _effects.tryEmit(QuestEffect.ShowError("A quest is already active"))
-                    return@launch
-                }
-                if (currentState.isInCooldown) {
-                    _effects.tryEmit(QuestEffect.ShowError("Hero is in cooldown period"))
                     return@launch
                 }
 
@@ -228,30 +240,77 @@ class QuestStore(
                 val activeQuest = currentState.activeQuest ?: return@launch
                 val hero = currentState.hero ?: return@launch
 
+                // Compute curse expiry based on remaining quest time
+                val now = Clock.System.now()
+                val totalDuration = activeQuest.durationMinutes.minutes
+                val elapsed = now - activeQuest.startTime
+                val remaining = totalDuration - elapsed
+                val nowMs = now.toEpochMilliseconds()
+                val remainingMs = remaining.inWholeMilliseconds.coerceAtLeast(0)
+
+                if (remainingMs > 0) {
+                    val existing = statusEffectRepository.getActiveBy(
+                        io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
+                        nowMs
+                    )
+                    // Add curse time cumulatively - if existing curse is still active, add remaining time to it
+                    val targetExpiry = if (existing != null && existing.expiresAtEpochMs > nowMs) {
+                        existing.expiresAtEpochMs + remainingMs
+                    } else {
+                        nowMs + remainingMs
+                    }
+                    statusEffectRepository.upsert(
+                        io.yavero.aterna.domain.model.StatusEffect(
+                            id = "curse-early-exit",
+                            type = io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
+                            multiplierGold = 0.5,
+                            multiplierXp = 0.5,
+                            expiresAtEpochMs = targetExpiry
+                        )
+                    )
+                }
+
+                // Banked rewards based on elapsed time
+                val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
+                val bankedMinutes = (bankedMs / 60_000L).toInt()
+
+                var outHero = hero
+                if (bankedMinutes > 0) {
+                    val baseLoot = io.yavero.aterna.domain.util.LootRoller.rollLoot(
+                        questDurationMinutes = bankedMinutes,
+                        heroLevel = hero.level,
+                        classType = hero.classType,
+                        serverSeed = activeQuest.startTime.toEpochMilliseconds()
+                    )
+                    val finalLoot = rewardService.applyModifiers(baseLoot)
+                    val newXP = outHero.xp + finalLoot.xp
+                    val newLevel = calculateLevel(newXP)
+                    outHero = outHero.copy(
+                        xp = newXP,
+                        level = newLevel,
+                        gold = outHero.gold + finalLoot.gold,
+                        totalFocusMinutes = outHero.totalFocusMinutes + bankedMinutes,
+                        lastActiveDate = now
+                    )
+                    _effects.tryEmit(QuestEffect.ShowSuccess("Retreated: banked +${finalLoot.xp} XP, +${finalLoot.gold} gold."))
+                }
+
                 val gaveUpQuest = activeQuest.copy(
-                    endTime = Clock.System.now(),
+                    endTime = now,
                     gaveUp = true
                 )
                 questRepository.markQuestGaveUp(activeQuest.id, gaveUpQuest.endTime!!)
 
-                val cooldownMinutes = activeQuest.durationMinutes
-                val cooldownEnd = Clock.System.now().plus(cooldownMinutes.minutes)
-                val updatedHero = hero.copy(
-                    isInCooldown = true,
-                    cooldownEndTime = cooldownEnd,
-                    lastActiveDate = Clock.System.now()
-                )
-                heroRepository.updateHero(updatedHero)
+                outHero = outHero.copy(lastActiveDate = now)
+                heroRepository.updateHero(outHero)
 
                 questNotifier.cancelScheduledEnd(activeQuest.id)
                 questNotifier.clearOngoing(activeQuest.id)
 
                 reduce(QuestMsg.QuestGaveUp(gaveUpQuest))
-                reduce(QuestMsg.HeroUpdated(updatedHero))
-                reduce(QuestMsg.CooldownStarted(cooldownMinutes.minutes))
+                reduce(QuestMsg.HeroUpdated(outHero))
 
                 _effects.tryEmit(QuestEffect.ShowQuestGaveUp)
-                _effects.tryEmit(QuestEffect.ShowCooldownStarted)
                 _effects.tryEmit(QuestEffect.PlayQuestFailSound)
             } catch (e: Exception) {
                 val appError = e.toAppError()
@@ -312,25 +371,6 @@ class QuestStore(
         return a xor b xor c
     }
 
-    private fun checkCooldown() {
-        scope.launch {
-            val hero = _state.value.hero ?: return@launch
-            if (hero.isCooldownActive) {
-                val remaining = hero.cooldownEndTime?.let { it - Clock.System.now() } ?: Duration.ZERO
-                if (remaining <= Duration.ZERO) endCooldown()
-                else reduce(QuestMsg.CooldownTick(remaining))
-            }
-        }
-    }
-
-    private suspend fun endCooldown() {
-        val hero = _state.value.hero ?: return
-        val updatedHero = hero.copy(isInCooldown = false, cooldownEndTime = null)
-        heroRepository.updateHero(updatedHero)
-        reduce(QuestMsg.HeroUpdated(updatedHero))
-        reduce(QuestMsg.CooldownEnded)
-        _effects.tryEmit(QuestEffect.ShowCooldownEnded)
-    }
 
     private suspend fun createDefaultHero(classType: ClassType): Hero {
         val hero = Hero(
@@ -381,7 +421,7 @@ class QuestStore(
                 activeQuest = msg.quest,
                 timeRemaining = msg.quest.durationMinutes.minutes,
                 questProgress = 0f,
-                adventureLog = emptyList(), // reset log for new run
+                adventureLog = emptyList(),
                 lastLoot = null
             )
 
@@ -407,11 +447,9 @@ class QuestStore(
             is QuestMsg.HeroCreated -> state.copy(hero = msg.hero)
             is QuestMsg.HeroUpdated -> state.copy(hero = msg.hero)
 
-            is QuestMsg.CooldownStarted -> state.copy(isInCooldown = true, cooldownTimeRemaining = msg.cooldownDuration)
-            is QuestMsg.CooldownTick -> state.copy(isInCooldown = true, cooldownTimeRemaining = msg.timeRemaining)
-            QuestMsg.CooldownEnded -> state.copy(isInCooldown = false, cooldownTimeRemaining = Duration.ZERO)
-
             QuestMsg.AdventureLogLoading -> state.copy(isAdventureLogLoading = true)
             is QuestMsg.AdventureLogLoaded -> state.copy(isAdventureLogLoading = false, adventureLog = msg.events)
+
+            is QuestMsg.CurseTick -> state.copy(curseTimeRemaining = msg.timeRemaining)
         }
 }

@@ -2,11 +2,13 @@ package io.yavero.aterna.notifications
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import platform.Foundation.*
 import platform.UserNotifications.*
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 actual class LocalNotifier {
     
     private val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()

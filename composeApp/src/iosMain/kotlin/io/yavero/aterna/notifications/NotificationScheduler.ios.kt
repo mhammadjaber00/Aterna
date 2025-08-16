@@ -1,6 +1,6 @@
 package io.yavero.aterna.notifications
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 actual class NotificationScheduler(
     private val localNotifier: LocalNotifier = LocalNotifier()

@@ -1,0 +1,27 @@
+CREATE TABLE StatusEffectEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    multiplierGold REAL NOT NULL,
+    multiplierXp REAL NOT NULL,
+    expiresAtMs INTEGER NOT NULL
+);
+
+-- Queries
+selectAll:
+SELECT * FROM StatusEffectEntity;
+
+selectActive:
+SELECT * FROM StatusEffectEntity WHERE expiresAtMs > ? ORDER BY expiresAtMs ASC;
+
+getActiveByType:
+SELECT * FROM StatusEffectEntity WHERE type = ? AND expiresAtMs > ? LIMIT 1;
+
+upsert:
+INSERT OR REPLACE INTO StatusEffectEntity (id, type, multiplierGold, multiplierXp, expiresAtMs)
+VALUES (?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM StatusEffectEntity WHERE id = ?;
+
+purgeExpired:
+DELETE FROM StatusEffectEntity WHERE expiresAtMs <= ?;
