@@ -28,6 +28,9 @@ SET level = ?, xp = ?, gold = ?, totalFocusMinutes = ?, dailyStreak = ?, lastAct
 WHERE id = ?;
 
 updateHeroCooldown:
-UPDATE HeroEntity 
+UPDATE HeroEntity
 SET isInCooldown = ?, cooldownEndTime = ?
 WHERE id = ?;
+
+deleteHero:
+DELETE FROM HeroEntity;

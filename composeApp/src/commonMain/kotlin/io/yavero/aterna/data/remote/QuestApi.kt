@@ -1,6 +1,9 @@
 package io.yavero.aterna.data.remote
 
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.model.Item
+import io.yavero.aterna.domain.model.ItemType
+import io.yavero.aterna.domain.model.ItemRarity
 import kotlinx.serialization.Serializable
 
 interface QuestApi {
@@ -68,13 +71,13 @@ fun QuestLootDto.toDomain(): QuestLoot {
     )
 }
 
-fun ItemDto.toDomain(): io.yavero.aterna.domain.model.Item {
-    return io.yavero.aterna.domain.model.Item(
+fun ItemDto.toDomain(): Item {
+    return Item(
         id = id,
         name = name,
         description = "A $rarity ${itemType.lowercase()}",
-        itemType = io.yavero.aterna.domain.model.ItemType.valueOf(itemType),
-        rarity = io.yavero.aterna.domain.model.ItemRarity.valueOf(rarity),
+        itemType = ItemType.valueOf(itemType),
+        rarity = ItemRarity.valueOf(rarity),
         value = value
     )
 }

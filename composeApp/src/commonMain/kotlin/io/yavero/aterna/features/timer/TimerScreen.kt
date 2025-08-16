@@ -25,6 +25,8 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.timer.component.RitualRing
 import io.yavero.aterna.ui.components.ringPaletteFor
 import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.composeApp.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -81,7 +83,7 @@ fun TimerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Start Quest",
+                    stringResource(Res.string.begin_quest),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -116,23 +118,27 @@ fun TimerScreen(
                         onClick = { minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes) },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) { Text("– ${stepMinutes}m") }
+                    ) { Text(stringResource(Res.string.step_minutes_minus, stepMinutes)) }
                     OutlinedButton(
                         onClick = { minutes = (minutes + stepMinutes).coerceAtMost(maxMinutes) },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) { Text("+ ${stepMinutes}m") }
+                    ) { Text(stringResource(Res.string.step_minutes_plus, stepMinutes)) }
                 }
 
                 Spacer(Modifier.height(16.dp))
 
-                Text("$minutes minutes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                Text(
+                    stringResource(Res.string.minutes_format, minutes),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black
+                )
                 val line = when {
-                    minutes < 25 -> "Quick task."
-                    minutes < 60 -> "Steady quest."
-                    minutes < 90 -> "Long march."
-                    minutes < 120 -> "Great undertaking."
-                    else -> "Legendary run."
+                    minutes < 25 -> stringResource(Res.string.quick_task)
+                    minutes < 60 -> stringResource(Res.string.steady_quest)
+                    minutes < 90 -> stringResource(Res.string.long_march)
+                    minutes < 120 -> stringResource(Res.string.great_undertaking)
+                    else -> stringResource(Res.string.legendary_run)
                 }
                 Text(line, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -166,7 +172,7 @@ fun TimerScreen(
                         .background(questBrush, btnShape)
                 ) {
                     Text(
-                        if (isSealing) "Sealing..." else "Start Quest",
+                        stringResource(if (isSealing) Res.string.sealing else Res.string.begin_quest),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -181,7 +187,7 @@ fun TimerScreen(
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
                     border = ButtonDefaults.outlinedButtonBorder(false)
-                ) { Text("Retreat") }
+                ) { Text(stringResource(Res.string.retreat)) }
             }
         }
 
@@ -189,7 +195,7 @@ fun TimerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f * sealProgress))
+                    .background(AternaColors.Neutral900.copy(alpha = 0.3f * sealProgress))
             )
         }
     }
@@ -197,8 +203,8 @@ fun TimerScreen(
 
 @Composable
 fun DungeonVignette() {
-    val bg1 = Color(0xFF0F0F0F)
-    val bg2 = Color(0xFF1A1A1A)
+    val bg1 = AternaColors.Neutral950
+    val bg2 = AternaColors.Neutral900
 
     Box(
         Modifier

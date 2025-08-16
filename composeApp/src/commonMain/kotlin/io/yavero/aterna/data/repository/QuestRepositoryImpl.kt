@@ -5,38 +5,51 @@ import io.yavero.aterna.data.database.AternaDatabase
 import io.yavero.aterna.data.database.QuestLogEntity
 import io.yavero.aterna.data.remote.QuestCompletionRequest
 import io.yavero.aterna.data.remote.toDomain
+import io.yavero.aterna.data.remote.QuestApi
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.EventOutcome
 import io.yavero.aterna.domain.model.quest.EventType
+import io.yavero.aterna.domain.model.quest.MobTier
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
 
 class QuestRepositoryImpl(
     private val database: AternaDatabase,
-    private val questApi: io.yavero.aterna.data.remote.QuestApi
+    private val questApi: QuestApi,
+    private val heroRepository: HeroRepository
 ) : QuestRepository {
 
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
 
     override fun getActiveQuest(): Flow<Quest?> {
-        return questQueries.selectQuestsByHero("") // TODO: pass heroId
-            .asFlow()
-            .map { query ->
-                query.executeAsList()
-                    .firstOrNull { e -> e.endTime == null && e.gaveUp == 0L }
-                    ?.let(::mapEntityToDomain)
+        return heroRepository.getHero().flatMapLatest { hero ->
+            if (hero == null) {
+                flowOf(null)
+            } else {
+                questQueries.selectQuestsByHero(hero.id)
+                    .asFlow()
+                    .map { query ->
+                        query.executeAsList()
+                            .firstOrNull { e -> e.endTime == null && e.gaveUp == 0L }
+                            ?.let(::mapEntityToDomain)
+                    }
             }
+        }
     }
 
     override suspend fun getCurrentActiveQuest(): Quest? {
-        return questQueries.selectQuestsByHero("") // TODO: pass heroId
+        val hero = heroRepository.getCurrentHero() ?: return null
+        return questQueries.selectQuestsByHero(hero.id)
             .executeAsList()
             .firstOrNull { e -> e.endTime == null && e.gaveUp == 0L }
             ?.let(::mapEntityToDomain)
@@ -163,7 +176,7 @@ class QuestRepositoryImpl(
                     dueAt = Instant.fromEpochSeconds(e.dueAt),
                     type = EventType.valueOf(e.type),
                     isMajor = e.isMajor == 1L,
-                    mobTier = e.mobTier?.let { io.yavero.aterna.domain.model.quest.MobTier.valueOf(it) }
+                    mobTier = e.mobTier?.let { MobTier.valueOf(it) }
                 )
             }
     }

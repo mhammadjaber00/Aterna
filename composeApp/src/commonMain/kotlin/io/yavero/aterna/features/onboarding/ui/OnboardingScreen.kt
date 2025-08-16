@@ -29,6 +29,8 @@ import io.yavero.aterna.features.onboarding.ui.components.*
 import io.yavero.aterna.fx.CometSky
 import io.yavero.aterna.fx.CometStyle
 import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.composeApp.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlin.math.min
@@ -180,7 +182,7 @@ fun OnboardingScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = "Skip",
+                text = stringResource(Res.string.skip),
                 color = AternaColors.GoldAccent,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -422,7 +424,7 @@ private fun BottomNotice(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Tap anywhere to continue",
+            stringResource(Res.string.tap_anywhere_to_continue),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.graphicsLayer { alpha = if (enabled) 1f else .5f }

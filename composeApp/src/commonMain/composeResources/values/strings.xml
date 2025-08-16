@@ -12,9 +12,28 @@
     <string name="begin_quest">Begin Quest</string>
     <string name="adventure_log">Adventure Log</string>
     <string name="no_entries_yet">No entries yet.</string>
+    <string name="quest_completed_title">Quest Completed!</string>
+    <string name="quest_completed_message">Congratulations! You've completed a %1$d-minute quest.</string>
+    <string name="rewards_earned">Rewards Earned:</string>
+    <string name="xp_reward_format">+%1$d XP</string>
+    <string name="gold_reward_format">+%1$d Gold</string>
+    <string name="no_entries_recorded">No entries recorded this quest.</string>
+    <string name="collect">Collect</string>
     <string name="minutes_format">%1$d minutes</string>
     <string name="step_minutes_minus">– %1$dm</string>
     <string name="step_minutes_plus">+ %1$dm</string>
+
+    <!-- Timer -->
+    <string name="quick_task">Quick task.</string>
+    <string name="steady_quest">Steady quest.</string>
+    <string name="long_march">Long march.</string>
+    <string name="great_undertaking">Great undertaking.</string>
+    <string name="legendary_run">Legendary run.</string>
+    <string name="sealing">Sealing...</string>
+
+    <!-- Onboarding -->
+    <string name="skip">Skip</string>
+    <string name="tap_anywhere_to_continue">Tap anywhere to continue</string>
 
     <!-- Hero Stats -->
     <string name="level_format">Level: %1$d</string>
@@ -25,6 +44,7 @@
     <string name="class_format">Class: %1$s</string>
     <string name="level_short_format">Lv. %1$d</string>
     <string name="no_hero_data">No hero data available</string>
+    <string name="hero_chronicle">⚔️ Hero Chronicle ⚔️</string>
 
     <!-- Inventory -->
     <string name="inventory_title">🎒 Inventory</string>
@@ -33,6 +53,8 @@
     <string name="health_potion">⚗️ Health Potion x3</string>
     <string name="magic_crystal">💎 Magic Crystal</string>
     <string name="scroll_of_wisdom">📜 Scroll of Wisdom</string>
+    <string name="more_items_coming">More items coming soon!</string>
+    <string name="loading_quest_data">Loading quest data...</string>
 
     <!-- Analytics -->
     <string name="analytics_title">Analytics</string>
