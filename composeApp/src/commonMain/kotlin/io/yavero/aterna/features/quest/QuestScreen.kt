@@ -28,14 +28,8 @@ import io.yavero.aterna.ui.theme.AternaRadii
 private object Ui {
     val PortalScale = 0.54f
     val RingInset = 26.dp
-    val PillRadius = 999.dp
-    val PillHeight = 52.dp
-    val SmallPillHeight = 40.dp
     val Gold = Color(0xFFF6D87A)
-    val Error = Color(0xFFFF7A7A)
-    val Outline = Color(0xFF263041)
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +55,18 @@ fun QuestScreen(
         val prev = lastLevelSeen
         if (lvl != null && prev != null && lvl > prev) statsBadge = true
         lastLevelSeen = lvl
+    }
+    // Load when sheet opens
+    LaunchedEffect(showAdventureLog) {
+        if (showAdventureLog) component.onLoadAdventureLog()
+    }
+    // Load on completion to guarantee full log
+    LaunchedEffect(uiState.isQuestCompleted) {
+        if (uiState.isQuestCompleted) component.onLoadAdventureLog()
+    }
+    // NEW: While the sheet is open, refresh the log whenever new events land
+    LaunchedEffect(uiState.eventPulseCounter, showAdventureLog) {
+        if (showAdventureLog) component.onLoadAdventureLog()
     }
     LaunchedEffect(uiState.eventFeed.size) {
         val last = uiState.eventFeed.lastOrNull()
@@ -154,11 +160,14 @@ fun QuestScreen(
         }
     }
 
-    uiState.activeQuest?.let { active ->
-        if (uiState.isQuestCompleted) {
+    // Show Quest Summary only once the full log is present
+    if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
+        uiState.activeQuest?.let { active ->
             LootDisplayDialog(
                 quest = active,
                 hero = uiState.hero,
+                loot = uiState.lastLoot,
+                events = uiState.adventureLog,
                 onDismiss = { component.onRefresh() }
             )
         }
@@ -176,13 +185,12 @@ fun QuestScreen(
 
     if (showAdventureLog) {
         AdventureLogSheet(
-            events = uiState.eventFeed,
-            loading = false,
+            events = uiState.adventureLog,
+            loading = uiState.isAdventureLogLoading,
             onDismiss = { showAdventureLog = false }
         )
     }
 }
-
 
 @Composable
 private fun QuestPortalArea(
@@ -294,4 +302,3 @@ private fun QuestPortalArea(
         }
     }
 }
-

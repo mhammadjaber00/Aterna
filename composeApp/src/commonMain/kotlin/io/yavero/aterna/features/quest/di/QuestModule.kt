@@ -12,7 +12,6 @@ val focusModule = module {
         QuestStore(
             heroRepository = get(),
             questRepository = get(),
-            questApi = get(),
             questNotifier = get(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         )

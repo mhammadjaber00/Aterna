@@ -1,8 +1,5 @@
 package io.yavero.aterna.features.quest.presentation
 
-import io.yavero.aterna.data.remote.QuestApi
-import io.yavero.aterna.data.remote.QuestCompletionRequest
-import io.yavero.aterna.data.remote.toDomain
 import io.yavero.aterna.domain.error.getUserMessage
 import io.yavero.aterna.domain.error.toAppError
 import io.yavero.aterna.domain.model.ClassType
@@ -32,7 +29,6 @@ import kotlin.uuid.Uuid
 class QuestStore(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
-    private val questApi: QuestApi,
     private val questNotifier: QuestNotifier,
     private val scope: CoroutineScope
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
@@ -53,7 +49,6 @@ class QuestStore(
     }.shareIn(scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
     private companion object {
-        // v1: 1-line Whisper Slot; bump to 6 if you want more preview items
         const val PREVIEW_WINDOW = 1
     }
 
@@ -190,24 +185,7 @@ class QuestStore(
                     endTime = Clock.System.now(),
                     completed = true
                 )
-                questRepository.updateQuest(completedQuest)
-
-                val response = questApi.completeQuest(
-                    QuestCompletionRequest(
-                        heroId = hero.id,
-                        questId = activeQuest.id,
-                        durationMinutes = activeQuest.durationMinutes,
-                        questStartTime = activeQuest.startTime.toString(),
-                        questEndTime = completedQuest.endTime!!.toString(),
-                        classType = hero.classType.name
-                    )
-                )
-                if (!response.success) {
-                    _effects.tryEmit(QuestEffect.ShowError(response.message ?: "Quest validation failed"))
-                    return@launch
-                }
-
-                val loot = response.loot.toDomain()
+                val loot = questRepository.completeQuestRemote(hero, activeQuest, completedQuest.endTime!!)
                 val newXP = hero.xp + loot.xp
                 val newLevel = calculateLevel(newXP)
                 val leveledUp = newLevel > hero.level
@@ -322,8 +300,7 @@ class QuestStore(
             }
 
         // Update preview feed (v1: 1 item for Whisper Slot)
-        val all = questRepository.getQuestEvents(quest.id)
-        val preview = all.takeLast(PREVIEW_WINDOW)
+        val preview = questRepository.getQuestEventsPreview(quest.id, PREVIEW_WINDOW).sortedBy { it.idx }
         reduce(QuestMsg.FeedUpdated(preview, bumpPulse = newCount > 0))
         // Full log is loaded on demand via LoadAdventureLog
     }

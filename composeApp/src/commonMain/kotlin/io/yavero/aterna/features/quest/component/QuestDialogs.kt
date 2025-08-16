@@ -3,8 +3,10 @@ package io.yavero.aterna.features.quest.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,6 +33,7 @@ fun LootDisplayDialog(
     quest: io.yavero.aterna.domain.model.Quest,
     hero: Hero?,
     loot: QuestLoot? = null,
+    events: List<QuestEvent> = emptyList(),
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,6 +148,59 @@ fun LootDisplayDialog(
                                                 style = AternaTypography.Default.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    AdhdCard {
+                        Column(
+                            modifier = Modifier
+                                .padding(AternaSpacing.Medium)
+                                .heightIn(max = 260.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
+                        ) {
+                            Text(
+                                "Adventure Log:",
+                                style = AternaTypography.Default.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            if (events.isEmpty()) {
+                                Text(
+                                    "No entries recorded this quest.",
+                                    style = AternaTypography.Default.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                events.forEach { e ->
+                                    val tint = when (e.type) {
+                                        EventType.CHEST -> AternaColors.GoldAccent
+                                        EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
+                                        EventType.QUIRKY -> AternaColors.Ink
+                                        EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                                    }
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                                        tonalElevation = 0.dp,
+                                        border = BorderStroke(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(Modifier.size(8.dp).background(tint, CircleShape))
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(e.message, style = AternaTypography.Default.bodySmall)
                                         }
                                     }
                                 }
@@ -287,6 +343,7 @@ fun AdventureLogSheet(
             Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Adventure Log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

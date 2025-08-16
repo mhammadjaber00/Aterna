@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest.select
+package io.yavero.aterna.features.classselection
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState

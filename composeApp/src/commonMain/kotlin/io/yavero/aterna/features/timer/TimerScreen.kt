@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest
+package io.yavero.aterna.features.timer
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.features.quest.component.RitualRing
+import io.yavero.aterna.features.timer.component.RitualRing
 import io.yavero.aterna.ui.components.ringPaletteFor
 import io.yavero.aterna.ui.theme.AternaColors
 

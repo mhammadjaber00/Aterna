@@ -5,6 +5,8 @@
     <string name="loading">Loading…</string>
     <string name="retreat">Retreat</string>
     <string name="log">Log</string>
+    <string name="hold_to_stop">Hold to Stop</string>
+    <string name="slide_to_complete">Slide to Complete</string>
 
     <!-- Quest Related -->
     <string name="begin_quest">Begin Quest</string>
@@ -38,4 +40,111 @@
     <string name="current_streak_format">🔥 Current Streak: %1$d days</string>
     <string name="quests_completed">🏆 Quests Completed: 12</string>
     <string name="average_session">⭐ Average Session: 25 minutes</string>
+
+    <!-- Quest Mob Names -->
+    <string name="mob_goblin">Goblin</string>
+    <string name="mob_wolf">Wolf</string>
+    <string name="mob_skeleton">Skeleton</string>
+    <string name="mob_ogre">Ogre</string>
+    <string name="mob_wraith">Wraith</string>
+    <string name="mob_dragon">Dragon</string>
+    <string name="mob_ancient_golem">Ancient Golem</string>
+
+    <!-- Quest Combat Messages -->
+    <string name="retreat_message">Above your pay grade. You retreat with dignity. +%1$d XP.</string>
+    <string name="defeat_message">%1$s defeated. +%2$d XP, +%3$d gold.</string>
+
+    <!-- Quest Chest Messages -->
+    <string name="rich_chest">Rich chest</string>
+    <string name="loose_brick">Loose brick</string>
+    <string name="chest_gold_message">%1$s hides %2$d gold.</string>
+
+    <!-- Quest Quirky Messages -->
+    <string name="aggro_mushroom_message">An Aggro Mushroom postures. You bop it. +%1$d XP.</string>
+    <string name="mimic_message">A squeaky mimic tries to be a chest. Bad job. +%1$d XP.</string>
+    <string name="stones_whisper_message">Stones whisper. You choose not to listen. +%1$d XP.</string>
+
+    <!-- Quest Trinket Messages -->
+    <string name="curious_pebble_message">You find a curious pebble. It hums softly.</string>
+    <string name="faded_ribbon_message">A faded ribbon flutters by—lucky?</string>
+    <string name="safe_campsite_message">You mark a safe campsite for later.</string>
+
+    <!-- Notifications -->
+    <string name="quest_session_paused">Quest Session Paused</string>
+    <string name="quest_session_active">Quest Session Active</string>
+    <string name="quest_session_complete">Quest Session Complete</string>
+    <string name="quest_session_complete_exclamation">Quest Session Complete!</string>
+    <string name="your_quest_session_ended">Your quest session has ended!</string>
+    <string name="quest_session_paused_format">%1$d minute quest session (paused)</string>
+    <string name="quest_session_resumed_format">%1$d minute quest session (resumed)</string>
+    <string name="quest_complete_congratulations">Great job! You completed your %1$d minute quest session.</string>
+    <string name="quest_session_ends_at_format">%1$s (ends at %2$s)</string>
+    <string name="quest_session_paused_format_short">%1$s (paused)</string>
+
+    <!-- Notification Actions -->
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="cancel">Cancel</string>
+    <string name="complete">Complete</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_quest_timer">Quest Timer</string>
+    <string name="channel_quest_timer_description">Notifications for quest sessions with timer controls</string>
+    <string name="channel_general">General</string>
+    <string name="channel_general_description">General notifications</string>
+    <string name="channel_tasks">Tasks</string>
+    <string name="channel_tasks_description">Task reminders and notifications</string>
+    <string name="channel_routines">Routines</string>
+    <string name="channel_routines_description">Routine reminders and notifications</string>
+
+    <!-- Task Reminders -->
+    <string name="task_reminder">Don\'t forget to work on this task!</string>
+    <string name="app_name">Aterna</string>
+
+    <!-- Error Messages -->
+    <string name="quest_too_early">Quest completed too early. Actual: %1$dm, Expected: %2$dm</string>
+    <string name="quest_too_long">Quest took too long. Actual: %1$dm, Expected: %2$dm</string>
+    <string name="quest_completed_successfully">Quest completed successfully!</string>
+    <string name="server_error">Server error: %1$s</string>
+    <string name="failed_save_settings">Failed to save app settings: %1$s</string>
+    <string name="koin_already_started">A Koin Application has already been started</string>
+    <string name="failed_initialize_koin">Failed to initialize Koin: %1$s</string>
+    <string name="no_encryption_key_found">No encryption key found in storage</string>
+    <string name="no_encrypted_key_found">No encrypted key found</string>
+    <string name="no_iv_found">No IV found</string>
+    <string name="invalid_input">Invalid input</string>
+    <string name="unknown_error">unknown</string>
+
+    <!-- Item Types -->
+    <string name="item_type_weapon">Weapon</string>
+    <string name="item_description_weapon">Increases focus power and XP gains</string>
+
+    <!-- Settings Module Keys -->
+    <string name="module_meds">meds</string>
+    <string name="module_games">games</string>
+    <string name="module_tips">tips</string>
+
+    <!-- Animation Labels -->
+    <string name="animation_star_twinkle">starTwinkle</string>
+    <string name="animation_star_pulse">starPulse</string>
+    <string name="animation_tw">tw</string>
+    <string name="animation_pulse">pulse</string>
+    <string name="animation_twinkle">twinkle</string>
+    <string name="animation_top_color">topColor</string>
+    <string name="animation_bottom_color">bottomColor</string>
+    <string name="animation_dungeon">dungeon_animation</string>
+    <string name="animation_torch_flicker">torch_flicker</string>
+
+    <!-- Database and Security -->
+    <string name="database_name">aterna.db</string>
+    <string name="settings_key">app_settings</string>
+    <string name="service_name">io.yavero.aterna</string>
+    <string name="account_name">database_encryption_key</string>
+    <string name="android_keystore">AndroidKeyStore</string>
+    <string name="master_key_alias">aterna_master_key</string>
+    <string name="transformation">AES/GCM/NoPadding</string>
+    <string name="prefs_name">aterna_secure_prefs</string>
+    <string name="encrypted_key_pref">encrypted_db_key</string>
+    <string name="iv_pref">db_key_iv</string>
+    <string name="library_sqlcipher">sqlcipher</string>
 </resources>

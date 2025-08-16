@@ -28,13 +28,13 @@ object QuestResolver {
     private fun resolveMob(ctx: Context, plan: PlannedEvent, rng: Random): QuestEvent {
         val tier = plan.mobTier ?: MobTier.LIGHT
         val (name, level) = when (tier) {
-            MobTier.LIGHT -> listOf("Goblin", "Wolf", "Skeleton").random(rng) to max(
+            MobTier.LIGHT -> QuestStrings.MobNames.LIGHT_TIER.random(rng) to max(
                 1,
                 ctx.heroLevel + rng.nextInt(-1, 2)
             )
 
-            MobTier.MID -> listOf("Ogre", "Wraith").random(rng) to (ctx.heroLevel + 2 + rng.nextInt(-1, 2))
-            MobTier.RARE -> listOf("Dragon", "Ancient Golem").random(rng) to (ctx.heroLevel + 4 + rng.nextInt(0, 3))
+            MobTier.MID -> QuestStrings.MobNames.MID_TIER.random(rng) to (ctx.heroLevel + 2 + rng.nextInt(-1, 2))
+            MobTier.RARE -> QuestStrings.MobNames.RARE_TIER.random(rng) to (ctx.heroLevel + 4 + rng.nextInt(0, 3))
         }
 
         val tooStrong = level > ctx.heroLevel + 2
@@ -46,7 +46,7 @@ object QuestResolver {
         } else {
             val xpDelta = 3 + 2 * level
             val goldDelta = rng.nextInt(0, 11)
-            val msg = "${name} defeated. +$xpDelta XP, +$goldDelta gold."
+            val msg = "$name defeated. +$xpDelta XP, +$goldDelta gold."
             Quad(xpDelta, goldDelta, EventOutcome.Win(name, level), msg)
         }
 
@@ -65,7 +65,7 @@ object QuestResolver {
     private fun resolveChest(ctx: Context, plan: PlannedEvent, rng: Random): QuestEvent {
         val gold = rng.nextInt(5, 21)
         val rich = plan.isMajor
-        val prefix = if (rich) "Rich chest" else "Loose brick"
+        val prefix = if (rich) QuestStrings.ChestMessages.RICH_CHEST else QuestStrings.ChestMessages.LOOSE_BRICK
         val msg = "$prefix hides $gold gold."
         return QuestEvent(
             questId = ctx.questId,
@@ -96,11 +96,7 @@ object QuestResolver {
     }
 
     private fun resolveTrinket(ctx: Context, plan: PlannedEvent, rng: Random): QuestEvent {
-        val msg = listOf(
-            "You find a curious pebble. It hums softly.",
-            "A faded ribbon flutters by—lucky?",
-            "You mark a safe campsite for later."
-        ).random(rng)
+        val msg = QuestStrings.TrinketMessages.getAllMessages().random(rng)
         return QuestEvent(
             questId = ctx.questId,
             idx = plan.idx,

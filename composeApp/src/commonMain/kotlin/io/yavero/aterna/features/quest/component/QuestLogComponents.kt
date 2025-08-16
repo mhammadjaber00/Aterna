@@ -26,6 +26,7 @@ fun List<QuestEvent>.filterBy(filter: LogFilter): List<QuestEvent> = when (filte
 @Composable
 fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
+        
         color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
         border = BorderStroke(
             1.dp,

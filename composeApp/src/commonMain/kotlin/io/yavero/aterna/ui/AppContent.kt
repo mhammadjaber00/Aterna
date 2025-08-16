@@ -13,11 +13,11 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.features.classselection.ClassSelectionScreen
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
-import io.yavero.aterna.features.quest.TimerScreen
 import io.yavero.aterna.features.quest.component.QuestComponent
-import io.yavero.aterna.features.quest.select.ClassSelectionScreen
+import io.yavero.aterna.features.timer.TimerScreen
 import io.yavero.aterna.navigation.AppRootComponent
 import io.yavero.aterna.features.quest.QuestScreen as FeatureQuestScreen
 
