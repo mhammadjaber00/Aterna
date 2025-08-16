@@ -8,7 +8,6 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.repository.HeroRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Instant
@@ -57,8 +56,7 @@ class HeroRepositoryImpl(
     }
 
     override suspend fun deleteHero() {
-
-
+        heroQueries.deleteHero()
     }
 
     override suspend fun updateHeroStats(

@@ -79,6 +79,11 @@ object AternaColors {
     val GoldSoft = Color(0xFFF9E6A8)
     val Ink = Color(0xFFE8ECF8)
 
+    // Loot rarity
+    val RarityLegendary = Secondary500
+    val RarityEpic = Color(0xFF8B5CF6)
+    val RarityRare = Color(0xFF3B82F6)
+
     // Status
     val FocusActive = Color(0xFF22C55E)
     val FocusPaused = Color(0xFFF4B400)

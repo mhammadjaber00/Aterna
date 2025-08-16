@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import io.yavero.aterna.data.database.AternaDatabase
+import io.yavero.aterna.data.database.FocusSessionEntity
 import io.yavero.aterna.domain.model.FocusSession
 import io.yavero.aterna.domain.repository.FocusSessionRepository
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +97,7 @@ class FocusSessionRepositoryImpl(
         focusSessionQueries.deleteFocusSession(id)
     }
 
-    private fun mapEntityToDomain(entity: io.yavero.aterna.data.database.FocusSessionEntity): FocusSession {
+    private fun mapEntityToDomain(entity: FocusSessionEntity): FocusSession {
         return FocusSession(
             id = entity.id,
             startAt = Instant.fromEpochMilliseconds(entity.startAt),
