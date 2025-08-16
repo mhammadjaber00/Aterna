@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import io.yavero.aterna.features.onboarding.ui.components.*
 import io.yavero.aterna.fx.CometSky
 import io.yavero.aterna.fx.CometStyle
-import io.yavero.aterna.ui.theme.AdhdColors
+import io.yavero.aterna.ui.theme.AternaColors
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlin.math.min
@@ -181,7 +181,7 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Skip",
-                color = AdhdColors.GoldAccent,
+                color = AternaColors.GoldAccent,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -195,20 +195,20 @@ private fun BackgroundGradient(bg: Int, modifier: Modifier = Modifier) {
 
     val top by trans.animateColor(label = "top") { b ->
         when (b) {
-            1001 -> AdhdColors.AternaNight
-            1002 -> AdhdColors.AternaNight
-            1003 -> AdhdColors.AternaNight
-            1004 -> AdhdColors.AternaNight
-            else -> AdhdColors.AternaNight
+            1001 -> AternaColors.AternaNight
+            1002 -> AternaColors.AternaNight
+            1003 -> AternaColors.AternaNight
+            1004 -> AternaColors.AternaNight
+            else -> AternaColors.AternaNight
         }
     }
     val bottom by trans.animateColor(label = "bottom") { b ->
         when (b) {
-            1001 -> AdhdColors.AternaNightAlt
-            1002 -> AdhdColors.AternaNightAlt
-            1003 -> AdhdColors.AternaNightAlt
-            1004 -> AdhdColors.AternaNightAlt
-            else -> AdhdColors.AternaNightAlt
+            1001 -> AternaColors.AternaNightAlt
+            1002 -> AternaColors.AternaNightAlt
+            1003 -> AternaColors.AternaNightAlt
+            1004 -> AternaColors.AternaNightAlt
+            else -> AternaColors.AternaNightAlt
         }
     }
 
@@ -359,7 +359,7 @@ fun LoreCaption(
                     addStyle(
                         SpanStyle(
                             brush = Brush.linearGradient(
-                                listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent)
+                                listOf(AternaColors.GoldSoft, AternaColors.GoldAccent)
                             ),
                             fontWeight = FontWeight.SemiBold
                         ),
@@ -392,7 +392,7 @@ fun LoreCaption(
                 textAlign = TextAlign.Center,
                 lineHeight = 26.sp
             ),
-            color = AdhdColors.Ink,
+            color = AternaColors.Ink,
             modifier = Modifier.graphicsLayer {
                 scaleX = pop.value
                 scaleY = pop.value
@@ -406,7 +406,7 @@ fun LoreCaption(
                     .height(20.dp)
                     .width(2.dp)
                     .graphicsLayer { alpha = blink }
-                    .background(AdhdColors.Ink.copy(alpha = 0.8f))
+                    .background(AternaColors.Ink.copy(alpha = 0.8f))
             )
         }
     }
@@ -457,8 +457,8 @@ private fun OnboardingProgress(
                     }
                     .clip(CircleShape)
                     .background(
-                        if (selected) AdhdColors.GoldAccent
-                        else AdhdColors.Ink.copy(alpha = 1f)
+                        if (selected) AternaColors.GoldAccent
+                        else AternaColors.Ink.copy(alpha = 1f)
                     )
             )
         }

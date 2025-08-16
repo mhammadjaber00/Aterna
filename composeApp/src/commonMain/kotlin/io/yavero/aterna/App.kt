@@ -8,7 +8,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import io.yavero.aterna.navigation.DefaultAppRootComponent
 import io.yavero.aterna.ui.AppContent
-import io.yavero.aterna.ui.theme.AdhdTypography
+import io.yavero.aterna.ui.theme.AternaTypography
 import io.yavero.aterna.ui.theme.DarkColorScheme
 import io.yavero.aterna.ui.theme.LightColorScheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -16,7 +16,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun App(rootComponent: io.yavero.aterna.navigation.AppRootComponent) {
 
-    AdhdTheme {
+    AternaTheme {
         AppContent(
             component = rootComponent
         )
@@ -37,11 +37,11 @@ fun App() {
 }
 
 @Composable
-private fun AdhdTheme(
+private fun AternaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (true) {
+    val colorScheme = if (darkTheme) {
         DarkColorScheme
     } else {
         LightColorScheme
@@ -49,7 +49,7 @@ private fun AdhdTheme(
     
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = AdhdTypography.Default,
+        typography = AternaTypography.Default,
         content = content
     )
 }

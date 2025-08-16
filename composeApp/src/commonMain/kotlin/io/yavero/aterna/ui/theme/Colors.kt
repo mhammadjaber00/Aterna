@@ -4,7 +4,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-object AdhdColors {
+object AternaColors {
 
     // Lavender (primary)
     val Primary50 = Color(0xFFF0F4FF)
@@ -93,68 +93,68 @@ object AdhdColors {
 }
 
 val LightColorScheme = lightColorScheme(
-    primary = AdhdColors.GoldAccent,           // ⬅ gold CTAs
-    onPrimary = AdhdColors.Neutral900,
-    primaryContainer = AdhdColors.Primary100,
-    onPrimaryContainer = AdhdColors.Primary900,
+    primary = AternaColors.GoldAccent,           // ⬅ gold CTAs
+    onPrimary = AternaColors.Neutral900,
+    primaryContainer = AternaColors.Primary100,
+    onPrimaryContainer = AternaColors.Primary900,
 
-    secondary = AdhdColors.GoldAccent, // prefer gold accent in light
-    onSecondary = AdhdColors.Neutral900,
-    secondaryContainer = AdhdColors.Secondary100,
-    onSecondaryContainer = AdhdColors.Secondary900,
+    secondary = AternaColors.GoldAccent, // prefer gold accent in light
+    onSecondary = AternaColors.Neutral900,
+    secondaryContainer = AternaColors.Secondary100,
+    onSecondaryContainer = AternaColors.Secondary900,
 
-    tertiary = AdhdColors.Tertiary500,
-    onTertiary = AdhdColors.Neutral0,
-    tertiaryContainer = AdhdColors.Tertiary50,
-    onTertiaryContainer = AdhdColors.Tertiary700,
+    tertiary = AternaColors.Tertiary500,
+    onTertiary = AternaColors.Neutral0,
+    tertiaryContainer = AternaColors.Tertiary50,
+    onTertiaryContainer = AternaColors.Tertiary700,
 
-    error = AdhdColors.Error500,
-    onError = AdhdColors.Neutral0,
-    errorContainer = AdhdColors.Error50,
-    onErrorContainer = AdhdColors.Error700,
+    error = AternaColors.Error500,
+    onError = AternaColors.Neutral0,
+    errorContainer = AternaColors.Error50,
+    onErrorContainer = AternaColors.Error700,
 
-    background = AdhdColors.Neutral50,
-    onBackground = AdhdColors.Neutral900,
-    surface = AdhdColors.Neutral0,
-    onSurface = AdhdColors.Neutral900,
-    surfaceVariant = AdhdColors.Neutral100,
-    onSurfaceVariant = AdhdColors.Neutral700,
+    background = AternaColors.Neutral50,
+    onBackground = AternaColors.Neutral900,
+    surface = AternaColors.Neutral0,
+    onSurface = AternaColors.Neutral900,
+    surfaceVariant = AternaColors.Neutral100,
+    onSurfaceVariant = AternaColors.Neutral700,
 
-    outline = AdhdColors.AternaStroke,
-    outlineVariant = AdhdColors.Neutral200,
-    scrim = AdhdColors.Neutral900.copy(alpha = 0.32f)
+    outline = AternaColors.AternaStroke,
+    outlineVariant = AternaColors.Neutral200,
+    scrim = AternaColors.Neutral900.copy(alpha = 0.32f)
 )
 
 val DarkColorScheme = darkColorScheme(
-    primary = AdhdColors.GoldAccent,
-    onPrimary = AdhdColors.Neutral900,
-    primaryContainer = AdhdColors.Primary800,
-    onPrimaryContainer = AdhdColors.Primary100,
+    primary = AternaColors.GoldAccent,
+    onPrimary = AternaColors.Neutral900,
+    primaryContainer = AternaColors.Primary800,
+    onPrimaryContainer = AternaColors.Primary100,
 
-    secondary = AdhdColors.GoldAccent, // gold highlight in dark too
-    onSecondary = AdhdColors.Neutral900,
-    secondaryContainer = AdhdColors.Secondary800,
-    onSecondaryContainer = AdhdColors.Secondary100,
+    secondary = AternaColors.GoldAccent, // gold highlight in dark too
+    onSecondary = AternaColors.Neutral900,
+    secondaryContainer = AternaColors.Secondary800,
+    onSecondaryContainer = AternaColors.Secondary100,
 
-    tertiary = AdhdColors.Tertiary300,
-    onTertiary = AdhdColors.Neutral900,
-    tertiaryContainer = AdhdColors.Tertiary700,
-    onTertiaryContainer = AdhdColors.Tertiary50,
+    tertiary = AternaColors.Tertiary300,
+    onTertiary = AternaColors.Neutral900,
+    tertiaryContainer = AternaColors.Tertiary700,
+    onTertiaryContainer = AternaColors.Tertiary50,
 
-    error = AdhdColors.Error300,
-    onError = AdhdColors.Neutral900,
-    errorContainer = AdhdColors.Error700,
-    onErrorContainer = AdhdColors.Error50,
+    error = AternaColors.Error300,
+    onError = AternaColors.Neutral900,
+    errorContainer = AternaColors.Error700,
+    onErrorContainer = AternaColors.Error50,
 
     // night world to match onboarding + quest hub
-    background = AdhdColors.AternaNight,
-    onBackground = AdhdColors.Neutral100,
-    surface = AdhdColors.AternaNightAlt,
-    onSurface = AdhdColors.Neutral100,
+    background = AternaColors.AternaNight,
+    onBackground = AternaColors.Neutral100,
+    surface = AternaColors.AternaNightAlt,
+    onSurface = AternaColors.Neutral100,
     surfaceVariant = Color(0xFF101728),
-    onSurfaceVariant = AdhdColors.Neutral300,
+    onSurfaceVariant = AternaColors.Neutral300,
 
-    outline = AdhdColors.AternaStroke,
+    outline = AternaColors.AternaStroke,
     outlineVariant = Color(0xFF1F2839),
-    scrim = AdhdColors.AternaNight.copy(alpha = 0.32f)
+    scrim = AternaColors.AternaNight.copy(alpha = 0.32f)
 )

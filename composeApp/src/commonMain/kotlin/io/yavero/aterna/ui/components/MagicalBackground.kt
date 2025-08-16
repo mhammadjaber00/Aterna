@@ -15,8 +15,8 @@ import io.yavero.aterna.ui.theme.AternaColors
 fun MagicalBackground(
     modifier: Modifier = Modifier,
     starCount: Int = 150,
-    topColor: Color = AternaColors.Night,
-    bottomColor: Color = AternaColors.NightAlt
+    topColor: Color = AternaColors.AternaNight,
+    bottomColor: Color = AternaColors.AternaNightAlt
 ) {
     // Animate colors if they change
     val animatedTopColor by animateColorAsState(

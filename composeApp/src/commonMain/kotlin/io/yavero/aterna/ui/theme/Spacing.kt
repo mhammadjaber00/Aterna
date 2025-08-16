@@ -3,7 +3,7 @@ package io.yavero.aterna.ui.theme
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-object AdhdSpacing {
+object AternaSpacing {
 
 
     val None: Dp = 0.dp
@@ -147,17 +147,17 @@ val Dp.all: androidx.compose.foundation.layout.PaddingValues
     get() = androidx.compose.foundation.layout.PaddingValues(all = this)
 
 object ResponsiveSpacing {
-    fun small(compact: Dp = AdhdSpacing.Small, expanded: Dp = AdhdSpacing.Medium): Dp {
+    fun small(compact: Dp = AternaSpacing.Small, expanded: Dp = AternaSpacing.Medium): Dp {
 
 
         return compact
     }
-    
-    fun medium(compact: Dp = AdhdSpacing.Medium, expanded: Dp = AdhdSpacing.Large): Dp {
+
+    fun medium(compact: Dp = AternaSpacing.Medium, expanded: Dp = AternaSpacing.Large): Dp {
         return compact
     }
-    
-    fun large(compact: Dp = AdhdSpacing.Large, expanded: Dp = AdhdSpacing.ExtraLarge): Dp {
+
+    fun large(compact: Dp = AternaSpacing.Large, expanded: Dp = AternaSpacing.ExtraLarge): Dp {
         return compact
     }
 }

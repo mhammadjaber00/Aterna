@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common Actions -->
+    <string name="close">Close</string>
+    <string name="loading">Loading…</string>
+    <string name="retreat">Retreat</string>
+    <string name="log">Log</string>
+
+    <!-- Quest Related -->
+    <string name="begin_quest">Begin Quest</string>
+    <string name="adventure_log">Adventure Log</string>
+    <string name="no_entries_yet">No entries yet.</string>
+    <string name="minutes_format">%1$d minutes</string>
+    <string name="step_minutes_minus">– %1$dm</string>
+    <string name="step_minutes_plus">+ %1$dm</string>
+
+    <!-- Hero Stats -->
+    <string name="level_format">Level: %1$d</string>
+    <string name="xp_format">XP: %1$d</string>
+    <string name="gold_format">Gold: %1$d</string>
+    <string name="focus_minutes_format">Focus Minutes: %1$d</string>
+    <string name="daily_streak_format">Daily Streak: %1$d</string>
+    <string name="class_format">Class: %1$s</string>
+    <string name="level_short_format">Lv. %1$d</string>
+    <string name="no_hero_data">No hero data available</string>
+
+    <!-- Inventory -->
+    <string name="inventory_title">🎒 Inventory</string>
+    <string name="iron_sword">🗡️ Iron Sword</string>
+    <string name="leather_armor">🛡️ Leather Armor</string>
+    <string name="health_potion">⚗️ Health Potion x3</string>
+    <string name="magic_crystal">💎 Magic Crystal</string>
+    <string name="scroll_of_wisdom">📜 Scroll of Wisdom</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Analytics</string>
+    <string name="this_week_format">📅 This Week: %1$d minutes</string>
+    <string name="current_streak_format">🔥 Current Streak: %1$d days</string>
+    <string name="quests_completed">🏆 Quests Completed: 12</string>
+    <string name="average_session">⭐ Average Session: 25 minutes</string>
+</resources>

@@ -22,7 +22,7 @@ import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.features.quest.component.*
 import io.yavero.aterna.features.quest.presentation.QuestState
 import io.yavero.aterna.ui.components.MagicalBackground
-import io.yavero.aterna.ui.theme.AdhdColors
+import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaRadii
 
 private object Ui {
@@ -275,7 +275,7 @@ private fun QuestPortalArea(
                 Text(
                     "The Dungeon Awaits.",
                     style = MaterialTheme.typography.headlineLarge,
-                    color = AdhdColors.GoldSoft,
+                    color = AternaColors.GoldSoft,
                     textAlign = TextAlign.Center
                 )
                 Text(

@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.ui.components.PixelHeroAvatar
-import io.yavero.aterna.ui.theme.AdhdColors
-import io.yavero.aterna.ui.theme.AdhdTypography
+import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.ui.theme.AternaTypography
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -93,12 +93,12 @@ private data class ClassPalette(
 
 private val ClassPalettes = mapOf(
     ClassType.WARRIOR to ClassPalette(
-        core = AdhdColors.GoldAccent,
-        gradient = Brush.horizontalGradient(listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent))
+        core = AternaColors.GoldAccent,
+        gradient = Brush.horizontalGradient(listOf(AternaColors.GoldSoft, AternaColors.GoldAccent))
     ),
     ClassType.MAGE to ClassPalette(
-        core = AdhdColors.GoldAccent,
-        gradient = Brush.horizontalGradient(listOf(AdhdColors.GoldSoft, AdhdColors.GoldAccent))
+        core = AternaColors.GoldAccent,
+        gradient = Brush.horizontalGradient(listOf(AternaColors.GoldSoft, AternaColors.GoldAccent))
     )
 )
 
@@ -115,7 +115,7 @@ fun ClassSelectionScreen(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = AdhdColors.AternaNight
+        color = AternaColors.AternaNight
     ) {
         Column(
             modifier = Modifier
@@ -149,12 +149,12 @@ private fun ClassSelectionHeader() {
             text = "Choose Your Class",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
-            color = AdhdColors.Ink
+            color = AternaColors.Ink
         )
         Text(
             text = "Both are balanced—pick what motivates you.",
             style = MaterialTheme.typography.titleMedium,
-            color = AdhdColors.Ink.copy(alpha = 0.8f)
+            color = AternaColors.Ink.copy(alpha = 0.8f)
         )
     }
 }
@@ -521,14 +521,14 @@ private fun CardContent(
 
         Text(
             text = classType.displayName,
-            style = AdhdTypography.Default.titleLarge,
+            style = AternaTypography.Default.titleLarge,
             color = onContainer,
             textAlign = TextAlign.Center
         )
 
         Text(
             text = flavor,
-            style = AdhdTypography.Default.bodySmall,
+            style = AternaTypography.Default.bodySmall,
             color = if (selected) onContainer.copy(alpha = ClassSelectionConstants.FLAVOR_TEXT_ALPHA)
             else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

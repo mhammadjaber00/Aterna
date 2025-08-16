@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import io.yavero.aterna.ui.theme.AdhdSpacing
+import io.yavero.aterna.ui.theme.AternaSpacing
 
 @Composable
 fun AdhdCard(
@@ -34,15 +34,15 @@ fun AdhdCard(
                     }
                 } else Modifier
             ),
-        shape = RoundedCornerShape(AdhdSpacing.Card.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Card.CornerRadius),
         colors = colors,
         elevation = CardDefaults.cardElevation(
-            defaultElevation = AdhdSpacing.None
+            defaultElevation = AternaSpacing.None
         )
     ) {
         Column(
-            modifier = Modifier.padding(AdhdSpacing.Card.Padding),
-            verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
+            modifier = Modifier.padding(AternaSpacing.Card.Padding),
+            verticalArrangement = Arrangement.spacedBy(AternaSpacing.SpaceM)
         ) {
             content()
         }
@@ -71,13 +71,13 @@ fun AdhdOutlinedCard(
                     }
                 } else Modifier
             ),
-        shape = RoundedCornerShape(AdhdSpacing.Card.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Card.CornerRadius),
         colors = colors,
         border = border
     ) {
         Column(
-            modifier = Modifier.padding(AdhdSpacing.Card.Padding),
-            verticalArrangement = Arrangement.spacedBy(AdhdSpacing.SpaceM)
+            modifier = Modifier.padding(AternaSpacing.Card.Padding),
+            verticalArrangement = Arrangement.spacedBy(AternaSpacing.SpaceM)
         ) {
             content()
         }

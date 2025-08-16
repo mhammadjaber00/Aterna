@@ -146,7 +146,7 @@ fun TimerScreen(
             ) {
                 // Main quest button with gradient (matching class selection style)
                 val questBrush = Brush.horizontalGradient(
-                    listOf(AternaColors.GoldSoft, AternaColors.Gold)
+                    listOf(AternaColors.GoldSoft, AternaColors.GoldAccent)
                 )
                 val btnShape = RoundedCornerShape(28.dp)
 

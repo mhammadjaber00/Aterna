@@ -1,40 +1,35 @@
 package io.yavero.aterna
 
 import androidx.compose.ui.window.ComposeUIViewController
-import io.yavero.aterna.data.di.dataModule
 import io.yavero.aterna.data.di.platformDataModule
-import io.yavero.aterna.features.onboarding.di.onboardingModule
-import io.yavero.aterna.features.quest.di.focusModule
+import io.yavero.aterna.di.getCommonKoinModules
 import io.yavero.aterna.features.quest.di.platformFocusModule
-import io.yavero.aterna.notifications.di.notificationsModule
 import io.yavero.aterna.notifications.di.platformNotificationsModule
 import org.koin.core.context.startKoin
-import org.koin.dsl.module
 
-val viewModelsModule = module {
-
-}
+private var isKoinInitialized = false
 
 private fun initializeKoin() {
-    try {
-        startKoin {
-            modules(
-                dataModule,
-                platformDataModule,
-
-                notificationsModule,
-                platformNotificationsModule,
-
-                focusModule,
-                platformFocusModule,
-
-                onboardingModule,
-
-                viewModelsModule
-            )
+    if (!isKoinInitialized) {
+        try {
+            startKoin {
+                modules(
+                    getCommonKoinModules() + listOf(
+                        platformDataModule,
+                        platformNotificationsModule,
+                        platformFocusModule
+                    )
+                )
+            }
+            isKoinInitialized = true
+        } catch (e: Exception) {
+            if (e.message?.contains("A Koin Application has already been started") == true) {
+                isKoinInitialized = true
+            } else {
+                println("Failed to initialize Koin: ${e.message}")
+                throw e
+            }
         }
-    } catch (e: Exception) {
-
     }
 }
 

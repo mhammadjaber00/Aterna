@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.ui.components.ringPaletteFor
-import io.yavero.aterna.ui.theme.AdhdColors
+import io.yavero.aterna.ui.theme.AternaClassColors
 import io.yavero.aterna.ui.theme.AternaColors
 import kotlin.math.*
 
@@ -48,7 +48,7 @@ fun QuestCountdownRing(
     )
 
     val palette = ringPaletteFor(classType)
-    val classColor = AternaColors.forClass(classType)
+    val classColor = AternaClassColors.forClass(classType)
     val trackColor = palette.track
     val activeBrush = palette.active
 
@@ -108,8 +108,8 @@ fun RitualRing(
     sealProgress: Float = 0f,
     classType: ClassType = ClassType.WARRIOR,
     tickColor: Color = when (classType) {
-        ClassType.WARRIOR -> AdhdColors.GoldAccent
-        ClassType.MAGE -> AdhdColors.Primary300
+        ClassType.WARRIOR -> AternaColors.GoldAccent
+        ClassType.MAGE -> AternaColors.Primary300
     },
     centerHint: String = "",
 //        "Set your quest time.",
@@ -354,7 +354,7 @@ private fun CenterSigil(
     Box(contentAlignment = Alignment.Center) {
         PixelGuardianStatueSprite(
             size = 48.dp,
-            classType = if (tint == AdhdColors.Primary300) ClassType.MAGE else ClassType.WARRIOR,
+            classType = if (tint == AternaColors.Primary300) ClassType.MAGE else ClassType.WARRIOR,
             sealing = isSealing,
             progress = progress,
             modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }
@@ -399,8 +399,8 @@ private fun PixelGuardianStatueSprite(
     val pedestal = Color(0xFF4A515B)
     val moss = Color(0xFF679E63)
     val eyeGlow = when (classType) {
-        ClassType.WARRIOR -> AdhdColors.GoldAccent
-        ClassType.MAGE -> AdhdColors.Primary300
+        ClassType.WARRIOR -> AternaColors.GoldAccent
+        ClassType.MAGE -> AternaColors.Primary300
     }
 
     Canvas(modifier.size(size)) {
@@ -448,7 +448,7 @@ private fun PixelGuardianStatueSprite(
             ClassType.WARRIOR -> {
                 // sword at left
                 for (y in 7..13) p(3, y, Color(0xFFC7D2FF))
-                p(3, 6, AdhdColors.GoldAccent) // hilt
+                p(3, 6, AternaColors.GoldAccent) // hilt
             }
 
             ClassType.MAGE -> {
@@ -557,7 +557,7 @@ private fun SealingFX(tint: Color, progress: Float) {
 private fun InfernoOverlay(
     visible: Boolean,
     degrees: Float,
-    tint: Color = AdhdColors.GoldAccent
+    tint: Color = AternaColors.GoldAccent
 ) {
     if (!visible) return
     val flicker by rememberInfiniteTransition(label = "inferno").animateFloat(

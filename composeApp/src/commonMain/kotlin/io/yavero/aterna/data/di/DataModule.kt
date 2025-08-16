@@ -27,7 +27,7 @@ val dataModule = module {
     single<TaskRepository> {
         TaskRepositoryImpl(
             database = get<AternaDatabase>(),
-            localNotifier = get()
+            taskNotificationService = get()
         )
     }
     singleOf(::FocusSessionRepositoryImpl) bind FocusSessionRepository::class

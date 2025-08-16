@@ -153,7 +153,7 @@ fun IconButtonWithBadge(
                     .offset(x = 2.dp, y = (-2).dp)
                     .size(8.dp)
                     .scale(scale)
-                    .background(AternaColors.Gold, CircleShape)
+                    .background(AternaColors.GoldAccent, CircleShape)
             )
         }
     }

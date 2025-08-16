@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.ui.theme.AdhdSpacing
-import io.yavero.aterna.ui.theme.AdhdTypography
+import io.yavero.aterna.ui.theme.AternaSpacing
+import io.yavero.aterna.ui.theme.AternaTypography
 
 @Composable
 fun AdhdPrimaryButton(
@@ -34,16 +34,16 @@ fun AdhdPrimaryButton(
         modifier = if (fullWidth) modifier.fillMaxWidth() else modifier,
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(),
-        shape = RoundedCornerShape(AdhdSpacing.Button.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Button.CornerRadius),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = AdhdSpacing.Button.PaddingHorizontal,
-            vertical = AdhdSpacing.Button.PaddingVertical
+            horizontal = AternaSpacing.Button.PaddingHorizontal,
+            vertical = AternaSpacing.Button.PaddingVertical
         )
     ) {
         ButtonContent(
             text = text,
             icon = icon,
-            textStyle = AdhdTypography.Default.labelLarge
+            textStyle = AternaTypography.Default.labelLarge
         )
     }
 }
@@ -72,16 +72,16 @@ fun AdhdSecondaryButton(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        shape = RoundedCornerShape(AdhdSpacing.Button.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Button.CornerRadius),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = AdhdSpacing.Button.PaddingHorizontal,
-            vertical = AdhdSpacing.Button.PaddingVertical
+            horizontal = AternaSpacing.Button.PaddingHorizontal,
+            vertical = AternaSpacing.Button.PaddingVertical
         )
     ) {
         ButtonContent(
             text = text,
             icon = icon,
-            textStyle = AdhdTypography.Default.labelLarge
+            textStyle = AternaTypography.Default.labelLarge
         )
     }
 }
@@ -106,10 +106,10 @@ fun AdhdOutlinedButton(
         },
         modifier = if (fullWidth) modifier.fillMaxWidth() else modifier,
         enabled = enabled,
-        shape = RoundedCornerShape(AdhdSpacing.Button.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Button.CornerRadius),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = AdhdSpacing.Button.PaddingHorizontal,
-            vertical = AdhdSpacing.Button.PaddingVertical
+            horizontal = AternaSpacing.Button.PaddingHorizontal,
+            vertical = AternaSpacing.Button.PaddingVertical
         ),
         border = ButtonDefaults.outlinedButtonBorder(enabled = enabled).copy(
             width = 2.dp
@@ -118,7 +118,7 @@ fun AdhdOutlinedButton(
         ButtonContent(
             text = text,
             icon = icon,
-            textStyle = AdhdTypography.Default.labelLarge
+            textStyle = AternaTypography.Default.labelLarge
         )
     }
 }
@@ -142,16 +142,16 @@ fun AdhdTextButton(
         },
         modifier = modifier,
         enabled = enabled,
-        shape = RoundedCornerShape(AdhdSpacing.Button.CornerRadius),
+        shape = RoundedCornerShape(AternaSpacing.Button.CornerRadius),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = AdhdSpacing.Button.PaddingHorizontal,
-            vertical = AdhdSpacing.Button.PaddingVertical
+            horizontal = AternaSpacing.Button.PaddingHorizontal,
+            vertical = AternaSpacing.Button.PaddingVertical
         )
     ) {
         ButtonContent(
             text = text,
             icon = icon,
-            textStyle = AdhdTypography.Default.labelLarge
+            textStyle = AternaTypography.Default.labelLarge
         )
     }
 }

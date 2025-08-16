@@ -7,7 +7,7 @@ import io.yavero.aterna.data.database.AternaDatabase
 import io.yavero.aterna.domain.model.Subtask
 import io.yavero.aterna.domain.model.Task
 import io.yavero.aterna.domain.repository.TaskRepository
-import io.yavero.aterna.notifications.LocalNotifier
+import io.yavero.aterna.domain.service.TaskNotificationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,11 +15,10 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.time.Duration.Companion.minutes
 
 class TaskRepositoryImpl(
     private val database: AternaDatabase,
-    private val localNotifier: LocalNotifier
+    private val taskNotificationService: TaskNotificationService
 ) : TaskRepository {
 
     override fun getAllTasks(): Flow<List<Task>> {
@@ -75,7 +74,7 @@ class TaskRepositoryImpl(
 
 
         if (task.dueAt != null && !task.isDone) {
-            scheduleTaskReminder(task)
+            taskNotificationService.scheduleTaskReminder(task)
         }
     }
 
@@ -104,18 +103,17 @@ class TaskRepositoryImpl(
 
 
         if (task.dueAt != null && !task.isDone) {
-
-            cancelTaskReminder(task.id)
-            scheduleTaskReminder(task)
+            // Reschedule reminder for updated task
+            taskNotificationService.rescheduleTaskReminder(task)
         } else {
-
-            cancelTaskReminder(task.id)
+            // Cancel reminder if task has no due date or is completed
+            taskNotificationService.cancelTaskReminder(task.id)
         }
     }
 
     override suspend fun deleteTask(id: String) {
-
-        cancelTaskReminder(id)
+        // Cancel any pending reminders before deleting the task
+        taskNotificationService.cancelTaskReminder(id)
         database.taskQueries.deleteTask(id)
     }
 
@@ -138,13 +136,13 @@ class TaskRepositoryImpl(
 
 
             if (isCompleting) {
-
-                cancelTaskReminder(it.id)
+                // Cancel reminder when task is completed
+                taskNotificationService.cancelTaskReminder(it.id)
             } else {
-
+                // Schedule reminder when task is uncompleted
                 it.dueAt?.let { dueDate ->
                     val taskDomain = mapEntityToDomain(it)
-                    scheduleTaskReminder(taskDomain.copy(isDone = false))
+                    taskNotificationService.scheduleTaskReminder(taskDomain.copy(isDone = false))
                 }
             }
         }
@@ -206,37 +204,5 @@ class TaskRepositoryImpl(
             createdAt = Instant.fromEpochMilliseconds(entity.createdAt),
             updatedAt = Instant.fromEpochMilliseconds(entity.updatedAt)
         )
-    }
-    
-    private suspend fun scheduleTaskReminder(task: Task) {
-        task.dueAt?.let { dueDate ->
-            try {
-
-                val reminderTime = dueDate.minus(15.minutes)
-                val now = Clock.System.now()
-
-
-                if (reminderTime > now) {
-                    localNotifier.schedule(
-                        id = "task_${task.id}",
-                        at = reminderTime,
-                        title = "Task Reminder",
-                        body = "Don't forget: ${task.title}",
-                        channel = "tasks"
-                    )
-                }
-            } catch (e: Exception) {
-
-
-            }
-        }
-    }
-    
-    private suspend fun cancelTaskReminder(taskId: String) {
-        try {
-            localNotifier.cancel("task_$taskId")
-        } catch (e: Exception) {
-
-        }
     }
 }

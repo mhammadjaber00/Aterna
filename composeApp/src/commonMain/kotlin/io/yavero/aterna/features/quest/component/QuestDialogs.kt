@@ -22,10 +22,9 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
-import io.yavero.aterna.ui.theme.AdhdColors
-import io.yavero.aterna.ui.theme.AdhdSpacing
-import io.yavero.aterna.ui.theme.AdhdTypography
 import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.ui.theme.AternaSpacing
+import io.yavero.aterna.ui.theme.AternaTypography
 
 @Composable
 fun LootDisplayDialog(
@@ -52,7 +51,7 @@ fun LootDisplayDialog(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.Small)
+                    horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Star,
@@ -67,25 +66,25 @@ fun LootDisplayDialog(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(AdhdSpacing.Medium)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)) {
                     Text(
                         "Congratulations! You've completed a ${quest.durationMinutes}-minute quest.",
-                        style = AdhdTypography.Default.bodyMedium
+                        style = AternaTypography.Default.bodyMedium
                     )
                     AdhdCard {
                         Column(
-                            modifier = Modifier.padding(AdhdSpacing.Medium),
-                            verticalArrangement = Arrangement.spacedBy(AdhdSpacing.Small)
+                            modifier = Modifier.padding(AternaSpacing.Medium),
+                            verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                         ) {
                             Text(
                                 "Rewards Earned:",
-                                style = AdhdTypography.Default.titleSmall,
+                                style = AternaTypography.Default.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.Small)
+                                horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                             ) {
                                 Icon(
                                     Icons.Default.Star,
@@ -95,14 +94,14 @@ fun LootDisplayDialog(
                                 )
                                 Text(
                                     "+${loot.xp} XP",
-                                    style = AdhdTypography.Default.bodyMedium,
+                                    style = AternaTypography.Default.bodyMedium,
                                     color = MaterialTheme.colorScheme.tertiary
                                 )
                             }
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.Small)
+                                horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                             ) {
                                 Icon(
                                     Icons.Default.AttachMoney,
@@ -112,7 +111,7 @@ fun LootDisplayDialog(
                                 )
                                 Text(
                                     "+${loot.gold} Gold",
-                                    style = AdhdTypography.Default.bodyMedium,
+                                    style = AternaTypography.Default.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
                             }
@@ -121,7 +120,7 @@ fun LootDisplayDialog(
                                 loot.items.forEach { item ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(AdhdSpacing.Small)
+                                        horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
                                     ) {
                                         val icon = when (item.itemType) {
                                             io.yavero.aterna.domain.model.ItemType.WEAPON -> Icons.Default.Build
@@ -140,10 +139,10 @@ fun LootDisplayDialog(
                                         }
                                         Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
                                         Column {
-                                            Text(item.name, style = AdhdTypography.Default.bodyMedium)
+                                            Text(item.name, style = AternaTypography.Default.bodyMedium)
                                             Text(
                                                 item.rarity.displayName,
-                                                style = AdhdTypography.Default.bodySmall,
+                                                style = AternaTypography.Default.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
@@ -215,12 +214,12 @@ fun LoadingState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AdhdSpacing.Medium)
+        verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)
     ) {
         CircularProgressIndicator()
         Text(
             "Loading quest data...",
-            style = AdhdTypography.Default.bodyMedium,
+            style = AternaTypography.Default.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
@@ -230,19 +229,19 @@ fun LoadingState(modifier: Modifier = Modifier) {
 @Composable
 fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(AdhdSpacing.Large),
+        modifier = modifier.padding(AternaSpacing.Large),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AdhdSpacing.Medium)
+        verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)
     ) {
         Text(
             "Something went wrong",
-            style = AdhdTypography.Default.titleMedium,
+            style = AternaTypography.Default.titleMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center
         )
         Text(
             error,
-            style = AdhdTypography.Default.bodyMedium,
+            style = AternaTypography.Default.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
@@ -305,7 +304,7 @@ fun AdventureLogSheet(
                 else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     filtered.forEach { e ->
                         val tint = when (e.type) {
-                            EventType.CHEST -> AdhdColors.GoldAccent
+                            EventType.CHEST -> AternaColors.GoldAccent
                             EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
                             EventType.QUIRKY -> AternaColors.Ink
                             EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
