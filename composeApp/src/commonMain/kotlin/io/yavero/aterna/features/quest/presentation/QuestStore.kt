@@ -467,6 +467,21 @@ class QuestStore(
             .sortedBy { it.idx }
 
         reduce(QuestMsg.FeedUpdated(preview, bumpPulse = newCount > 0))
+
+        if (newCount > 0) {
+            val lastText = preview.lastOrNull()?.message ?: "Adventuring..."
+            val endTime = quest.startTime.plus(quest.durationMinutes.minutes)
+            try {
+                questNotifier.showOngoing(
+                    sessionId = quest.id,
+                    title = "Quest Active",
+                    text = lastText,
+                    endAt = endTime
+                )
+            } catch (_: Throwable) {
+                // ignore notification errors
+            }
+        }
     }
 
     /**
