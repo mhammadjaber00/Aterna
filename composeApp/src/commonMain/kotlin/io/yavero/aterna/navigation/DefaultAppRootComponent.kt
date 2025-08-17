@@ -4,11 +4,14 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.domain.repository.HeroRepository
+import io.yavero.aterna.domain.repository.SettingsRepository
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.aterna.features.quest.component.DefaultQuestComponent
 import io.yavero.aterna.features.quest.presentation.QuestIntent
 import io.yavero.aterna.features.quest.presentation.QuestStore
+import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -18,12 +21,21 @@ class DefaultAppRootComponent(
 
     private val navigation = StackNavigation<Config>()
     private val questStore: QuestStore by inject()
+    private val heroRepository: HeroRepository by inject()
+    private val settingsRepository: SettingsRepository by inject()
+
+    private fun resolveInitialConfig(): Config = runBlocking {
+        val hero = heroRepository.getCurrentHero()
+        if (hero != null) return@runBlocking Config.QuestHub
+        val onboardingDone = settingsRepository.getOnboardingDone()
+        if (onboardingDone) Config.ClassSelect else Config.Onboarding
+    }
 
     override val childStack: Value<ChildStack<*, AppRootComponent.Child>> =
         childStack(
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Onboarding,
+            initialConfiguration = resolveInitialConfig(),
             handleBackButton = true,
             childFactory = ::createChild
         )

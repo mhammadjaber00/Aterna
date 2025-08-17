@@ -1,39 +1,6 @@
 package io.yavero.aterna.features.onboarding.presentation
 
-import io.yavero.aterna.domain.mvi.LoadingState
-import io.yavero.aterna.domain.mvi.MviState
-
-data class OnboardingState(
-    val currentSceneIndex: Int = 0,
-    val isTransitioning: Boolean = false,
-    val isWalkingAnimationPlaying: Boolean = false,
-    override val isLoading: Boolean = false,
-    override val error: String? = null
-) : MviState, LoadingState {
-
-    val currentScene: Scene
-        get() = OnboardingScenes.scenes[currentSceneIndex]
-
-    val isLastScene: Boolean
-        get() = currentSceneIndex == OnboardingScenes.scenes.size - 1
-
-    val canProceed: Boolean
-        get() = !isTransitioning && !isWalkingAnimationPlaying
-}
-
-data class OnboardingUiState(
-    val currentScene: Scene,
-    val isTransitioning: Boolean = false,
-    val isWalkingAnimationPlaying: Boolean = false,
-    val isLastScene: Boolean = false,
-    val canProceed: Boolean = true
-)
-
-enum class WarriorState {
-    Idle,
-    Walking,
-    SwordReady   
-}
+enum class WarriorState { Idle, Walking, SwordReady }
 
 data class Scene(
     val id: Int,
@@ -43,7 +10,6 @@ data class Scene(
 )
 
 object OnboardingScenes {
-
     private const val CAMP_BACKGROUND = 1001
     private const val PATH_BACKGROUND = 1002
     private const val DUNGEON_GATE_BACKGROUND = 1003
