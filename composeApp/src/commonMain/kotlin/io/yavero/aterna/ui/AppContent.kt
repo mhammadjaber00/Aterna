@@ -1,12 +1,9 @@
 package io.yavero.aterna.ui
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.classselection.ui.ClassSelectionRoute
 import io.yavero.aterna.features.onboarding.ui.OnboardingRoute
@@ -18,44 +15,40 @@ import io.yavero.aterna.navigation.Screen
 
 @Composable
 fun AppContent(
-    rootViewModel: RootViewModel, // kept to run init logic
+    rootViewModel: RootViewModel,
     navigator: Navigator
 ) {
+    LaunchedEffect(Unit) { rootViewModel.bootstrap() }
+
     val stack by navigator.stack.collectAsState()
-    val current = stack.lastOrNull()
+    val screen = stack.last()
 
-    Box(Modifier.fillMaxSize()) {
-        Crossfade(targetState = current, label = "screen") { screen ->
-            when (screen) {
-                is Screen.Onboarding -> OnboardingRoute(
-                    onFinish = { navigator.navigateToClassSelect() },
-                    onSkip = { navigator.navigateToClassSelect() }
-                )
+    when (val s = screen) {
+        Screen.Onboarding -> OnboardingRoute(
+            onFinish = { navigator.replaceAll(Screen.ClassSelect) },
+            onSkip = { navigator.replaceAll(Screen.ClassSelect) }
+        )
 
-                is Screen.ClassSelect -> ClassSelectionRoute(
-                    onDone = { navigator.navigateToQuestHub() }
-                )
+        Screen.ClassSelect -> ClassSelectionRoute(
+            onDone = { navigator.replaceAll(Screen.QuestHub) }
+        )
 
-                is Screen.QuestHub -> QuestRoute(
-                    onNavigateToTimer = { minutes, classType ->
-                        navigator.navigateToTimer(minutes, classType)
-                    }
-                )
-
-                is Screen.Timer -> TimerScreenWrapper(
-                    initialMinutes = screen.initialMinutes,
-                    classType = screen.classType,
-                    navigator = navigator
-                )
-
-                null -> Box(Modifier.fillMaxSize()) { /* splash/empty */ }
+        Screen.QuestHub -> QuestRoute(
+            onNavigateToTimer = { minutes, classType ->
+                navigator.push(Screen.Timer(minutes, classType))
             }
-        }
+        )
+
+        is Screen.Timer -> TimerRoute(
+            initialMinutes = s.initialMinutes,
+            classType = s.classType,
+            navigator = navigator
+        )
     }
 }
 
 @Composable
-private fun TimerScreenWrapper(
+private fun TimerRoute(
     initialMinutes: Int,
     classType: ClassType,
     navigator: Navigator
@@ -65,10 +58,10 @@ private fun TimerScreenWrapper(
         classType = classType,
         onConfirm = { duration ->
             navigator.requestStartQuest(duration, classType)
-            navigator.navigateToQuestHub()
+            navigator.replaceAll(Screen.QuestHub)
         },
         onDismiss = {
-            navigator.navigateToQuestHub()
+            navigator.replaceAll(Screen.QuestHub)
         }
     )
 }

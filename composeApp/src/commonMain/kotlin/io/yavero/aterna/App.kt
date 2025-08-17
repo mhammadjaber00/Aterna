@@ -26,8 +26,9 @@ fun App() {
 
 @Composable
 fun AternaTheme(content: @Composable () -> Unit) {
+    val scheme = if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme,
+        colorScheme = scheme,
         typography = AternaTypography.Default,
         content = content
     )
