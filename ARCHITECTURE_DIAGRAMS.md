@@ -339,7 +339,6 @@
 │     │                                                                       │
 │     ├─ onboardingModule ───────── Provides: OnboardingStore (❌ MISSING)   │
 │     │                                                                       │
-│     └─ viewModelsModule ─────────── TODO: Add ViewModels (❌ EMPTY)         │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -15,15 +15,10 @@ val domainModule = module {
     singleOf(::TaskNotificationServiceImpl) bind TaskNotificationService::class
 }
 
-val viewModelsModule = module {
-    // TODO: Add ViewModels when they are created
-}
-
 fun getCommonKoinModules(): List<Module> = listOf(
     dataModule,
     domainModule,
     notificationsModule,
     focusModule,
     onboardingModule,
-    viewModelsModule
 )

@@ -68,15 +68,13 @@ The project follows a clean dependency flow from features down to data layer:
 - `notificationsModule` → platform-specific notification implementations
 - Platform modules → provide DatabaseDriverFactory for each platform
 
-**Critical Gap:** `viewModelsModule` is empty with TODO comment - major architectural gap!
-
 ## File/Class Index
 
 ### 🔥 Critical Files (Must Understand)
 
 | File/Class                   | Purpose                       | Notes                                                        |
 |------------------------------|-------------------------------|--------------------------------------------------------------|
-| `CommonKoinModule.kt`        | **Main DI coordinator**       | ⚠️ Contains empty viewModelsModule with TODO                 |
+| `CommonKoinModule.kt`        | **Main DI coordinator**       |                                                              |
 | `AppRootComponent.kt`        | **Navigation hub**            | Defines 4-screen flow: Onboarding→ClassSelect→QuestHub→Timer |
 | `DefaultAppRootComponent.kt` | **Navigation implementation** | Actual routing logic and state management                    |
 | `QuestPlanner.kt`            | **Core quest logic**          | Generates timed events (4-19 beats) based on duration        |
@@ -136,7 +134,6 @@ The project follows a clean dependency flow from features down to data layer:
     - Location: `QuestModule.kt:11`, `OnboardingModule.kt:12`
 
 2. **Empty ViewModels Module**
-    - `viewModelsModule` contains only a TODO comment
     - No state management layer connecting UI to domain logic
     - Location: `CommonKoinModule.kt:19`
 
