@@ -12,6 +12,7 @@ import io.yavero.aterna.domain.service.RewardService
 import io.yavero.aterna.domain.util.RewardBankingStrategy
 import io.yavero.aterna.features.quest.notification.QuestNotifier
 import io.yavero.aterna.features.quest.presentation.QuestViewModel
+import io.yavero.aterna.navigation.Navigator
 import org.koin.compose.koinInject
 
 @Composable
@@ -24,7 +25,7 @@ fun QuestRoute(
     val statusEffectRepository = koinInject<StatusEffectRepository>()
     val rewardService = koinInject<RewardService>()
     val bankingStrategy = koinInject<RewardBankingStrategy>()
-    val navigator = koinInject<io.yavero.aterna.navigation.Navigator>() // NEW
+    val navigator = koinInject<Navigator>()
 
     val vm = androidx.lifecycle.viewmodel.compose.viewModel(initializer = {
         QuestViewModel(

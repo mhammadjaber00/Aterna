@@ -1,17 +1,12 @@
 package io.yavero.aterna.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.classselection.ui.ClassSelectionRoute
 import io.yavero.aterna.features.onboarding.ui.OnboardingRoute
@@ -23,62 +18,37 @@ import io.yavero.aterna.navigation.Screen
 
 @Composable
 fun AppContent(
-    rootViewModel: RootViewModel,
-    navigator: Navigator,
-    modifier: Modifier = Modifier
+    rootViewModel: RootViewModel, // kept to run init logic
+    navigator: Navigator
 ) {
-    val isInitialized by rootViewModel.isInitialized.collectAsStateWithLifecycle()
-    val navigationStack by navigator.stack.collectAsStateWithLifecycle()
-    val currentScreen = navigationStack.lastOrNull()
+    val stack by navigator.stack.collectAsState()
+    val current = stack.lastOrNull()
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            if (!isInitialized) {
-                // Show loading state while initialization is in progress
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                when (currentScreen) {
-                    is Screen.Onboarding -> OnboardingRoute(
-                        onFinish = { navigator.bringToFront(Screen.ClassSelect) }
-                    )
+    Box(Modifier.fillMaxSize()) {
+        Crossfade(targetState = current, label = "screen") { screen ->
+            when (screen) {
+                is Screen.Onboarding -> OnboardingRoute(
+                    onFinish = { navigator.navigateToClassSelect() },
+                    onSkip = { navigator.navigateToClassSelect() }
+                )
 
-                    is Screen.ClassSelect -> ClassSelectionRoute(
-                        onDone = { navigator.replaceAll(Screen.QuestHub) }
-                    )
+                is Screen.ClassSelect -> ClassSelectionRoute(
+                    onDone = { navigator.navigateToQuestHub() }
+                )
 
-                    is Screen.QuestHub -> QuestRoute(
-                        onNavigateToTimer = { initialMinutes, classType ->
-                            navigator.bringToFront(Screen.Timer(initialMinutes, classType))
-                        }
-                    )
-
-                    is Screen.Timer -> TimerScreenWrapper(
-                        initialMinutes = currentScreen.initialMinutes,
-                        classType = currentScreen.classType,
-                        navigator = navigator
-                    )
-
-                    null -> {
-                        // Fallback - should not happen after initialization
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                is Screen.QuestHub -> QuestRoute(
+                    onNavigateToTimer = { minutes, classType ->
+                        navigator.navigateToTimer(minutes, classType)
                     }
-                }
+                )
+
+                is Screen.Timer -> TimerScreenWrapper(
+                    initialMinutes = screen.initialMinutes,
+                    classType = screen.classType,
+                    navigator = navigator
+                )
+
+                null -> Box(Modifier.fillMaxSize()) { /* splash/empty */ }
             }
         }
     }
@@ -93,12 +63,12 @@ private fun TimerScreenWrapper(
     TimerScreen(
         initialMinutes = initialMinutes,
         classType = classType,
-        onConfirm = { duration: Int ->
+        onConfirm = { duration ->
             navigator.requestStartQuest(duration, classType)
-            navigator.replaceAll(Screen.QuestHub)
+            navigator.navigateToQuestHub()
         },
         onDismiss = {
-            navigator.replaceAll(Screen.QuestHub)
+            navigator.navigateToQuestHub()
         }
     )
 }
