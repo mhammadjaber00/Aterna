@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 enum class ClassType(
     val displayName: String,
     val description: String,
+    val flavor: String,
     val xpMultiplier: Double,
     val goldMultiplier: Double,
     val cooldownReduction: Double
@@ -13,15 +14,17 @@ enum class ClassType(
     WARRIOR(
         "Warrior",
         "+20% Gold",
-        xpMultiplier = 1.2,
-        goldMultiplier = 1.0,
+        "Turns effort into XP.",
+        xpMultiplier = 1.0,
+        goldMultiplier = 1.2,
         cooldownReduction = 0.0
     ),
     MAGE(
         "Mage",
         "+30% XP",
-        xpMultiplier = 1.0,
-        goldMultiplier = 1.3,
+        "Turns insight into Gold.",
+        xpMultiplier = 1.3,
+        goldMultiplier = 1.0,
         cooldownReduction = 0.0
     ),
 }

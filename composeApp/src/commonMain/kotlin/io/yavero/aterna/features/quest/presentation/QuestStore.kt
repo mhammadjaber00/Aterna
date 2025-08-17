@@ -12,6 +12,7 @@ import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.repository.StatusEffectRepository
 import io.yavero.aterna.domain.service.RewardService
+import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.QuestPlanner
 import io.yavero.aterna.domain.util.QuestResolver
 import io.yavero.aterna.domain.util.RewardBankingStrategy
@@ -270,13 +271,12 @@ class QuestStore(
                     )
                 }
 
-                // Banked rewards based on elapsed time
                 val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
                 val bankedMinutes = (bankedMs / 60_000L).toInt()
 
                 var outHero = hero
                 if (bankedMinutes > 0) {
-                    val baseLoot = io.yavero.aterna.domain.util.LootRoller.rollLoot(
+                    val baseLoot = LootRoller.rollLoot(
                         questDurationMinutes = bankedMinutes,
                         heroLevel = hero.level,
                         classType = hero.classType,

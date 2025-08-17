@@ -1,10 +1,7 @@
 package io.yavero.aterna.navigation
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.bringToFront
-import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
@@ -68,7 +65,7 @@ class DefaultAppRootComponent(
     }
 
     override fun navigateToQuestHub() {
-        navigation.bringToFront(Config.QuestHub)
+        navigation.replaceAll(Config.QuestHub)
     }
 
     override fun navigateToTimer(initialMinutes: Int, classType: String) {
