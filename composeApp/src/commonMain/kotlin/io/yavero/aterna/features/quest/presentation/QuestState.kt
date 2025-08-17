@@ -30,10 +30,6 @@ data class QuestState(
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true
     val isQuestCompleted: Boolean get() = activeQuest?.completed == true
-    val canStartQuest: Boolean get() = !hasActiveQuest && hero != null
-    val questDurationMinutes: Int get() = activeQuest?.durationMinutes ?: 0
-
-    val progressPercentage: Int get() = (questProgress * 100).toInt()
 
     val timeRemainingMinutes: Int get() = timeRemaining.inWholeMinutes.toInt()
     val timeRemainingSeconds: Int get() = (timeRemaining.inWholeSeconds % 60).toInt()
@@ -43,6 +39,3 @@ data class QuestState(
     val curseSeconds: Int get() = (curseTimeRemaining.inWholeSeconds % 60).toInt()
 }
 
-enum class QuestSessionState {
-    IDLE, ACTIVE, COMPLETED, GAVE_UP
-}

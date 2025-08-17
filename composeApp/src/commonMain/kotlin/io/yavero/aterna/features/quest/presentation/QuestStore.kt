@@ -31,6 +31,24 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+/**
+ * # QuestStore
+ *
+ * MVI store for the **Quest** feature. It orchestrates quest lifecycle, event planning/replay,
+ * loot computation, status effects (e.g., the early-exit curse), notifications, and UI state.
+ *
+ * ## Responsibilities
+ * - Expose [state] and one-shot [effects] for the UI.
+ * - Start/complete/give up quests and persist their state via repositories.
+ * - Plan deterministic quest beats ([QuestPlanner]) and resolve them into events ([QuestResolver]).
+ * - Drive timer progress via a shared 1s [ticker], auto-completing when time elapses.
+ * - Apply reward modifiers (e.g., curses) via [RewardService] on completion and retreat banking.
+ * - Surface an up-to-date “preview feed” while streaming full logs on demand.
+ *
+ * ## Threading & scope
+ * The store owns no dispatcher; it uses the injected [scope] for all jobs. The [ticker] is
+ * `shareIn(WhileSubscribed)` so it only ticks while observed.
+ */
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class QuestStore(
     private val heroRepository: HeroRepository,
@@ -42,14 +60,27 @@ class QuestStore(
     private val scope: CoroutineScope
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
 
+    /** Backing state for the UI. */
     private val _state = MutableStateFlow(QuestState(isLoading = true))
+
+    /** Public immutable state for collectors. */
     override val state: StateFlow<QuestState> = _state
 
+    /** Backing one-shot effects (snackbars, sounds, dialogs). */
     private val _effects = createEffectsFlow<QuestEffect>()
+
+    /** Public effects stream. */
     override val effects: SharedFlow<QuestEffect> = _effects
 
+    /** Manual refresh trigger (hot). */
     private val refresh = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
+    /**
+     * Shared 1-second ticker used for:
+     * - UI countdown
+     * - Curse countdown
+     * - Auto-completion when time runs out
+     */
     private val ticker = flow {
         while (true) {
             emit(Clock.System.now())
@@ -57,11 +88,17 @@ class QuestStore(
         }
     }.shareIn(scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
+    /** Re-entrancy guards to avoid double-completion/give-up on slow frames. */
+    private var completing = false
+    private var givingUp = false
+
     private companion object {
+        /** Number of events to keep in the lightweight preview feed. */
         const val PREVIEW_WINDOW = 1
     }
 
     init {
+        // Primary state builder
         scope.launch {
             refresh
                 .flatMapLatest { buildState() }
@@ -74,18 +111,18 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
-        // Track curse countdown
+        // Track curse countdown (driven by the shared ticker)
         scope.launch {
             ticker.collect { currentTime ->
+                val nowMs = currentTime.toEpochMilliseconds()
                 val curseEffect = statusEffectRepository.getActiveBy(
                     io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
-                    currentTime.toEpochMilliseconds()
+                    nowMs
                 )
 
                 if (curseEffect != null) {
-                    val remaining = (curseEffect.expiresAtEpochMs - currentTime.toEpochMilliseconds()).coerceAtLeast(0)
-                    val remainingDuration = remaining.milliseconds
-                    reduce(QuestMsg.CurseTick(remainingDuration))
+                    val remainingMs = (curseEffect.expiresAtEpochMs - nowMs).coerceAtLeast(0)
+                    reduce(QuestMsg.CurseTick(remainingMs.milliseconds))
                 } else {
                     reduce(QuestMsg.CurseTick(Duration.ZERO))
                 }
@@ -93,6 +130,9 @@ class QuestStore(
         }
     }
 
+    /**
+     * Entry point for intents from the UI.
+     */
     override fun process(intent: QuestIntent) {
         when (intent) {
             QuestIntent.Refresh -> refresh.tryEmit(Unit)
@@ -105,6 +145,16 @@ class QuestStore(
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // State assembly & ticking
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Builds a reactive message stream that:
+     * - Ensures a default hero exists.
+     * - Fast-forwards and persists due events for an active quest.
+     * - Emits timer ticks and triggers auto-completion when elapsed.
+     */
     private fun buildState(): Flow<QuestMsg> {
         val heroFlow = heroRepository.getHero()
         val questsFlow = heroFlow.flatMapLatest { hero ->
@@ -112,7 +162,9 @@ class QuestStore(
         }
 
         return combine(heroFlow, questsFlow, ticker) { hero, quests, currentTime ->
+            // Housekeeping: purge expired effects
             scope.launch { statusEffectRepository.purgeExpired(currentTime.toEpochMilliseconds()) }
+
             val activeQuest = quests.firstOrNull { it.endTime == null && !it.gaveUp }
 
             if (hero == null) {
@@ -121,24 +173,27 @@ class QuestStore(
             }
 
             if (activeQuest != null && activeQuest.isActive) {
-                // fast-forward due events and update preview feed deterministically
+                // Plan & resolve due events deterministically
                 scope.launch {
                     try {
                         ensurePlanIfMissing(hero, activeQuest)
                         replayDueEvents(hero, activeQuest, currentTime)
                     } catch (_: Throwable) {
+                        // Intentionally ignore: event replay is best-effort; errors surface via UI elsewhere
                     }
                 }
 
                 val elapsed = currentTime - activeQuest.startTime
-                val totalDuration = activeQuest.durationMinutes.minutes
-                val remaining = totalDuration - elapsed
+                val total = activeQuest.durationMinutes.minutes
+                val remaining = total - elapsed
 
                 if (remaining <= Duration.ZERO) {
-                    scope.launch { completeQuest() }
+                    // Guarded completion to avoid double-fires on consecutive ticks
+                    completeQuest()
                     QuestMsg.TimerTick(Duration.ZERO, 1.0f)
                 } else {
-                    val progress = elapsed.inWholeSeconds.toFloat() / totalDuration.inWholeSeconds.toFloat()
+                    val progress = (elapsed.inWholeSeconds.toFloat() / total.inWholeSeconds.toFloat())
+                        .coerceIn(0f, 1f)
                     QuestMsg.TimerTick(remaining, progress)
                 }
             } else {
@@ -147,16 +202,23 @@ class QuestStore(
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Intents
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Starts a new quest if none is active, persists it, and schedules notifications.
+     */
     private fun startQuest(durationMinutes: Int, classType: ClassType) {
         scope.launch {
             try {
-                val currentState = _state.value
-                if (currentState.hasActiveQuest) {
+                val current = _state.value
+                if (current.hasActiveQuest) {
                     _effects.tryEmit(QuestEffect.ShowError("A quest is already active"))
                     return@launch
                 }
 
-                val hero = currentState.hero ?: createDefaultHero(classType)
+                val hero = current.hero ?: createDefaultHero(classType)
 
                 val quest = Quest(
                     id = Uuid.random().toString(),
@@ -168,6 +230,7 @@ class QuestStore(
                 questRepository.insertQuest(quest)
                 reduce(QuestMsg.QuestStarted(quest))
 
+                // Notifications
                 questNotifier.requestPermissionIfNeeded()
                 val endTime = quest.startTime.plus(durationMinutes.minutes)
                 questNotifier.showOngoing(
@@ -187,74 +250,97 @@ class QuestStore(
         }
     }
 
+    /**
+     * Completes the active quest, computes and applies loot (with modifiers), updates the hero,
+     * clears/sends notifications, and emits effects. Re-entrant guarded.
+     */
     private fun completeQuest() {
+        if (completing) return
+        completing = true
         scope.launch {
             try {
-                val currentState = _state.value
-                val activeQuest = currentState.activeQuest ?: return@launch
-                val hero = currentState.hero ?: return@launch
+                val current = _state.value
+                val active = current.activeQuest ?: return@launch
+                if (active.completed) return@launch
+                val hero = current.hero ?: return@launch
 
-                val completedQuest = activeQuest.copy(
+                val completed = active.copy(
                     endTime = Clock.System.now(),
                     completed = true
                 )
-                val loot = questRepository.completeQuestRemote(hero, activeQuest, completedQuest.endTime!!)
-                val newXP = hero.xp + loot.xp
+
+                val baseLoot = questRepository.completeQuestRemote(
+                    hero,
+                    active,
+                    completed.endTime!!
+                )
+                val finalLoot = rewardService.applyModifiers(baseLoot)
+
+                val newXP = hero.xp + finalLoot.xp
                 val newLevel = calculateLevel(newXP)
                 val leveledUp = newLevel > hero.level
 
                 val updatedHero = hero.copy(
                     xp = newXP,
                     level = newLevel,
-                    gold = hero.gold + loot.gold,
-                    totalFocusMinutes = hero.totalFocusMinutes + activeQuest.durationMinutes,
-                    lastActiveDate = Clock.System.now()
+                    gold = hero.gold + finalLoot.gold,
+                    totalFocusMinutes = hero.totalFocusMinutes + active.durationMinutes,
+                    lastActiveDate = completed.endTime
                 )
                 heroRepository.updateHero(updatedHero)
 
-                questNotifier.cancelScheduledEnd(activeQuest.id)
-                questNotifier.clearOngoing(activeQuest.id)
+                // Notifications
+                questNotifier.cancelScheduledEnd(active.id)
+                questNotifier.clearOngoing(active.id)
                 questNotifier.showCompleted(
-                    sessionId = activeQuest.id,
+                    sessionId = active.id,
                     title = "Quest Complete",
-                    text = "+${loot.xp} XP, +${loot.gold} gold"
+                    text = "+${finalLoot.xp} XP, +${finalLoot.gold} gold"
                 )
 
-                reduce(QuestMsg.QuestCompleted(completedQuest, loot))
+                // State & effects
+                reduce(QuestMsg.QuestCompleted(completed, finalLoot))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
-
-                _effects.tryEmit(QuestEffect.ShowQuestCompleted(loot))
+                _effects.tryEmit(QuestEffect.ShowQuestCompleted(finalLoot))
                 if (leveledUp) _effects.tryEmit(QuestEffect.ShowLevelUp(newLevel))
                 _effects.tryEmit(QuestEffect.PlayQuestCompleteSound)
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(QuestEffect.ShowError(appError.getUserMessage()))
                 reduce(QuestMsg.Error("Failed to complete quest: ${e.message}"))
+            } finally {
+                completing = false
             }
         }
     }
 
+    /**
+     * Gives up the active quest. Applies the **Curse on Early Exit** for the remaining time,
+     * banks partial progress via [RewardBankingStrategy], applies modifiers to banked loot,
+     * updates the hero, and cleans notifications. Re-entrant guarded.
+     */
     private fun giveUpQuest() {
+        if (givingUp) return
+        givingUp = true
         scope.launch {
             try {
-                val currentState = _state.value
-                val activeQuest = currentState.activeQuest ?: return@launch
-                val hero = currentState.hero ?: return@launch
+                val current = _state.value
+                val active = current.activeQuest ?: return@launch
+                val hero = current.hero ?: return@launch
 
-                // Compute curse expiry based on remaining quest time
                 val now = Clock.System.now()
-                val totalDuration = activeQuest.durationMinutes.minutes
-                val elapsed = now - activeQuest.startTime
-                val remaining = totalDuration - elapsed
+                val total = active.durationMinutes.minutes
+                val elapsed = now - active.startTime
+                val remaining = total - elapsed
                 val nowMs = now.toEpochMilliseconds()
                 val remainingMs = remaining.inWholeMilliseconds.coerceAtLeast(0)
 
+                // Apply/extend curse for the remaining duration
                 if (remainingMs > 0) {
                     val existing = statusEffectRepository.getActiveBy(
                         io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
                         nowMs
                     )
-                    // Add curse time cumulatively - if existing curse is still active, add remaining time to it
                     val targetExpiry = if (existing != null && existing.expiresAtEpochMs > nowMs) {
                         existing.expiresAtEpochMs + remainingMs
                     } else {
@@ -271,61 +357,74 @@ class QuestStore(
                     )
                 }
 
+                // Bank partial rewards (according to strategy), then apply global modifiers
                 val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
                 val bankedMinutes = (bankedMs / 60_000L).toInt()
 
-                var outHero = hero
+                var updatedHero = hero
                 if (bankedMinutes > 0) {
                     val baseLoot = LootRoller.rollLoot(
                         questDurationMinutes = bankedMinutes,
                         heroLevel = hero.level,
                         classType = hero.classType,
-                        serverSeed = activeQuest.startTime.toEpochMilliseconds()
+                        serverSeed = active.startTime.toEpochMilliseconds()
                     )
                     val finalLoot = rewardService.applyModifiers(baseLoot)
-                    val newXP = outHero.xp + finalLoot.xp
+
+                    val newXP = updatedHero.xp + finalLoot.xp
                     val newLevel = calculateLevel(newXP)
-                    outHero = outHero.copy(
+                    updatedHero = updatedHero.copy(
                         xp = newXP,
                         level = newLevel,
-                        gold = outHero.gold + finalLoot.gold,
-                        totalFocusMinutes = outHero.totalFocusMinutes + bankedMinutes,
+                        gold = updatedHero.gold + finalLoot.gold,
+                        totalFocusMinutes = updatedHero.totalFocusMinutes + bankedMinutes,
                         lastActiveDate = now
                     )
-                    _effects.tryEmit(QuestEffect.ShowSuccess("Retreated: banked +${finalLoot.xp} XP, +${finalLoot.gold} gold."))
+                    _effects.tryEmit(
+                        QuestEffect.ShowSuccess("Retreated: banked +${finalLoot.xp} XP, +${finalLoot.gold} gold.")
+                    )
                 }
 
-                val gaveUpQuest = activeQuest.copy(
-                    endTime = now,
-                    gaveUp = true
-                )
-                questRepository.markQuestGaveUp(activeQuest.id, gaveUpQuest.endTime!!)
+                val gaveUp = active.copy(endTime = now, gaveUp = true)
+                questRepository.markQuestGaveUp(active.id, gaveUp.endTime!!)
 
-                outHero = outHero.copy(lastActiveDate = now)
-                heroRepository.updateHero(outHero)
+                updatedHero = updatedHero.copy(lastActiveDate = now)
+                heroRepository.updateHero(updatedHero)
 
-                questNotifier.cancelScheduledEnd(activeQuest.id)
-                questNotifier.clearOngoing(activeQuest.id)
+                // Notifications
+                questNotifier.cancelScheduledEnd(active.id)
+                questNotifier.clearOngoing(active.id)
 
-                reduce(QuestMsg.QuestGaveUp(gaveUpQuest))
-                reduce(QuestMsg.HeroUpdated(outHero))
-
+                // State & effects
+                reduce(QuestMsg.QuestGaveUp(gaveUp))
+                reduce(QuestMsg.HeroUpdated(updatedHero))
                 _effects.tryEmit(QuestEffect.ShowQuestGaveUp)
                 _effects.tryEmit(QuestEffect.PlayQuestFailSound)
             } catch (e: Exception) {
                 val appError = e.toAppError()
                 _effects.tryEmit(QuestEffect.ShowError(appError.getUserMessage()))
                 reduce(QuestMsg.Error("Failed to give up quest: ${e.message}"))
+            } finally {
+                givingUp = false
             }
         }
     }
 
+    /** Per-second UI tick hook (reserved for future in-store logic). */
     private fun handleTick() { /* no-op for now */
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Planning & replay
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Ensures a plan exists for [quest]; if empty, creates one deterministically and persists it.
+     */
     private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
         val currentPlan = questRepository.getQuestPlan(quest.id)
         if (currentPlan.isNotEmpty()) return
+
         val seed = computeSeed(hero, quest)
         val spec = PlannerSpec(
             durationMinutes = quest.durationMinutes,
@@ -338,6 +437,10 @@ class QuestStore(
         questRepository.saveQuestPlan(quest.id, planned)
     }
 
+    /**
+     * Resolves and appends all **due** planned events (where `dueAt <= now`) that have not yet
+     * been materialized, then updates the lightweight preview feed.
+     */
     private suspend fun replayDueEvents(hero: Hero, quest: Quest, now: Instant) {
         val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
         val plan = questRepository.getQuestPlan(quest.id)
@@ -349,6 +452,7 @@ class QuestStore(
             heroLevel = hero.level,
             classType = hero.classType
         )
+
         var newCount = 0
         plan.filter { it.dueAt <= now && it.idx > lastIdx }
             .sortedBy { it.idx }
@@ -358,12 +462,17 @@ class QuestStore(
                 newCount++
             }
 
-        // Update preview feed (v1: 1 item for Whisper Slot)
-        val preview = questRepository.getQuestEventsPreview(quest.id, PREVIEW_WINDOW).sortedBy { it.idx }
+        val preview = questRepository
+            .getQuestEventsPreview(quest.id, PREVIEW_WINDOW)
+            .sortedBy { it.idx }
+
         reduce(QuestMsg.FeedUpdated(preview, bumpPulse = newCount > 0))
-        // Full log is loaded on demand via LoadAdventureLog
     }
 
+    /**
+     * Computes a deterministic seed from quest/hero identifiers and start time.
+     * This ensures stable planning and resolution across app/device restarts.
+     */
     private fun computeSeed(hero: Hero, quest: Quest): Long {
         val a = quest.startTime.toEpochMilliseconds()
         val b = quest.id.hashCode().toLong()
@@ -371,7 +480,13 @@ class QuestStore(
         return a xor b xor c
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Hero helpers
+    // ─────────────────────────────────────────────────────────────────────────────
 
+    /**
+     * Creates and persists a default [Hero] if none exists, then emits state and effect.
+     */
     private suspend fun createDefaultHero(classType: ClassType): Hero {
         val hero = Hero(
             id = Uuid.random().toString(),
@@ -385,12 +500,22 @@ class QuestStore(
         return hero
     }
 
+    /** Simple leveling curve: +1 level per 100 XP (level = xp/100 + 1). */
     private fun calculateLevel(xp: Int): Int = (xp / 100) + 1
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // UI helpers
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /** Clears the current error message from state. */
     private fun clearError() {
         scope.launch { reduce(QuestMsg.Error("")) }
     }
 
+    /**
+     * Loads the **full** adventure log for the current quest (blocking the sheet until ready).
+     * The lightweight preview is handled separately by [replayDueEvents].
+     */
     private fun loadAdventureLog() {
         scope.launch {
             reduce(QuestMsg.AdventureLogLoading)
@@ -400,10 +525,16 @@ class QuestStore(
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Reducer
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /** Applies a [QuestMsg] to the current [QuestState]. */
     private fun reduce(msg: QuestMsg) {
         _state.value = reduceMessage(_state.value, msg)
     }
 
+    /** Pure reducer mapping messages to a new state. */
     private fun reduceMessage(state: QuestState, msg: QuestMsg): QuestState =
         when (msg) {
             QuestMsg.Loading -> state.copy(isLoading = true, error = null)
@@ -415,7 +546,11 @@ class QuestStore(
 
             is QuestMsg.Error -> state.copy(isLoading = false, error = msg.message.takeIf { it.isNotBlank() })
 
-            is QuestMsg.TimerTick -> state.copy(timeRemaining = msg.timeRemaining, questProgress = msg.progress)
+            is QuestMsg.TimerTick -> state.copy(
+                isLoading = false, error = null,
+                timeRemaining = msg.timeRemaining,
+                questProgress = msg.progress
+            )
 
             is QuestMsg.QuestStarted -> state.copy(
                 activeQuest = msg.quest,

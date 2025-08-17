@@ -24,7 +24,7 @@
         </activity>
 
         <receiver
-                android:name="io.yavero.aterna.feature.quest.notification.QuestActionReceiver"
+                android:name=".features.quest.notification.QuestActionReceiver"
                 android:exported="false">
             <intent-filter>
                 <action android:name="io.yavero.aterna.QUEST_PAUSE"/>
