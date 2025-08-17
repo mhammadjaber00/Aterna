@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.classselection
+package io.yavero.aterna.features.classselection.ui
 
 import kotlin.math.PI
 

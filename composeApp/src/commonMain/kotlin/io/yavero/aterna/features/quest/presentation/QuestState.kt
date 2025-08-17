@@ -42,7 +42,3 @@ data class QuestState(
     val curseMinutes: Int get() = curseTimeRemaining.inWholeMinutes.toInt()
     val curseSeconds: Int get() = (curseTimeRemaining.inWholeSeconds % 60).toInt()
 }
-
-enum class QuestSessionState {
-    IDLE, ACTIVE, COMPLETED, GAVE_UP
-}

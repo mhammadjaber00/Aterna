@@ -46,10 +46,8 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            
-            // Navigation
-            implementation(libs.decompose)
-            implementation(libs.decompose.compose)
+
+            // Navigation - using custom Navigator
             
             // Material Icons Extended
             implementation(compose.materialIconsExtended)

@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest
+package io.yavero.aterna.features.quest.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
-import io.yavero.aterna.features.quest.component.*
 import io.yavero.aterna.features.quest.presentation.QuestState
+import io.yavero.aterna.features.quest.ui.components.*
 import io.yavero.aterna.ui.components.MagicalBackground
 import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaRadii
@@ -34,10 +34,16 @@ private object Ui {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestScreen(
-    component: QuestComponent,
+    uiState: QuestState,
+    onStartQuest: (Int, ClassType) -> Unit,
+    onGiveUpQuest: () -> Unit,
+    onCompleteQuest: () -> Unit,
+    onRefresh: () -> Unit,
+    onClearError: () -> Unit,
+    onNavigateToTimer: (Int, ClassType) -> Unit,
+    onLoadAdventureLog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by component.uiState.collectAsState()
     var showStatsPopup by rememberSaveable { mutableStateOf(false) }
     var showInventoryPopup by rememberSaveable { mutableStateOf(false) }
     var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
@@ -58,15 +64,15 @@ fun QuestScreen(
     }
     // Load when sheet opens
     LaunchedEffect(showAdventureLog) {
-        if (showAdventureLog) component.onLoadAdventureLog()
+        if (showAdventureLog) onLoadAdventureLog()
     }
     // Load on completion to guarantee full log
     LaunchedEffect(uiState.isQuestCompleted) {
-        if (uiState.isQuestCompleted) component.onLoadAdventureLog()
+        if (uiState.isQuestCompleted) onLoadAdventureLog()
     }
     // NEW: While the sheet is open, refresh the log whenever new events land
     LaunchedEffect(uiState.eventPulseCounter, showAdventureLog) {
-        if (showAdventureLog) component.onLoadAdventureLog()
+        if (showAdventureLog) onLoadAdventureLog()
     }
     LaunchedEffect(uiState.eventFeed.size) {
         val last = uiState.eventFeed.lastOrNull()
@@ -84,7 +90,7 @@ fun QuestScreen(
                 uiState.isLoading -> LoadingState(Modifier.align(Alignment.Center))
                 uiState.error != null -> ErrorState(
                     uiState.error!!,
-                    onRetry = { component.onRefresh() },
+                    onRetry = { onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
 
@@ -108,7 +114,6 @@ fun QuestScreen(
                                 onToggleAnalytics = { showAnalyticsPopup = true }
                             )
 
-                            // Curse chip
                             AnimatedVisibility(
                                 visible = uiState.isCursed,
                                 enter = fadeIn() + slideInVertically(),
@@ -158,13 +163,13 @@ fun QuestScreen(
 
                     QuestPortalArea(
                         uiState = uiState,
-                        onStopQuest = { component.onGiveUpQuest() },
-                        onCompleteQuest = { component.onCompleteQuest() },
+                        onStopQuest = { onGiveUpQuest() },
+                        onCompleteQuest = { onCompleteQuest() },
                         onQuickSelect = { minutes ->
-                            component.onNavigateToTimer(minutes, uiState.hero?.classType ?: ClassType.WARRIOR)
+                            onNavigateToTimer(minutes, uiState.hero?.classType ?: ClassType.WARRIOR)
                         },
                         onShowStartQuest = {
-                            component.onNavigateToTimer(25, uiState.hero?.classType ?: ClassType.WARRIOR)
+                            onNavigateToTimer(25, uiState.hero?.classType ?: ClassType.WARRIOR)
                         },
                         onOpenAdventureLog = { showAdventureLog = true },
                         onToggleChrome = { chromeHidden = !chromeHidden },
@@ -211,7 +216,7 @@ fun QuestScreen(
                                     Text("If you retreat now, a dark curse will cling to your hero for the next $remaining. During this time, all gold and XP rewards are reduced by 50%. You’ll keep what you’ve already secured.")
                                 },
                                 confirmButton = {
-                                    TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
+                                    TextButton(onClick = { showRetreatConfirm = false; onGiveUpQuest() }) {
                                         Text("Retreat")
                                     }
                                 },
@@ -250,7 +255,7 @@ fun QuestScreen(
                 hero = uiState.hero,
                 loot = uiState.lastLoot,
                 events = uiState.adventureLog,
-                onDismiss = { component.onRefresh() }
+                onDismiss = { onRefresh() }
             )
         }
     }

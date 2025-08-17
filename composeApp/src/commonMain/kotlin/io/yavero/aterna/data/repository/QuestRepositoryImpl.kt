@@ -13,8 +13,6 @@ import io.yavero.aterna.domain.model.quest.*
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -29,21 +27,6 @@ class QuestRepositoryImpl(
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
 
-    override fun getActiveQuest(): Flow<Quest?> {
-        return heroRepository.getHero().flatMapLatest { hero ->
-            if (hero == null) {
-                flowOf(null)
-            } else {
-                questQueries.selectQuestsByHero(hero.id)
-                    .asFlow()
-                    .map { query ->
-                        query.executeAsList()
-                            .firstOrNull { e -> e.endTime == null && e.gaveUp == 0L }
-                            ?.let(::mapEntityToDomain)
-                    }
-            }
-        }
-    }
 
     override suspend fun getCurrentActiveQuest(): Quest? {
         val hero = heroRepository.getCurrentHero() ?: return null

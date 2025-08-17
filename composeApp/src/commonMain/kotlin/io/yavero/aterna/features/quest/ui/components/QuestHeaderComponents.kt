@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest.component
+package io.yavero.aterna.features.quest.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
@@ -63,6 +63,7 @@ fun HeaderCapsule(
                 .heightIn(min = 52.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            
             Box(
                 modifier = Modifier
                     .size(44.dp)

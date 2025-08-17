@@ -1,32 +1,35 @@
 package io.yavero.aterna.ui
 
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.features.classselection.ClassSelectionScreen
-import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
-import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
-import io.yavero.aterna.features.quest.component.QuestComponent
+import io.yavero.aterna.features.classselection.ui.ClassSelectionRoute
+import io.yavero.aterna.features.onboarding.ui.OnboardingRoute
+import io.yavero.aterna.features.quest.ui.QuestRoute
 import io.yavero.aterna.features.timer.TimerScreen
-import io.yavero.aterna.navigation.AppRootComponent
-import io.yavero.aterna.features.quest.QuestScreen as FeatureQuestScreen
+import io.yavero.aterna.navigation.Navigator
+import io.yavero.aterna.navigation.RootViewModel
+import io.yavero.aterna.navigation.Screen
 
 @Composable
 fun AppContent(
-    component: AppRootComponent,
+    rootViewModel: RootViewModel,
+    navigator: Navigator,
     modifier: Modifier = Modifier
 ) {
-    val childStack by component.childStack.subscribeAsState()
+    val isInitialized by rootViewModel.isInitialized.collectAsStateWithLifecycle()
+    val navigationStack by navigator.stack.collectAsStateWithLifecycle()
+    val currentScreen = navigationStack.lastOrNull()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -36,24 +39,45 @@ fun AppContent(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Children(
-                stack = childStack,
-                modifier = Modifier.fillMaxSize(),
-                animation = stackAnimation {
-                    fade(
-                        animationSpec = tween(durationMillis = 240)
-                    )
+            if (!isInitialized) {
+                // Show loading state while initialization is in progress
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-            ) {
-                when (val instance = it.instance) {
-                    is AppRootComponent.Child.Onboarding -> OnboardingScreen(component = instance.component)
-                    is AppRootComponent.Child.ClassSelect -> ClassSelectScreen(component = instance.component)
-                    is AppRootComponent.Child.QuestHub -> QuestHubScreen(component = instance.component)
-                    is AppRootComponent.Child.Timer -> TimerScreenWrapper(
-                        initialMinutes = instance.initialMinutes,
-                        classType = instance.classType,
-                        component = component
+            } else {
+                when (currentScreen) {
+                    is Screen.Onboarding -> OnboardingRoute(
+                        onFinish = { navigator.bringToFront(Screen.ClassSelect) }
                     )
+
+                    is Screen.ClassSelect -> ClassSelectionRoute(
+                        onDone = { navigator.replaceAll(Screen.QuestHub) }
+                    )
+
+                    is Screen.QuestHub -> QuestRoute(
+                        onNavigateToTimer = { initialMinutes, classType ->
+                            navigator.bringToFront(Screen.Timer(initialMinutes, classType))
+                        }
+                    )
+
+                    is Screen.Timer -> TimerScreenWrapper(
+                        initialMinutes = currentScreen.initialMinutes,
+                        classType = currentScreen.classType,
+                        navigator = navigator
+                    )
+
+                    null -> {
+                        // Fallback - should not happen after initialization
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
             }
         }
@@ -61,43 +85,20 @@ fun AppContent(
 }
 
 @Composable
-private fun ClassSelectScreen(component: ClassSelectComponent) {
-    var selectedClass by remember { mutableStateOf<ClassType?>(null) }
-
-    ClassSelectionScreen(
-        selected = selectedClass,
-        onSelect = { selectedClass = it },
-        onConfirm = { classType ->
-            component.onClassSelected(classType)
-        },
-    )
-}
-
-@Composable
-private fun QuestHubScreen(component: QuestComponent) {
-    FeatureQuestScreen(component = component)
-}
-
-@Composable
 private fun TimerScreenWrapper(
     initialMinutes: Int,
-    classType: String,
-    component: AppRootComponent
+    classType: ClassType,
+    navigator: Navigator
 ) {
-    val classTypeEnum = try {
-        ClassType.valueOf(classType)
-    } catch (e: IllegalArgumentException) {
-        ClassType.WARRIOR
-    }
-
     TimerScreen(
         initialMinutes = initialMinutes,
-        classType = classTypeEnum,
+        classType = classType,
         onConfirm = { duration: Int ->
-            component.startQuest(duration, classType)
+            navigator.requestStartQuest(duration, classType)
+            navigator.replaceAll(Screen.QuestHub)
         },
         onDismiss = {
-            component.navigateToQuestHub()
+            navigator.replaceAll(Screen.QuestHub)
         }
     )
 }

@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.classselection
+package io.yavero.aterna.features.onboarding.classselect.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.features.classselection.ui.ClassSelectionConstants
+import io.yavero.aterna.features.classselection.ui.paletteOf
 import io.yavero.aterna.ui.theme.AternaColors
 
 @Composable

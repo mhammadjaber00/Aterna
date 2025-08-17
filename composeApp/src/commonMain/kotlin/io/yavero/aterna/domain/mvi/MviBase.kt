@@ -26,22 +26,9 @@ object EffectConfig {
     val ON_BUFFER_OVERFLOW = BufferOverflow.DROP_OLDEST
 }
 
-interface RefreshIntent : MviIntent {
-    data object Refresh : RefreshIntent
-}
-
 interface LoadingState {
     val isLoading: Boolean
     val error: String?
-}
-
-interface ErrorEffect : MviEffect {
-    data class ShowError(val message: String) : ErrorEffect
-}
-
-sealed interface LoadingMsg : MviMsg {
-    data object Loading : LoadingMsg
-    data class Error(val message: String) : LoadingMsg
 }
 
 fun <E : MviEffect> createEffectsFlow() = kotlinx.coroutines.flow.MutableSharedFlow<E>(

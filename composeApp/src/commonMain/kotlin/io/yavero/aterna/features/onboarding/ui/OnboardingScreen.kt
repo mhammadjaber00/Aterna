@@ -25,9 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import aterna.composeapp.generated.resources.Res
 import aterna.composeapp.generated.resources.skip
 import aterna.composeapp.generated.resources.tap_anywhere_to_continue
+import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.features.onboarding.presentation.OnboardingViewModel
 import io.yavero.aterna.features.onboarding.ui.components.*
 import io.yavero.aterna.fx.CometSky
 import io.yavero.aterna.fx.CometStyle
@@ -41,10 +44,30 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 @Composable
 fun OnboardingScreen(
-    component: OnboardingRootComponent,
+    onFinish: () -> Unit,
+    onSkip: () -> Unit = onFinish,
     modifier: Modifier = Modifier
 ) {
-    val uiState by component.uiState.collectAsState()
+    val settingsRepository = org.koin.compose.koinInject<SettingsRepository>()
+    val viewModel = viewModel(initializer = {
+        OnboardingViewModel(settingsRepository)
+    })
+    val uiState by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                OnboardingViewModel.Effect.NavigateToClassSelect -> onFinish()
+                is OnboardingViewModel.Effect.ShowError -> {
+                    // Handle error display if needed
+                }
+
+                is OnboardingViewModel.Effect.ShowMessage -> { /* optional */
+                }
+            }
+        }
+    }
+
     val bg = uiState.currentScene.backgroundRes
 
     val fogTarget = remember(bg) {
@@ -101,7 +124,11 @@ fun OnboardingScreen(
                     val consumed = skipCaption?.invoke() == true
                     if (!consumed) {
                         tapEffects = tapEffects + TapEffect(pos, Clock.System.now().toEpochMilliseconds())
-                        if (uiState.isLastScene) component.onFinish() else component.onNextPage()
+                        if (uiState.isLastScene) {
+                            viewModel.send(OnboardingViewModel.Event.Finish)
+                        } else {
+                            viewModel.send(OnboardingViewModel.Event.NextPage())
+                        }
                     }
                 }
             }
@@ -179,7 +206,7 @@ fun OnboardingScreen(
         )
 
         TextButton(
-            onClick = { component.onSkip() },
+            onClick = { viewModel.send(OnboardingViewModel.Event.Skip) },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -334,7 +361,6 @@ fun LoreCaption(
                 else -> baseDelayMs + extra
             }
 
-            // split the delay into small chunks so we can bail out mid-wait
             var remaining = stepDelay
             while (remaining > 0 && !skipRequested) {
                 val chunk = min(24, remaining)

@@ -11,8 +11,6 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 interface QuestRepository {
-    @Deprecated("Use getQuestsByHero(heroId) and filter active quest in consumer")
-    fun getActiveQuest(): Flow<Quest?>
     suspend fun getCurrentActiveQuest(): Quest?
     fun getQuestsByHero(heroId: String): Flow<List<Quest>>
     suspend fun getRecentQuests(heroId: String, limit: Int): List<Quest>

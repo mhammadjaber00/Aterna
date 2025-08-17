@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.classselection
+package io.yavero.aterna.features.onboarding.classselect.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.features.classselection.ui.ClassPalette
+import io.yavero.aterna.features.classselection.ui.ClassSelectionConstants
+import io.yavero.aterna.features.classselection.ui.paletteOf
 import io.yavero.aterna.ui.components.PixelHeroAvatar
 import io.yavero.aterna.ui.theme.AternaTypography
 import kotlin.math.cos

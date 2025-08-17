@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.classselection
+package io.yavero.aterna.features.onboarding.classselect.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup

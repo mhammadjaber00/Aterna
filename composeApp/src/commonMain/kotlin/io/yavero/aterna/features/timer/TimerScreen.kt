@@ -150,7 +150,6 @@ fun TimerScreen(
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Main quest button with gradient (matching class selection style)
                 val questBrush = Brush.horizontalGradient(
                     listOf(AternaColors.GoldSoft, AternaColors.GoldAccent)
                 )

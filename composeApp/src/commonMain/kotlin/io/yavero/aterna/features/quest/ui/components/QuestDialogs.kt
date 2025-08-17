@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest.component
+package io.yavero.aterna.features.quest.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background

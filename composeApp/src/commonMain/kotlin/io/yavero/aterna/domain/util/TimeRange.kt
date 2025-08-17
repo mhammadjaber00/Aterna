@@ -3,6 +3,7 @@ package io.yavero.aterna.domain.util
 import kotlinx.datetime.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 object TimeRange {
