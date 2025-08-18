@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -166,23 +165,33 @@ fun GoldPillCompact(amount: Int) {
         scale.snapTo(0.96f)
         scale.animateTo(1f, tween(140, easing = FastOutSlowInEasing))
     }
+
+    val glass = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.10f)
+    val hairline = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)
+
     Surface(
         modifier = Modifier
             .height(40.dp)
             .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
-            .semantics { contentDescription = "Coins: ${amount}" },
-        color = Color(0xFFF6D87A).copy(alpha = 0.95f),
-        contentColor = Color.Black,
+            .semantics { contentDescription = "Coins: $amount" },
+        color = glass,
+        contentColor = AternaColors.GoldAccent,
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+        border = BorderStroke(1.dp, hairline)
     ) {
         Row(
-            Modifier.height(40.dp).padding(horizontal = 10.dp),
+            Modifier
+                .height(40.dp)
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text("🪙", fontSize = 12.sp)
-            Text("$amount", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                "$amount",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

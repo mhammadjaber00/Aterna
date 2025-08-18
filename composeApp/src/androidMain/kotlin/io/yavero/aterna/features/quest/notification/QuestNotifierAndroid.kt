@@ -4,14 +4,13 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.yavero.aterna.features.quest.service.QuestForegroundService
 import io.yavero.aterna.notifications.LocalNotifier
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -41,7 +40,7 @@ class QuestNotifierAndroid(
         if (!hasNotificationPermission()) return
         ensureNotificationChannel()
         val endAtMs = endAt?.toEpochMilliseconds()
-        io.yavero.aterna.features.quest.service.QuestForegroundService.start(
+        QuestForegroundService.start(
             context = context,
             sessionId = sessionId,
             title = title,
@@ -52,7 +51,7 @@ class QuestNotifierAndroid(
 
     override suspend fun clearOngoing(sessionId: String) {
         // Stop the foreground service that owns the ongoing notification
-        io.yavero.aterna.features.quest.service.QuestForegroundService.stop(context)
+        QuestForegroundService.stop(context)
         // Also cancel by id as a safety no-op if already removed
         val notificationId = getNotificationId(sessionId)
         notificationManager.cancel(notificationId)
@@ -133,25 +132,5 @@ class QuestNotifierAndroid(
 
     private fun getCompletionNotificationId(sessionId: String): Int {
         return QuestActions.NOTIF_ID_BASE + 1000 + sessionId.hashCode()
-    }
-
-    private fun createAction(action: String, title: String, sessionId: String): NotificationCompat.Action {
-        val intent = Intent(action).apply {
-            putExtra(QuestActions.EXTRA_SESSION_ID, sessionId)
-            putExtra(QuestActions.EXTRA_ACTION_TYPE, action)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            (action + sessionId).hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Action.Builder(
-            0, 
-            title,
-            pendingIntent
-        ).build()
     }
 }

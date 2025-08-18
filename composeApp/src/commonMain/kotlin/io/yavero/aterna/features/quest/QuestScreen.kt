@@ -3,6 +3,7 @@ package io.yavero.aterna.features.quest
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -26,8 +27,6 @@ import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaRadii
 
 private object Ui {
-    val PortalScale = 0.54f
-    val RingInset = 26.dp
     val Gold = Color(0xFFF6D87A)
 }
 
@@ -197,20 +196,16 @@ fun QuestScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(WindowInsets.safeDrawing.asPaddingValues())
-                            .padding(bottom = 22.dp)
+                            .padding(bottom = 56.dp)
                     ) {
-                        Button(
-                            onClick = { showRetreatConfirm = true },
-                            shape = RoundedCornerShape(AternaRadii.Button),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFF7A7A),
-                                contentColor = Color.Black
-                            ),
-                            modifier = Modifier.height(54.dp)
-                        ) { Text("Retreat", fontWeight = FontWeight.Bold) }
+                        HoldToRetreatButton(
+                            modifier = Modifier
+                                .fillMaxWidth(0.62f)
+                                .height(56.dp),
+                            onConfirmed = { showRetreatConfirm = true }
+                        )
                     }
 
-                    // Retreat confirm dialog (also shown when notification action triggers it)
                     if (showRetreatConfirm) {
                         val remaining by remember(
                             uiState.timeRemainingMinutes,
@@ -311,8 +306,11 @@ private fun QuestPortalArea(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         BoxWithConstraints(contentAlignment = Alignment.Center) {
-            val portalSize = min(maxWidth, maxHeight) * Ui.PortalScale
-            val ringSize = portalSize - Ui.RingInset
+            val targetScale = 0.74f
+            val ringInset = 26.dp
+            val raw = min(maxWidth, maxHeight) * targetScale
+            val portalSize = raw.coerceAtMost(maxWidth - 48.dp)
+            val ringSize = portalSize - ringInset
 
             Box(
                 modifier = Modifier
@@ -331,7 +329,11 @@ private fun QuestPortalArea(
                             center = center
                         )
                     }
-                    .clickable(onClick = onToggleChrome),
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onToggleChrome
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 if (uiState.hasActiveQuest) {
