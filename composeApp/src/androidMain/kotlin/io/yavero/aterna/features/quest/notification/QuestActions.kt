@@ -4,10 +4,6 @@ object QuestActions {
     const val CHANNEL_ID = "quest_timer"
     const val NOTIF_ID_BASE = 4200
 
-
-    const val ACTION_PAUSE = "io.yavero.aterna.QUEST_PAUSE"
-    const val ACTION_RESUME = "io.yavero.aterna.QUEST_RESUME"
-    const val ACTION_CANCEL = "io.yavero.aterna.QUEST_CANCEL"
     const val ACTION_COMPLETE = "io.yavero.aterna.QUEST_COMPLETE"
     const val ACTION_RETREAT = "io.yavero.aterna.QUEST_RETREAT"
 

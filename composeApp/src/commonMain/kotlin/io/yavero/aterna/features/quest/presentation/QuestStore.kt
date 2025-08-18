@@ -335,7 +335,6 @@ class QuestStore(
                 val nowMs = now.toEpochMilliseconds()
                 val remainingMs = remaining.inWholeMilliseconds.coerceAtLeast(0)
 
-                // Apply/extend curse for the remaining duration
                 if (remainingMs > 0) {
                     val existing = statusEffectRepository.getActiveBy(
                         io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,

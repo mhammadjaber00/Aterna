@@ -25,21 +25,12 @@ class QuestActionReceiver : BroadcastReceiver(), KoinComponent {
         scope.launch {
             try {
                 when (actionType) {
-                    QuestActions.ACTION_PAUSE -> {
-                        // Quest system doesn't currently support pause/resume like focus sessions
-                    }
-                    QuestActions.ACTION_RESUME -> {
-                        // Quest system doesn't currently support pause/resume like focus sessions
-                    }
-                    QuestActions.ACTION_CANCEL -> {
-                        questStore.process(QuestIntent.GiveUp)
-                    }
                     QuestActions.ACTION_COMPLETE -> {
                         questStore.process(QuestIntent.Complete)
                     }
 
                     QuestActions.ACTION_RETREAT -> {
-                        // The Retreat action opens the confirmation activity directly; nothing to do here.
+                        questStore.process(QuestIntent.GiveUp)
                     }
                 }
             } catch (e: Exception) {

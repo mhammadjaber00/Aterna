@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <application
             android:name=".AternaApplication"
@@ -28,9 +29,6 @@
                 android:name=".features.quest.notification.QuestActionReceiver"
                 android:exported="false">
             <intent-filter>
-                <action android:name="io.yavero.aterna.QUEST_PAUSE"/>
-                <action android:name="io.yavero.aterna.QUEST_RESUME"/>
-                <action android:name="io.yavero.aterna.QUEST_CANCEL"/>
                 <action android:name="io.yavero.aterna.QUEST_COMPLETE"/>
                 <action android:name="io.yavero.aterna.QUEST_RETREAT"/>
             </intent-filter>
@@ -38,7 +36,8 @@
 
         <service
                 android:name=".features.quest.service.QuestForegroundService"
-                android:exported="false"/>
+                android:exported="false"
+                android:foregroundServiceType="dataSync"/>
 
         <activity
                 android:name=".features.quest.ui.RetreatPromptActivity"

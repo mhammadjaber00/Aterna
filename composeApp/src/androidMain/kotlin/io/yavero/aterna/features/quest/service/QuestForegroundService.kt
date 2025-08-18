@@ -120,12 +120,8 @@ class QuestForegroundService : Service() {
                     .setWhen(endAtMs)
 
                 // Actions (broadcasts for pause/resume/cancel/complete)
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_PAUSE, "Pause", sessionId))
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_CANCEL, "Cancel", sessionId))
                 builder.addAction(createBroadcastAction(context, QuestActions.ACTION_COMPLETE, "Complete", sessionId))
             } else {
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_RESUME, "Resume", sessionId))
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_CANCEL, "Cancel", sessionId))
                 builder.addAction(createBroadcastAction(context, QuestActions.ACTION_COMPLETE, "Complete", sessionId))
             }
 
