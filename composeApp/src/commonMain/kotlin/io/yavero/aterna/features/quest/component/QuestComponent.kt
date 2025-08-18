@@ -15,4 +15,6 @@ interface QuestComponent {
     fun onNavigateToTimer(initialMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
 
     fun onLoadAdventureLog()
+
+    fun onConsumeUiHints()
 }

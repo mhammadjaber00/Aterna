@@ -9,7 +9,6 @@ import androidx.core.app.NotificationCompat
 import io.yavero.aterna.MainActivity
 import io.yavero.aterna.features.quest.notification.QuestActionReceiver
 import io.yavero.aterna.features.quest.notification.QuestActions
-import io.yavero.aterna.features.quest.ui.RetreatPromptActivity
 import kotlin.time.ExperimentalTime
 
 class QuestForegroundService : Service() {
@@ -32,12 +31,7 @@ class QuestForegroundService : Service() {
         val notification = buildNotification(this, sessionId, title, text, endAtMs)
 
         startForeground(notificationId, notification)
-
         return START_STICKY
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
     }
 
     private fun ensureChannel() {
@@ -51,8 +45,8 @@ class QuestForegroundService : Service() {
                 enableVibration(false)
                 enableLights(false)
             }
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                .createNotificationChannel(channel)
         }
     }
 
@@ -69,16 +63,16 @@ class QuestForegroundService : Service() {
             text: String,
             endAtMs: Long?
         ) {
-            val intent = Intent(context, QuestForegroundService::class.java).apply {
+            val i = Intent(context, QuestForegroundService::class.java).apply {
                 putExtra(EXTRA_SESSION_ID, sessionId)
                 putExtra(EXTRA_TITLE, title)
                 putExtra(EXTRA_TEXT, text)
                 endAtMs?.let { putExtra(EXTRA_END_AT_MS, it) }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
+                context.startForegroundService(i)
             } else {
-                context.startService(intent)
+                context.startService(i)
             }
         }
 
@@ -94,6 +88,7 @@ class QuestForegroundService : Service() {
             text: String,
             endAtMs: Long?
         ): Notification {
+            // Tap on the body opens the app (no extras)
             val contentIntent = PendingIntent.getActivity(
                 context,
                 ("content" + sessionId).hashCode(),
@@ -118,55 +113,36 @@ class QuestForegroundService : Service() {
                 builder.setUsesChronometer(true)
                     .setChronometerCountDown(true)
                     .setWhen(endAtMs)
-
-                // Actions (broadcasts for pause/resume/cancel/complete)
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_COMPLETE, "Complete", sessionId))
-            } else {
-                builder.addAction(createBroadcastAction(context, QuestActions.ACTION_COMPLETE, "Complete", sessionId))
             }
 
-            // Retreat action opens confirmation activity directly
-            builder.addAction(createRetreatAction(context, sessionId))
+            // Actions are now *broadcasts* to the receiver → store
+            builder.addAction(createBroadcastAction(context, sessionId, QuestActions.ACTION_VIEW_LOGS, "View Logs"))
+            builder.addAction(createBroadcastAction(context, sessionId, QuestActions.ACTION_RETREAT, "Retreat"))
 
             return builder.build()
         }
 
         private fun createBroadcastAction(
             context: Context,
+            sessionId: String,
             action: String,
-            title: String,
-            sessionId: String
+            title: String
         ): NotificationCompat.Action {
-            val intent = Intent(context, QuestActionReceiver::class.java).apply {
+            val i = Intent(context, QuestActionReceiver::class.java).apply {
                 this.action = action
                 putExtra(QuestActions.EXTRA_SESSION_ID, sessionId)
                 putExtra(QuestActions.EXTRA_ACTION_TYPE, action)
             }
-            val pendingIntent = PendingIntent.getBroadcast(
+            val pi = PendingIntent.getBroadcast(
                 context,
                 (action + sessionId).hashCode(),
-                intent,
+                i,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            return NotificationCompat.Action.Builder(0, title, pendingIntent).build()
+            return NotificationCompat.Action.Builder(0, title, pi).build()
         }
 
-        private fun createRetreatAction(context: Context, sessionId: String): NotificationCompat.Action {
-            val intent = Intent(context, RetreatPromptActivity::class.java).apply {
-                putExtra(QuestActions.EXTRA_SESSION_ID, sessionId)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                (QuestActions.ACTION_RETREAT + sessionId).hashCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            return NotificationCompat.Action.Builder(0, "Retreat", pendingIntent).build()
-        }
-
-        private fun getNotificationId(sessionId: String): Int {
-            return QuestActions.NOTIF_ID_BASE + sessionId.hashCode()
-        }
+        private fun getNotificationId(sessionId: String): Int =
+            QuestActions.NOTIF_ID_BASE + sessionId.hashCode()
     }
 }

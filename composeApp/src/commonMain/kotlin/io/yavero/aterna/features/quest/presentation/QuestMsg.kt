@@ -28,4 +28,8 @@ sealed interface QuestMsg : MviMsg {
 
     data object AdventureLogLoading : QuestMsg
     data class AdventureLogLoaded(val events: List<QuestEvent>) : QuestMsg
+
+    data object WantRetreatConfirm : QuestMsg
+    data object WantAdventureLog : QuestMsg
+    data object ClearUiHints : QuestMsg
 }

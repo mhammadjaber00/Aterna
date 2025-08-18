@@ -38,10 +38,13 @@ fun QuestScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by component.uiState.collectAsState()
+
     var showStatsPopup by rememberSaveable { mutableStateOf(false) }
     var showInventoryPopup by rememberSaveable { mutableStateOf(false) }
     var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
     var showAdventureLog by rememberSaveable { mutableStateOf(false) }
+    var showRetreatConfirm by rememberSaveable { mutableStateOf(false) } // ⬅ new: lifted so effects can toggle it
+
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -64,13 +67,28 @@ fun QuestScreen(
     LaunchedEffect(uiState.isQuestCompleted) {
         if (uiState.isQuestCompleted) component.onLoadAdventureLog()
     }
-    // NEW: While the sheet is open, refresh the log whenever new events land
+    // While the sheet is open, refresh the log whenever new events land
     LaunchedEffect(uiState.eventPulseCounter, showAdventureLog) {
         if (showAdventureLog) component.onLoadAdventureLog()
     }
     LaunchedEffect(uiState.eventFeed.size) {
         val last = uiState.eventFeed.lastOrNull()
         if (last?.type == EventType.CHEST || last?.type == EventType.TRINKET) inventoryBadge = true
+    }
+
+    // NEW: react to store UI-hint flags coming from notification broadcasts
+    LaunchedEffect(uiState.pendingShowRetreatConfirm) {
+        if (uiState.pendingShowRetreatConfirm) {
+            showRetreatConfirm = true
+            component.onConsumeUiHints()
+        }
+    }
+    LaunchedEffect(uiState.pendingShowAdventureLog) {
+        if (uiState.pendingShowAdventureLog) {
+            showAdventureLog = true
+            component.onLoadAdventureLog()
+            component.onConsumeUiHints()
+        }
     }
 
     Scaffold(
@@ -87,7 +105,6 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
-
                 else -> {
                     AnimatedVisibility(
                         visible = !chromeHidden,
@@ -182,8 +199,6 @@ fun QuestScreen(
                             .padding(WindowInsets.safeDrawing.asPaddingValues())
                             .padding(bottom = 22.dp)
                     ) {
-                        var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
-
                         Button(
                             onClick = { showRetreatConfirm = true },
                             shape = RoundedCornerShape(AternaRadii.Button),
@@ -193,34 +208,39 @@ fun QuestScreen(
                             ),
                             modifier = Modifier.height(54.dp)
                         ) { Text("Retreat", fontWeight = FontWeight.Bold) }
+                    }
 
-                        if (showRetreatConfirm) {
-                            val remaining by remember(
-                                uiState.timeRemainingMinutes,
-                                uiState.timeRemainingSeconds
-                            ) {
-                                derivedStateOf {
-                                    val s = uiState.timeRemainingSeconds.toString().padStart(2, '0')
-                                    "${uiState.timeRemainingMinutes}:$s"
-                                }
+                    // Retreat confirm dialog (also shown when notification action triggers it)
+                    if (showRetreatConfirm) {
+                        val remaining by remember(
+                            uiState.timeRemainingMinutes,
+                            uiState.timeRemainingSeconds
+                        ) {
+                            derivedStateOf {
+                                val s = uiState.timeRemainingSeconds.toString().padStart(2, '0')
+                                "${uiState.timeRemainingMinutes}:$s"
                             }
-                            AlertDialog(
-                                onDismissRequest = { showRetreatConfirm = false },
-                                title = { Text("Retreat from Quest?") },
-                                text = {
-                                    Text("If you retreat now, a dark curse will cling to your hero for the next $remaining. During this time, all gold and XP rewards are reduced by 50%. You’ll keep what you’ve already secured.")
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
-                                        Text("Retreat")
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showRetreatConfirm = false }) { Text("Keep Going") }
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            )
                         }
+                        AlertDialog(
+                            onDismissRequest = { showRetreatConfirm = false },
+                            title = { Text("Retreat from Quest?") },
+                            text = {
+                                Text(
+                                    "If you retreat now, a dark curse will cling to your hero for the next $remaining. " +
+                                            "During this time, all gold and XP rewards are reduced by 50%. " +
+                                            "You’ll keep what you’ve already secured."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
+                                    Text("Retreat")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showRetreatConfirm = false }) { Text("Keep Going") }
+                            },
+                            shape = RoundedCornerShape(16.dp)
+                        )
                     }
 
                     AnimatedVisibility(

@@ -29,7 +29,7 @@
                 android:name=".features.quest.notification.QuestActionReceiver"
                 android:exported="false">
             <intent-filter>
-                <action android:name="io.yavero.aterna.QUEST_COMPLETE"/>
+                <action android:name="io.yavero.aterna.QUEST_VIEW_LOGS"/>
                 <action android:name="io.yavero.aterna.QUEST_RETREAT"/>
             </intent-filter>
         </receiver>
@@ -38,11 +38,6 @@
                 android:name=".features.quest.service.QuestForegroundService"
                 android:exported="false"
                 android:foregroundServiceType="dataSync"/>
-
-        <activity
-                android:name=".features.quest.ui.RetreatPromptActivity"
-                android:exported="false"/>
-
     </application>
 
 </manifest>
