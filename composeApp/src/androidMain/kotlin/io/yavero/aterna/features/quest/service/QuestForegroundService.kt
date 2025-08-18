@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import io.yavero.aterna.MainActivity
-import io.yavero.aterna.features.quest.notification.QuestActionReceiver
 import io.yavero.aterna.features.quest.notification.QuestActions
 import kotlin.time.ExperimentalTime
 
@@ -88,12 +87,11 @@ class QuestForegroundService : Service() {
             text: String,
             endAtMs: Long?
         ): Notification {
-            // Tap on the body opens the app (no extras)
             val contentIntent = PendingIntent.getActivity(
                 context,
                 ("content" + sessionId).hashCode(),
                 Intent(context, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -108,35 +106,38 @@ class QuestForegroundService : Service() {
                 .setAutoCancel(false)
                 .setContentIntent(contentIntent)
 
-            // Chronometer countdown to end
             if (endAtMs != null) {
                 builder.setUsesChronometer(true)
                     .setChronometerCountDown(true)
                     .setWhen(endAtMs)
             }
 
-            // Actions are now *broadcasts* to the receiver → store
-            builder.addAction(createBroadcastAction(context, sessionId, QuestActions.ACTION_VIEW_LOGS, "View Logs"))
-            builder.addAction(createBroadcastAction(context, sessionId, QuestActions.ACTION_RETREAT, "Retreat"))
+            builder.addAction(createActivityAction(context, sessionId, QuestActions.ACTION_VIEW_LOGS, "View Logs"))
+            builder.addAction(createActivityAction(context, sessionId, QuestActions.ACTION_RETREAT, "Retreat"))
 
             return builder.build()
         }
 
-        private fun createBroadcastAction(
+        private fun createActivityAction(
             context: Context,
             sessionId: String,
             action: String,
             title: String
         ): NotificationCompat.Action {
-            val i = Intent(context, QuestActionReceiver::class.java).apply {
+            val intent = Intent(context, MainActivity::class.java).apply {
                 this.action = action
                 putExtra(QuestActions.EXTRA_SESSION_ID, sessionId)
                 putExtra(QuestActions.EXTRA_ACTION_TYPE, action)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             }
-            val pi = PendingIntent.getBroadcast(
+            val pi = PendingIntent.getActivity(
                 context,
                 (action + sessionId).hashCode(),
-                i,
+                intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             return NotificationCompat.Action.Builder(0, title, pi).build()
