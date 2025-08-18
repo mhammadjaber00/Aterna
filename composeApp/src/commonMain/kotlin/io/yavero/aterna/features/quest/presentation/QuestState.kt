@@ -18,14 +18,21 @@ data class QuestState(
     val timeRemaining: Duration = Duration.ZERO,
     val questProgress: Float = 0f,
 
+    // Lightweight preview feed
     val eventFeed: List<QuestEvent> = emptyList(),
     val eventPulseCounter: Int = 0,
 
+    // Full adventure log
     val adventureLog: List<QuestEvent> = emptyList(),
     val isAdventureLogLoading: Boolean = false,
 
+    // Loot & status
     val lastLoot: QuestLoot? = null,
-    val curseTimeRemaining: Duration = Duration.ZERO
+    val curseTimeRemaining: Duration = Duration.ZERO,
+
+    // NEW: UI-hint flags (set by store; consumed by UI then cleared)
+    val pendingShowRetreatConfirm: Boolean = false,
+    val pendingShowAdventureLog: Boolean = false,
 ) : MviState, LoadingState {
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true
@@ -38,4 +45,3 @@ data class QuestState(
     val curseMinutes: Int get() = curseTimeRemaining.inWholeMinutes.toInt()
     val curseSeconds: Int get() = (curseTimeRemaining.inWholeSeconds % 60).toInt()
 }
-

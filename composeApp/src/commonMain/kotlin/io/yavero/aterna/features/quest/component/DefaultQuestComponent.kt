@@ -65,6 +65,10 @@ class DefaultQuestComponent(
         questStore.process(QuestIntent.LoadAdventureLog)
     }
 
+    override fun onConsumeUiHints() {
+        questStore.process(QuestIntent.ConsumeUiHints)
+    }
+
     private fun handleEffect(effect: QuestEffect) {
         when (effect) {
             is QuestEffect.ShowQuestCompleted -> onShowQuestCompleted(effect.loot)

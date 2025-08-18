@@ -39,46 +39,21 @@ class QuestNotifierAndroid(
         endAt: Instant?
     ) {
         if (!hasNotificationPermission()) return
-
-        val notificationId = getNotificationId(sessionId)
-
-        val notification = NotificationCompat.Builder(context, QuestActions.CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) 
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .apply {
-
-                endAt?.let { end ->
-                    setUsesChronometer(true)
-                    setChronometerCountDown(true)
-                    setWhen(end.toEpochMilliseconds())
-                }
-
-
-                if (endAt != null) {
-
-                    addAction(createAction(QuestActions.ACTION_PAUSE, "Pause", sessionId))
-                    addAction(createAction(QuestActions.ACTION_CANCEL, "Cancel", sessionId))
-                    addAction(createAction(QuestActions.ACTION_COMPLETE, "Complete", sessionId))
-                } else {
-
-                    addAction(createAction(QuestActions.ACTION_RESUME, "Resume", sessionId))
-                    addAction(createAction(QuestActions.ACTION_CANCEL, "Cancel", sessionId))
-                    addAction(createAction(QuestActions.ACTION_COMPLETE, "Complete", sessionId))
-                }
-            }
-            .build()
-
-        if (hasNotificationPermission()) {
-            @SuppressLint("MissingPermission")
-            notificationManager.notify(notificationId, notification)
-        }
+        ensureNotificationChannel()
+        val endAtMs = endAt?.toEpochMilliseconds()
+        io.yavero.aterna.features.quest.service.QuestForegroundService.start(
+            context = context,
+            sessionId = sessionId,
+            title = title,
+            text = text,
+            endAtMs = endAtMs
+        )
     }
 
     override suspend fun clearOngoing(sessionId: String) {
+        // Stop the foreground service that owns the ongoing notification
+        io.yavero.aterna.features.quest.service.QuestForegroundService.stop(context)
+        // Also cancel by id as a safety no-op if already removed
         val notificationId = getNotificationId(sessionId)
         notificationManager.cancel(notificationId)
     }
@@ -131,8 +106,8 @@ class QuestNotifierAndroid(
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = QuestActions.CHANNEL_DESCRIPTION
-                enableVibration(true)
-                enableLights(true)
+                enableVibration(false)
+                enableLights(false)
             }
 
             val systemNotificationManager =
