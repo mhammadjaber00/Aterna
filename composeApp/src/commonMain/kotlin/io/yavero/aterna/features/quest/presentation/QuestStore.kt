@@ -147,6 +147,10 @@ class QuestStore(
                     }
                 }
 
+                scope.launch {
+                    reduce(QuestMsg.DataLoaded(hero, activeQuest))
+                }
+
                 val elapsed = currentTime - activeQuest.startTime
                 val total = activeQuest.durationMinutes.minutes
                 val remaining = total - elapsed
