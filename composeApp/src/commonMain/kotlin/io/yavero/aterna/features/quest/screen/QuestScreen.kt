@@ -5,12 +5,14 @@ package io.yavero.aterna.features.quest.screen
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.features.quest.component.*

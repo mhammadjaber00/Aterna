@@ -19,7 +19,7 @@ import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
 import io.yavero.aterna.features.quest.component.QuestComponent
 import io.yavero.aterna.features.timer.TimerScreen
 import io.yavero.aterna.navigation.AppRootComponent
-import io.yavero.aterna.features.quest.QuestScreen as FeatureQuestScreen
+import io.yavero.aterna.features.quest.screen.QuestScreen as FeatureQuestScreen
 
 @Composable
 fun AppContent(
