@@ -250,5 +250,12 @@ class QuestStore(
 
             QuestMsg.WantRetreatConfirm -> state.copy(pendingShowRetreatConfirm = true)
             QuestMsg.WantAdventureLog -> state.copy(pendingShowAdventureLog = true)
+
+            is QuestMsg.RulesLoaded -> state.copy(
+                retreatGraceSeconds = msg.rules.graceSeconds,
+                lateRetreatThreshold = msg.rules.lateThreshold,
+                lateRetreatPenalty = msg.rules.latePenalty,
+                curseSoftCapMinutes = msg.rules.softCapMinutes
+            )
         }
 }

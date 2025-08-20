@@ -33,6 +33,11 @@ data class QuestState(
     // NEW: UI-hint flags (set by store; consumed by UI then cleared)
     val pendingShowRetreatConfirm: Boolean = false,
     val pendingShowAdventureLog: Boolean = false,
+
+    val retreatGraceSeconds: Int = 0,
+    val lateRetreatThreshold: Double = 1.0,
+    val lateRetreatPenalty: Double = 0.0,
+    val curseSoftCapMinutes: Int = 0,
 ) : MviState, LoadingState {
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true

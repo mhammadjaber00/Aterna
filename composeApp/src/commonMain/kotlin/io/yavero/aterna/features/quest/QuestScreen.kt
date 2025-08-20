@@ -25,17 +25,12 @@ import io.yavero.aterna.features.quest.presentation.QuestState
 import io.yavero.aterna.ui.components.MagicalBackground
 import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaRadii
+import kotlin.math.roundToInt
 import kotlin.time.ExperimentalTime
 
 private object Ui {
     val Gold = Color(0xFFF6D87A)
 }
-
-// These must match store rules
-private const val RETREAT_GRACE_SECONDS = 30
-private const val LATE_RETREAT_THRESHOLD = 0.80
-private const val CURSE_SOFT_CAP_MIN = 30
-private const val LATE_RETREAT_LOOT_PENALTY_PERCENT = 25 // purely for text
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
@@ -170,7 +165,7 @@ fun QuestScreen(
                                         title = { Text("Curse of Cowardice") },
                                         text = {
                                             Text(
-                                                "Rewards are halved while cursed. The curse lasts up to $CURSE_SOFT_CAP_MIN minutes (soft cap) and " +
+                                                "Rewards are halved while cursed. The curse lasts up to ${uiState.curseSoftCapMinutes} minutes (soft cap) and " +
                                                         "drains twice as fast whenever you’re on another quest."
                                             )
                                         },
@@ -283,14 +278,14 @@ fun QuestScreen(
         )
     }
 
-    // ── Retreat confirmation dialog with rule summary + "Don't show again" ──────
     if (showRetreatConfirm) {
         val totalSecs = (uiState.activeQuest?.durationMinutes ?: 0) * 60
         val remainingSecs = uiState.timeRemaining.inWholeSeconds.toInt()
         val elapsedSecs = (totalSecs - remainingSecs).coerceAtLeast(0)
         val progress = if (totalSecs <= 0) 0.0 else elapsedSecs.toDouble() / totalSecs.toDouble()
-        val withinGrace = elapsedSecs < RETREAT_GRACE_SECONDS
-        val isLate = progress >= LATE_RETREAT_THRESHOLD
+        val withinGrace = elapsedSecs < uiState.retreatGraceSeconds
+        val isLate = progress >= uiState.lateRetreatThreshold
+        val penaltyPercent = (uiState.lateRetreatPenalty * 100).roundToInt()
 
         val remaining by remember(uiState.timeRemainingMinutes, uiState.timeRemainingSeconds) {
             derivedStateOf {
@@ -310,9 +305,9 @@ fun QuestScreen(
                     )
 
                     when {
-                        withinGrace -> Text("• You’re within the first $RETREAT_GRACE_SECONDS seconds: no curse. Loot only if you’ve banked a step.")
-                        isLate -> Text("• You’ve completed ≥${(LATE_RETREAT_THRESHOLD * 100).toInt()}%: you’ll keep your loot with a $LATE_RETREAT_LOOT_PENALTY_PERCENT% penalty. No curse.")
-                        else -> Text("• A −50% curse will be applied (soft-capped at $CURSE_SOFT_CAP_MIN minutes) and it drains 2× faster while you’re on another quest.")
+                        withinGrace -> Text("• You’re within the first ${uiState.retreatGraceSeconds} seconds: no curse. Loot only if you’ve banked a step.")
+                        isLate -> Text("• You’ve completed ≥${(uiState.lateRetreatThreshold * 100).roundToInt()}%: you’ll keep your loot with a $penaltyPercent% penalty. No curse.")
+                        else -> Text("• A −50% curse will be applied (soft-capped at ${uiState.curseSoftCapMinutes} minutes) and it drains 2× faster while you’re on another quest.")
                     }
 
                     Spacer(Modifier.height(6.dp))
