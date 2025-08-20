@@ -31,5 +31,4 @@ sealed interface QuestMsg : MviMsg {
 
     data object WantRetreatConfirm : QuestMsg
     data object WantAdventureLog : QuestMsg
-    data object ClearUiHints : QuestMsg
 }

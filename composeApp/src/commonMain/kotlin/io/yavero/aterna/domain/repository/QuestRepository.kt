@@ -15,6 +15,7 @@ interface QuestRepository {
     fun getActiveQuest(): Flow<Quest?>
     suspend fun getCurrentActiveQuest(): Quest?
     fun getQuestsByHero(heroId: String): Flow<List<Quest>>
+    fun getActiveQuestByHero(heroId: String): Flow<Quest?>
     suspend fun getRecentQuests(heroId: String, limit: Int): List<Quest>
     suspend fun getQuestsByDateRange(heroId: String, startDate: Instant, endDate: Instant): List<Quest>
 

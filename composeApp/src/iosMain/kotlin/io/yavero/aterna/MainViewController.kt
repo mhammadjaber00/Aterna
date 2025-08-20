@@ -1,6 +1,8 @@
 package io.yavero.aterna
 
 import androidx.compose.ui.window.ComposeUIViewController
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import io.yavero.aterna.data.di.platformDataModule
 import io.yavero.aterna.di.getCommonKoinModules
 import io.yavero.aterna.features.quest.di.platformFocusModule

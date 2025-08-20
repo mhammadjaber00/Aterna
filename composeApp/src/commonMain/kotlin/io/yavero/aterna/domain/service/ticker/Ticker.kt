@@ -1,0 +1,25 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
+package io.yavero.aterna.domain.service.ticker
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
+import kotlin.time.Clock
+import kotlin.time.Instant
+
+interface Ticker {
+    val seconds: Flow<Instant>
+}
+
+class DefaultTicker(scope: CoroutineScope) : Ticker {
+    override val seconds: Flow<Instant> = flow {
+        while (true) {
+            emit(Clock.System.now())
+            delay(1000)
+        }
+    }.shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
+}
