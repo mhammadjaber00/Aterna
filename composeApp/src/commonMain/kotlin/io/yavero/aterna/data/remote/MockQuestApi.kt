@@ -2,166 +2,104 @@ package io.yavero.aterna.data.remote
 
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.util.LootRoller
+import io.yavero.aterna.services.validation.QuestValidationService
 import kotlinx.coroutines.delay
-import kotlin.random.Random
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+/**
+ * Deterministic mock server:
+ * - Uses client baseSeed EXACTLY
+ * - Uses client heroLevel EXACTLY
+ * - Rewards computed by LootRoller (matches client telemetry now)
+ */
 @OptIn(ExperimentalTime::class)
 class MockQuestApi : QuestApi {
 
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {
+        delay(300L + (request.durationMinutes % 200))
 
-        delay(500 + Random.nextLong(500))
+        return try {
+            val start = Instant.parse(request.questStartTime)
+            val end = Instant.parse(request.questEndTime)
 
-        try {
-
-            val startTime = Instant.parse(request.questStartTime)
-            val endTime = Instant.parse(request.questEndTime)
-            val actualDuration = (endTime - startTime).inWholeMinutes
-
-
-            val expectedDuration = request.durationMinutes.toLong()
-            val tolerance = (expectedDuration * 0.1).toLong()
-
-            if (actualDuration < expectedDuration - tolerance) {
+            val v = QuestValidationService.validateTimes(
+                start = start,
+                end = end,
+                expectedMinutes = request.durationMinutes
+            )
+            if (!v.valid) {
                 return QuestCompletionResponse(
                     success = false,
                     loot = QuestLootDto(0, 0, emptyList()),
-                    serverSeed = 0L,
-                    message = "Quest completed too early. Actual: ${actualDuration}m, Expected: ${expectedDuration}m"
+                    serverSeed = request.baseSeed,
+                    message = v.reason ?: "Validation failed"
                 )
             }
-
-            if (actualDuration > expectedDuration + tolerance + 60) { 
-                return QuestCompletionResponse(
-                    success = false,
-                    loot = QuestLootDto(0, 0, emptyList()),
-                    serverSeed = 0L,
-                    message = "Quest took too long. Actual: ${actualDuration}m, Expected: ${expectedDuration}m"
-                )
-            }
-
-
-            val serverSeed = generateServerSeed(request)
-
-
-            val mockHeroLevel = calculateMockHeroLevel(request.heroId)
-
 
             val classType = ClassType.valueOf(request.classType)
             val loot = LootRoller.rollLoot(
                 questDurationMinutes = request.durationMinutes,
-                heroLevel = mockHeroLevel,
+                heroLevel = request.heroLevel,
                 classType = classType,
-                serverSeed = serverSeed
+                serverSeed = request.baseSeed
             )
 
-
-            val lootDto = QuestLootDto(
-                xp = loot.xp,
-                gold = loot.gold,
-                items = loot.items.map { item ->
-                    ItemDto(
-                        id = item.id,
-                        name = item.name,
-                        rarity = item.rarity.name,
-                        itemType = item.itemType.name,
-                        value = item.value
-                    )
-                }
-            )
-
-
-            val newXP = mockHeroLevel * 100 + loot.xp 
+            // Simple leveling convention: 100 XP per level
+            val startLevel = request.heroLevel
+            val newXP = startLevel * 100 + loot.xp
             val newLevel = (newXP / 100) + 1
-            val levelUp = newLevel > mockHeroLevel
+            val levelUp = newLevel > startLevel
 
+            // We don't recompute plan on the server here; echo client hash if provided
             return QuestCompletionResponse(
                 success = true,
-                loot = lootDto,
+                loot = QuestLootDto(
+                    xp = loot.xp,
+                    gold = loot.gold,
+                    items = loot.items.map {
+                        ItemDto(
+                            id = it.id,
+                            name = it.name,
+                            rarity = it.rarity.name,
+                            itemType = it.itemType.name,
+                            value = it.value
+                        )
+                    }
+                ),
                 levelUp = levelUp,
                 newLevel = if (levelUp) newLevel else null,
-                serverSeed = serverSeed,
+                serverSeed = request.baseSeed,
+                serverPlanHash = request.clientPlanHash,
+                resolverVersion = request.resolverVersion,
+                resolverMismatch = false,
                 message = "Quest completed successfully!"
             )
-
         } catch (e: Exception) {
-            return QuestCompletionResponse(
+            QuestCompletionResponse(
                 success = false,
                 loot = QuestLootDto(0, 0, emptyList()),
-                serverSeed = 0L,
+                serverSeed = request.baseSeed,
                 message = "Server error: ${e.message}"
             )
         }
     }
 
     override suspend fun validateQuest(request: QuestValidationRequest): QuestValidationResponse {
+        delay(120L)
+        return try {
+            val start = Instant.parse(request.startTime)
+            val end = Instant.parse(request.endTime)
 
-        delay(200 + Random.nextLong(300))
-
-        try {
-            val startTime = Instant.parse(request.startTime)
-            val endTime = Instant.parse(request.endTime)
-            val actualDuration = (endTime - startTime).inWholeMinutes
-            val expectedDuration = request.durationMinutes.toLong()
-
-
-            when {
-                actualDuration < 1 -> {
-                    return QuestValidationResponse(
-                        valid = false,
-                        reason = "Quest duration too short"
-                    )
-                }
-
-                actualDuration > expectedDuration * 3 -> {
-                    return QuestValidationResponse(
-                        valid = false,
-                        reason = "Quest duration too long compared to expected"
-                    )
-                }
-
-                startTime > Clock.System.now() -> {
-                    return QuestValidationResponse(
-                        valid = false,
-                        reason = "Quest start time is in the future"
-                    )
-                }
-
-                endTime > Clock.System.now().plus(kotlin.time.Duration.parse("1m")) -> {
-                    return QuestValidationResponse(
-                        valid = false,
-                        reason = "Quest end time is too far in the future"
-                    )
-                }
-
-                else -> {
-                    return QuestValidationResponse(
-                        valid = true
-                    )
-                }
-            }
-
-        } catch (e: Exception) {
-            return QuestValidationResponse(
-                valid = false,
-                reason = "Invalid timestamp format: ${e.message}"
+            val res = QuestValidationService.validateTimes(
+                start = start,
+                end = end,
+                expectedMinutes = request.durationMinutes
             )
+            QuestValidationResponse(valid = res.valid, reason = res.reason)
+        } catch (e: Exception) {
+            QuestValidationResponse(valid = false, reason = "Invalid timestamp: ${e.message}")
         }
-    }
-
-    private fun generateServerSeed(request: QuestCompletionRequest): Long {
-
-        val seedString = "${request.questId}-${request.heroId}-${request.questStartTime}-${request.durationMinutes}"
-        return seedString.hashCode().toLong()
-    }
-
-    private fun calculateMockHeroLevel(heroId: String): Int {
-
-        val hash = heroId.hashCode()
-        return ((hash % 10) + 1).coerceAtLeast(1)
     }
 }
 

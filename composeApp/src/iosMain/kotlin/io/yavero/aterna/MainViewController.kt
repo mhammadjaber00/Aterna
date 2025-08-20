@@ -4,6 +4,7 @@ import androidx.compose.ui.window.ComposeUIViewController
 import io.yavero.aterna.data.di.platformDataModule
 import io.yavero.aterna.di.getCommonKoinModules
 import io.yavero.aterna.features.quest.di.platformFocusModule
+import io.yavero.aterna.navigation.DefaultAppRootComponent
 import io.yavero.aterna.notifications.di.platformNotificationsModule
 import org.koin.core.context.startKoin
 
@@ -35,5 +36,8 @@ private fun initializeKoin() {
 
 fun MainViewController() = ComposeUIViewController {
     initializeKoin()
-    App()
+    val rootComponent = DefaultAppRootComponent(
+        componentContext = DefaultComponentContext(LifecycleRegistry())
+    )
+    App(rootComponent = rootComponent)
 }

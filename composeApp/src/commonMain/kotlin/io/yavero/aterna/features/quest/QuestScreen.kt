@@ -25,12 +25,19 @@ import io.yavero.aterna.features.quest.presentation.QuestState
 import io.yavero.aterna.ui.components.MagicalBackground
 import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaRadii
+import kotlin.time.ExperimentalTime
 
 private object Ui {
     val Gold = Color(0xFFF6D87A)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// These must match store rules
+private const val RETREAT_GRACE_SECONDS = 30
+private const val LATE_RETREAT_THRESHOLD = 0.80
+private const val CURSE_SOFT_CAP_MIN = 30
+private const val LATE_RETREAT_LOOT_PENALTY_PERCENT = 25 // purely for text
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun QuestScreen(
     component: QuestComponent,
@@ -42,12 +49,16 @@ fun QuestScreen(
     var showInventoryPopup by rememberSaveable { mutableStateOf(false) }
     var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
     var showAdventureLog by rememberSaveable { mutableStateOf(false) }
-    var showRetreatConfirm by rememberSaveable { mutableStateOf(false) } // ⬅ new: lifted so effects can toggle it
+    var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
+
+    // NEW: user can suppress the retreat confirm dialog
+    var dontShowRetreatConfirm by rememberSaveable { mutableStateOf(false) }
 
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
+    var showLoot by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.hasActiveQuest) {
         chromeHidden = uiState.hasActiveQuest
@@ -58,15 +69,12 @@ fun QuestScreen(
         if (lvl != null && prev != null && lvl > prev) statsBadge = true
         lastLevelSeen = lvl
     }
-    // Load when sheet opens
     LaunchedEffect(showAdventureLog) {
         if (showAdventureLog) component.onLoadAdventureLog()
     }
-    // Load on completion to guarantee full log
     LaunchedEffect(uiState.isQuestCompleted) {
         if (uiState.isQuestCompleted) component.onLoadAdventureLog()
     }
-    // While the sheet is open, refresh the log whenever new events land
     LaunchedEffect(uiState.eventPulseCounter, showAdventureLog) {
         if (showAdventureLog) component.onLoadAdventureLog()
     }
@@ -75,10 +83,14 @@ fun QuestScreen(
         if (last?.type == EventType.CHEST || last?.type == EventType.TRINKET) inventoryBadge = true
     }
 
-    // NEW: react to store UI-hint flags coming from notification broadcasts
+    // From notification hints
     LaunchedEffect(uiState.pendingShowRetreatConfirm) {
         if (uiState.pendingShowRetreatConfirm) {
-            showRetreatConfirm = true
+            if (dontShowRetreatConfirm) {
+                component.onGiveUpQuest()
+            } else {
+                showRetreatConfirm = true
+            }
             component.onConsumeUiHints()
         }
     }
@@ -87,6 +99,11 @@ fun QuestScreen(
             showAdventureLog = true
             component.onLoadAdventureLog()
             component.onConsumeUiHints()
+        }
+    }
+    LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading) {
+        if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
+            showLoot = true
         }
     }
 
@@ -104,6 +121,7 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
+
                 else -> {
                     AnimatedVisibility(
                         visible = !chromeHidden,
@@ -159,7 +177,12 @@ fun QuestScreen(
                                     AlertDialog(
                                         onDismissRequest = { showCurseInfo = false },
                                         title = { Text("Curse of Cowardice") },
-                                        text = { Text("You retreated early. Until it fades, gold and XP are halved.") },
+                                        text = {
+                                            Text(
+                                                "Rewards are halved while cursed. The curse lasts up to $CURSE_SOFT_CAP_MIN minutes (soft cap) and " +
+                                                        "drains twice as fast whenever you’re on another quest."
+                                            )
+                                        },
                                         confirmButton = {
                                             TextButton(onClick = { showCurseInfo = false }) {
                                                 Text("Understood")
@@ -202,39 +225,13 @@ fun QuestScreen(
                             modifier = Modifier
                                 .fillMaxWidth(0.62f)
                                 .height(56.dp),
-                            onConfirmed = { showRetreatConfirm = true }
-                        )
-                    }
-
-                    if (showRetreatConfirm) {
-                        val remaining by remember(
-                            uiState.timeRemainingMinutes,
-                            uiState.timeRemainingSeconds
-                        ) {
-                            derivedStateOf {
-                                val s = uiState.timeRemainingSeconds.toString().padStart(2, '0')
-                                "${uiState.timeRemainingMinutes}:$s"
-                            }
-                        }
-                        AlertDialog(
-                            onDismissRequest = { showRetreatConfirm = false },
-                            title = { Text("Retreat from Quest?") },
-                            text = {
-                                Text(
-                                    "If you retreat now, a dark curse will cling to your hero for the next $remaining. " +
-                                            "During this time, all gold and XP rewards are reduced by 50%. " +
-                                            "You’ll keep what you’ve already secured."
-                                )
-                            },
-                            confirmButton = {
-                                TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
-                                    Text("Retreat")
+                            onConfirmed = {
+                                if (dontShowRetreatConfirm) {
+                                    component.onGiveUpQuest()
+                                } else {
+                                    showRetreatConfirm = true
                                 }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showRetreatConfirm = false }) { Text("Keep Going") }
-                            },
-                            shape = RoundedCornerShape(16.dp)
+                            }
                         )
                     }
 
@@ -257,19 +254,29 @@ fun QuestScreen(
         }
     }
 
-    // Show Quest Summary only once the full log is present
-    if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
-        uiState.activeQuest?.let { active ->
+    // ── Quest Summary after completion (unchanged, but kept complete) ────────────
+    if (showLoot) {
+        val questAtOpen = remember(showLoot) { uiState.activeQuest }
+        val heroAtOpen = remember(showLoot) { uiState.hero }
+        val lootAtOpen = remember(showLoot) { uiState.lastLoot }
+        val eventsAtOpen = remember(showLoot) { uiState.adventureLog.toList() }
+
+        if (questAtOpen != null && lootAtOpen != null) {
+            val gain = lootAtOpen.gold
             LootDisplayDialog(
-                quest = active,
-                hero = uiState.hero,
-                loot = uiState.lastLoot,
-                events = uiState.adventureLog,
-                onDismiss = { component.onRefresh() }
+                quest = questAtOpen,
+                hero = heroAtOpen,
+                loot = lootAtOpen,
+                events = eventsAtOpen,
+                onDismiss = {
+                    showLoot = false
+                    component.onRefresh()
+                }
             )
         }
     }
 
+    // Popups
     AnimatedVisibility(visible = showStatsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
         StatsPopupDialog(hero = uiState.hero, onDismiss = { showStatsPopup = false })
     }
@@ -280,11 +287,80 @@ fun QuestScreen(
         AnalyticsPopupDialog(hero = uiState.hero, onDismiss = { showAnalyticsPopup = false })
     }
 
+    // ── Adventure log sheet ──────────────────────────────────────────────────────
     if (showAdventureLog) {
         AdventureLogSheet(
             events = uiState.adventureLog,
             loading = uiState.isAdventureLogLoading,
             onDismiss = { showAdventureLog = false }
+        )
+    }
+
+    // ── Retreat confirmation dialog with rule summary + "Don't show again" ──────
+    if (showRetreatConfirm) {
+        val totalSecs = (uiState.activeQuest?.durationMinutes ?: 0) * 60
+        val remainingSecs = uiState.timeRemaining.inWholeSeconds.toInt()
+        val elapsedSecs = (totalSecs - remainingSecs).coerceAtLeast(0)
+        val progress = if (totalSecs <= 0) 0.0 else elapsedSecs.toDouble() / totalSecs.toDouble()
+        val withinGrace = elapsedSecs < RETREAT_GRACE_SECONDS
+        val isLate = progress >= LATE_RETREAT_THRESHOLD
+
+        val remaining by remember(uiState.timeRemainingMinutes, uiState.timeRemainingSeconds) {
+            derivedStateOf {
+                val s = uiState.timeRemainingSeconds.toString().padStart(2, '0')
+                "${uiState.timeRemainingMinutes}:$s"
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showRetreatConfirm = false },
+            title = { Text("Retreat from Quest?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Outcome if you retreat now:",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    when {
+                        withinGrace -> Text("• You’re within the first $RETREAT_GRACE_SECONDS seconds: no curse. Loot only if you’ve banked a step.")
+                        isLate -> Text("• You’ve completed ≥${(LATE_RETREAT_THRESHOLD * 100).toInt()}%: you’ll keep your loot with a $LATE_RETREAT_LOOT_PENALTY_PERCENT% penalty. No curse.")
+                        else -> Text("• A −50% curse will be applied (soft-capped at $CURSE_SOFT_CAP_MIN minutes) and it drains 2× faster while you’re on another quest.")
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Time remaining in this quest: $remaining",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable {
+                                dontShowRetreatConfirm = !dontShowRetreatConfirm
+                            }
+                    ) {
+                        Checkbox(
+                            checked = dontShowRetreatConfirm,
+                            onCheckedChange = { dontShowRetreatConfirm = it }
+                        )
+                        Text("Don't show this again", modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showRetreatConfirm = false; component.onGiveUpQuest() }) {
+                    Text("Retreat")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRetreatConfirm = false }) { Text("Keep Going") }
+            },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

@@ -22,9 +22,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -39,6 +39,7 @@ class QuestStore(
     private val statusEffectRepository: StatusEffectRepository,
     private val rewardService: RewardService,
     private val bankingStrategy: RewardBankingStrategy,
+    private val curseService: io.yavero.aterna.domain.service.curse.CurseService,
     private val scope: CoroutineScope
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
 
@@ -60,6 +61,7 @@ class QuestStore(
     private var completing = false
     private var givingUp = false
 
+    // ── Retreat rules ────────────────────────────────────────────────────────────
     private companion object {
         const val PREVIEW_WINDOW = 1
     }
@@ -78,21 +80,13 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
-        // Curse countdown
+        // Curse countdown handled by service (includes 2x drain while quest is active)
         scope.launch {
             ticker.collect { currentTime ->
                 val nowMs = currentTime.toEpochMilliseconds()
-                val curseEffect = statusEffectRepository.getActiveBy(
-                    io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
-                    nowMs
-                )
-
-                if (curseEffect != null) {
-                    val remainingMs = (curseEffect.expiresAtEpochMs - nowMs).coerceAtLeast(0)
-                    reduce(QuestMsg.CurseTick(remainingMs.milliseconds))
-                } else {
-                    reduce(QuestMsg.CurseTick(Duration.ZERO))
-                }
+                val isQuestActive = _state.value.activeQuest?.isActive == true
+                val remaining = curseService.onTick(isQuestActive, nowMs)
+                reduce(QuestMsg.CurseTick(remaining))
             }
         }
     }
@@ -107,7 +101,7 @@ class QuestStore(
             QuestIntent.ClearError -> clearError()
             QuestIntent.LoadAdventureLog -> loadAdventureLog()
 
-            // NEW: UI-hint intents (from notification actions via receiver)
+            // UI-hint intents (from notification actions via receiver)
             QuestIntent.RequestRetreatConfirm -> reduce(QuestMsg.WantRetreatConfirm)
             QuestIntent.RequestShowAdventureLog -> {
                 reduce(QuestMsg.WantAdventureLog)
@@ -147,9 +141,7 @@ class QuestStore(
                     }
                 }
 
-                scope.launch {
-                    reduce(QuestMsg.DataLoaded(hero, activeQuest))
-                }
+                scope.launch { reduce(QuestMsg.DataLoaded(hero, activeQuest)) }
 
                 val elapsed = currentTime - activeQuest.startTime
                 val total = activeQuest.durationMinutes.minutes
@@ -159,7 +151,7 @@ class QuestStore(
                     completeQuest() // guarded
                     QuestMsg.TimerTick(Duration.ZERO, 1.0f)
                 } else {
-                    val progress = (elapsed.inWholeSeconds.toFloat() / total.inWholeSeconds.toFloat())
+                    val progress = (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat())
                         .coerceIn(0f, 1f)
                     QuestMsg.TimerTick(remaining, progress)
                 }
@@ -228,17 +220,16 @@ class QuestStore(
                     completed = true
                 )
 
-                val baseLoot = questRepository.completeQuestRemote(hero, active, completed.endTime!!)
-                val finalLoot = rewardService.applyModifiers(baseLoot)
+                val serverLoot = questRepository.completeQuestRemote(hero, active, completed.endTime!!)
 
-                val newXP = hero.xp + finalLoot.xp
+                val newXP = hero.xp + serverLoot.xp
                 val newLevel = calculateLevel(newXP)
                 val leveledUp = newLevel > hero.level
 
                 val updatedHero = hero.copy(
                     xp = newXP,
                     level = newLevel,
-                    gold = hero.gold + finalLoot.gold,
+                    gold = hero.gold + serverLoot.gold,
                     totalFocusMinutes = hero.totalFocusMinutes + active.durationMinutes,
                     lastActiveDate = completed.endTime
                 )
@@ -249,12 +240,12 @@ class QuestStore(
                 questNotifier.showCompleted(
                     sessionId = active.id,
                     title = "Quest Complete",
-                    text = "+${finalLoot.xp} XP, +${finalLoot.gold} gold"
+                    text = "+${serverLoot.xp} XP, +${serverLoot.gold} gold"
                 )
 
-                reduce(QuestMsg.QuestCompleted(completed, finalLoot))
+                reduce(QuestMsg.QuestCompleted(completed, serverLoot))
                 reduce(QuestMsg.HeroUpdated(updatedHero))
-                _effects.tryEmit(QuestEffect.ShowQuestCompleted(finalLoot))
+                _effects.tryEmit(QuestEffect.ShowQuestCompleted(serverLoot))
                 if (leveledUp) _effects.tryEmit(QuestEffect.ShowLevelUp(newLevel))
                 _effects.tryEmit(QuestEffect.PlayQuestCompleteSound)
             } catch (e: Exception) {
@@ -283,57 +274,98 @@ class QuestStore(
                 val nowMs = now.toEpochMilliseconds()
                 val remainingMs = remaining.inWholeMilliseconds.coerceAtLeast(0)
 
-                if (remainingMs > 0) {
-                    val existing = statusEffectRepository.getActiveBy(
-                        io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
-                        nowMs
-                    )
-                    val targetExpiry = if (existing != null && existing.expiresAtEpochMs > nowMs) {
-                        existing.expiresAtEpochMs + remainingMs
-                    } else {
-                        nowMs + remainingMs
-                    }
-                    statusEffectRepository.upsert(
-                        io.yavero.aterna.domain.model.StatusEffect(
-                            id = "curse-early-exit",
-                            type = io.yavero.aterna.domain.model.StatusEffectType.CURSE_EARLY_EXIT,
-                            multiplierGold = 0.5,
-                            multiplierXp = 0.5,
-                            expiresAtEpochMs = targetExpiry
-                        )
-                    )
-                }
+                val elapsedSecs = elapsed.inWholeSeconds
+                val totalSecs = max(1, total.inWholeSeconds) // guard
+                val progress = elapsedSecs.toDouble() / totalSecs.toDouble()
 
-                val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
-                val bankedMinutes = (bankedMs / 60_000L).toInt()
+                // ── Rule 1: GRACE WINDOW → no curse
+                val inGrace = curseService.isInGrace(elapsedSecs)
+
+                // ── Rule 2: LATE RETREAT → loot with penalty, no curse
+                val isLateRetreat = curseService.isLateRetreat(progress, inGrace)
 
                 var updatedHero = hero
-                if (bankedMinutes > 0) {
-                    val baseLoot = LootRoller.rollLoot(
-                        questDurationMinutes = bankedMinutes,
-                        heroLevel = hero.level,
-                        classType = hero.classType,
-                        serverSeed = active.startTime.toEpochMilliseconds()
-                    )
-                    val finalLoot = rewardService.applyModifiers(baseLoot)
 
-                    val newXP = updatedHero.xp + finalLoot.xp
-                    val newLevel = calculateLevel(newXP)
-                    updatedHero = updatedHero.copy(
-                        xp = newXP,
-                        level = newLevel,
-                        gold = updatedHero.gold + finalLoot.gold,
-                        totalFocusMinutes = updatedHero.totalFocusMinutes + bankedMinutes,
-                        lastActiveDate = now
-                    )
+                if (isLateRetreat) {
+                    val elapsedMinutes = elapsed.inWholeMinutes.toInt().coerceAtLeast(0)
+                    if (elapsedMinutes > 0) {
+                        val baseLoot = LootRoller.rollLoot(
+                            questDurationMinutes = elapsedMinutes,
+                            heroLevel = hero.level,
+                            classType = hero.classType,
+                            serverSeed = active.startTime.toEpochMilliseconds()
+                        )
+                        // Apply standard modifiers then the late-retreat penalty
+                        val modified = rewardService.applyModifiers(baseLoot)
+                        val penalty = curseService.lateRetreatPenalty()
+                        val penalizedXp = (modified.xp * (1.0 - penalty)).toInt()
+                        val penalizedGold = (modified.gold * (1.0 - penalty)).toInt()
+
+                        val newXP = hero.xp + penalizedXp
+                        val newLevel = calculateLevel(newXP)
+                        updatedHero = updatedHero.copy(
+                            xp = newXP,
+                            level = newLevel,
+                            gold = updatedHero.gold + penalizedGold,
+                            totalFocusMinutes = updatedHero.totalFocusMinutes + elapsedMinutes,
+                            lastActiveDate = now
+                        )
+                        _effects.tryEmit(
+                            QuestEffect.ShowSuccess(
+                                "Retreated late: +$penalizedXp XP, +$penalizedGold gold (${(penalty * 100).toInt()}% penalty), no curse."
+                            )
+                        )
+                    } else {
+                        _effects.tryEmit(
+                            QuestEffect.ShowSuccess("Retreated late: no time banked, no curse.")
+                        )
+                    }
+
+                } else if (!inGrace) {
+                    // ── Rule 3: NORMAL RETREAT → apply curse via service (soft-capped/accumulating)
+                    curseService.applyNormalRetreatCurse(nowMs = nowMs, remainingMs = remainingMs)
+
+                    val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
+                    val bankedMinutes = (bankedMs / 60_000L).toInt()
+
+                    if (bankedMinutes > 0) {
+                        val baseLoot = LootRoller.rollLoot(
+                            questDurationMinutes = bankedMinutes,
+                            heroLevel = hero.level,
+                            classType = hero.classType,
+                            serverSeed = active.startTime.toEpochMilliseconds()
+                        )
+                        val finalLoot = rewardService.applyModifiers(baseLoot)
+
+                        val newXP = updatedHero.xp + finalLoot.xp
+                        val newLevel = calculateLevel(newXP)
+                        updatedHero = updatedHero.copy(
+                            xp = newXP,
+                            level = newLevel,
+                            gold = updatedHero.gold + finalLoot.gold,
+                            totalFocusMinutes = updatedHero.totalFocusMinutes + bankedMinutes,
+                            lastActiveDate = now
+                        )
+                        _effects.tryEmit(
+                            QuestEffect.ShowSuccess("Retreated: banked +${finalLoot.xp} XP, +${finalLoot.gold} gold. Curse applied (max 30m).")
+                        )
+                    } else {
+                        _effects.tryEmit(
+                            QuestEffect.ShowSuccess("Retreated. No time banked. Curse applied (max 30m).")
+                        )
+                    }
+                } else {
+                    // inGrace
                     _effects.tryEmit(
-                        QuestEffect.ShowSuccess("Retreated: banked +${finalLoot.xp} XP, +${finalLoot.gold} gold.")
+                        QuestEffect.ShowSuccess("Retreated quickly (<10s): no curse.")
                     )
                 }
 
+                // Mark quest as gave up
                 val gaveUp = active.copy(endTime = now, gaveUp = true)
                 questRepository.markQuestGaveUp(active.id, gaveUp.endTime!!)
 
+                // Persist hero updates
                 updatedHero = updatedHero.copy(lastActiveDate = now)
                 heroRepository.updateHero(updatedHero)
 

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
@@ -12,6 +14,8 @@ import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.*
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
+import io.yavero.aterna.domain.util.LootRoller
+import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -19,7 +23,6 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 class QuestRepositoryImpl(
     private val database: AternaDatabase,
     private val questApi: QuestApi,
@@ -31,17 +34,14 @@ class QuestRepositoryImpl(
 
     override fun getActiveQuest(): Flow<Quest?> {
         return heroRepository.getHero().flatMapLatest { hero ->
-            if (hero == null) {
-                flowOf(null)
-            } else {
+            if (hero == null) flowOf(null) else
                 questQueries.selectQuestsByHero(hero.id)
                     .asFlow()
-                    .map { query ->
-                        query.executeAsList()
+                    .map { q ->
+                        q.executeAsList()
                             .firstOrNull { e -> e.endTime == null && e.gaveUp == 0L }
                             ?.let(::mapEntityToDomain)
                     }
-            }
         }
     }
 
@@ -56,7 +56,7 @@ class QuestRepositoryImpl(
     override fun getQuestsByHero(heroId: String): Flow<List<Quest>> {
         return questQueries.selectQuestsByHero(heroId)
             .asFlow()
-            .map { q -> q.executeAsList().map(::mapEntityToDomain) }
+            .map { it.executeAsList().map(::mapEntityToDomain) }
     }
 
     override suspend fun getRecentQuests(heroId: String, limit: Int): List<Quest> {
@@ -66,6 +66,7 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun getQuestsByDateRange(heroId: String, startDate: Instant, endDate: Instant): List<Quest> {
+        // NOTE: better to add a SQL where between; for now keep filter in-memory
         return questQueries.selectQuestsByHero(heroId)
             .executeAsList()
             .filter { e ->
@@ -125,20 +126,46 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
+        // Canonical seed & client plan hash
+        val baseSeed =
+            quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
+        val plans = getQuestPlan(quest.id)
+        val clientPlanHash = PlanHash.compute(plans)
+
         val response = questApi.completeQuest(
             QuestCompletionRequest(
                 heroId = hero.id,
+                heroLevel = hero.level,
                 questId = quest.id,
                 durationMinutes = quest.durationMinutes,
                 questStartTime = quest.startTime.toString(),
                 questEndTime = questEndTime.toString(),
-                classType = hero.classType.name
+                classType = hero.classType.name,
+                baseSeed = baseSeed,
+                resolverVersion = 1,
+                clientPlanHash = clientPlanHash
             )
         )
+
         if (!response.success) {
             throw IllegalStateException(response.message ?: "Quest validation failed")
         }
+
+        // Telemetry: recompute via LootRoller (matches server).
+        val clientLoot = LootRoller.rollLoot(
+            questDurationMinutes = quest.durationMinutes,
+            heroLevel = hero.level,
+            classType = hero.classType,
+            serverSeed = baseSeed
+        )
         val loot = response.loot.toDomain()
+
+        println(
+            "[TELEMETRY] questId=${quest.id} baseSeed=$baseSeed clientPlanHash=$clientPlanHash serverPlanHash=${response.serverPlanHash} " +
+                    "serverGold=${loot.gold} serverXp=${loot.xp} clientGold=${clientLoot.gold} clientXp=${clientLoot.xp} " +
+                    "resolverMismatch=${response.resolverMismatch}"
+        )
+
         updateQuestCompletion(
             questId = quest.id,
             endTime = questEndTime,
@@ -196,7 +223,6 @@ class QuestRepositoryImpl(
         )
     }
 
-    /** FULL log (no LIMIT) */
     override suspend fun getQuestEvents(questId: String): List<QuestEvent> {
         return questEventsQueries.selectEventsByQuest(questId)
             .executeAsList()
@@ -214,7 +240,6 @@ class QuestRepositoryImpl(
             }
     }
 
-    /** PREVIEW log (DESC + LIMIT) */
     override suspend fun getQuestEventsPreview(questId: String, limit: Int): List<QuestEvent> {
         return questEventsQueries.selectRecentEvents(questId, limit.toLong())
             .executeAsList()
@@ -233,8 +258,10 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun getLastResolvedEventIdx(questId: String): Int {
-        return questEventsQueries.selectLastResolvedIdx(questId).executeAsOne().toInt()
+        return questEventsQueries.selectLastResolvedIdx(questId).executeAsOneOrNull()?.toInt() ?: -1
     }
+
+    // ── encode/decode outcomes ───────────────────────────────────────────────────
 
     private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
         is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
@@ -246,8 +273,8 @@ class QuestRepositoryImpl(
         if (s == null) return EventOutcome.None
         val parts = s.split(":")
         return if (parts.size == 3) {
-            val kind = parts[0];
-            val name = parts[1];
+            val kind = parts[0]
+            val name = parts[1]
             val lvl = parts[2].toIntOrNull() ?: 0
             if (kind == "win") EventOutcome.Win(name, lvl) else EventOutcome.Flee(name, lvl)
         } else EventOutcome.None

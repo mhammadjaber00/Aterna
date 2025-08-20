@@ -8,18 +8,21 @@ import kotlinx.serialization.Serializable
 
 interface QuestApi {
     suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse
-
     suspend fun validateQuest(request: QuestValidationRequest): QuestValidationResponse
 }
 
 @Serializable
 data class QuestCompletionRequest(
     val heroId: String,
+    val heroLevel: Int,            // NEW: remove server guesswork
     val questId: String,
     val durationMinutes: Int,
-    val questStartTime: String,
-    val questEndTime: String,   
-    val classType: String
+    val questStartTime: String,    // ISO-8601
+    val questEndTime: String,      // ISO-8601
+    val classType: String,
+    val baseSeed: Long,            // canonical seed from client
+    val resolverVersion: Int,
+    val clientPlanHash: String? = null
 )
 
 @Serializable
@@ -28,7 +31,10 @@ data class QuestCompletionResponse(
     val loot: QuestLootDto,
     val levelUp: Boolean = false,
     val newLevel: Int? = null,
-    val serverSeed: Long,
+    val serverSeed: Long,              // echo of baseSeed or HMAC(baseSeed)
+    val serverPlanHash: String? = null,
+    val resolverVersion: Int? = null,
+    val resolverMismatch: Boolean = false,
     val message: String? = null
 )
 
@@ -36,9 +42,12 @@ data class QuestCompletionResponse(
 data class QuestValidationRequest(
     val heroId: String,
     val questId: String,
-    val startTime: String,
-    val endTime: String,
-    val durationMinutes: Int
+    val startTime: String,          // ISO-8601
+    val endTime: String,            // ISO-8601
+    val durationMinutes: Int,
+    val baseSeed: Long? = null,
+    val resolverVersion: Int? = null,
+    val clientPlanHash: String? = null
 )
 
 @Serializable
@@ -63,21 +72,19 @@ data class ItemDto(
     val value: Int
 )
 
-fun QuestLootDto.toDomain(): QuestLoot {
-    return QuestLoot(
-        xp = xp,
-        gold = gold,
-        items = items.map { it.toDomain() }
-    )
-}
+// ── DTO ↔ domain ────────────────────────────────────────────────────────────────
 
-fun ItemDto.toDomain(): Item {
-    return Item(
-        id = id,
-        name = name,
-        description = "A $rarity ${itemType.lowercase()}",
-        itemType = ItemType.valueOf(itemType),
-        rarity = ItemRarity.valueOf(rarity),
-        value = value
-    )
-}
+fun QuestLootDto.toDomain(): QuestLoot = QuestLoot(
+    xp = xp,
+    gold = gold,
+    items = items.map { it.toDomain() }
+)
+
+fun ItemDto.toDomain(): Item = Item(
+    id = id,
+    name = name,
+    description = "A $rarity ${itemType.lowercase()}",
+    itemType = ItemType.valueOf(itemType),
+    rarity = ItemRarity.valueOf(rarity),
+    value = value
+)
