@@ -23,7 +23,7 @@ class DefaultCurseService(
     private var lastTickAtMs: Long? = null
 
     companion object {
-        private const val RETREAT_GRACE_SECONDS = 10
+        private const val RETREAT_GRACE_SECONDS = 30
         private const val LATE_RETREAT_THRESHOLD = 0.80
         private const val LATE_RETREAT_LOOT_PENALTY = 0.25
         private const val CURSE_SOFT_CAP_MIN = 30

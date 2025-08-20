@@ -109,14 +109,20 @@ class QuestStore(
             QuestMsg.DataLoaded(hero, active)
         }
 
-        val tickFlow: Flow<QuestMsg> = combine(activeQuestFlow, ticker.seconds) { active, now ->
-            if (active != null && active.isActive) {
-                val elapsed = now - active.startTime
-                val total = active.durationMinutes.minutes
-                val remaining = total - elapsed
+        val tickFlow: Flow<QuestMsg> = combine(
+            activeQuestFlow,
+            ticker.seconds
+        ) { activeFromRepo, now ->
+            val a = activeFromRepo ?: _state.value.activeQuest
+
+            if (a != null && a.isActive) {
+                val total = a.durationMinutes.minutes
+                val elapsed = now - a.startTime
+                val remaining = (total - elapsed)
                 val clampedRemaining = if (remaining <= Duration.ZERO) Duration.ZERO else remaining
                 val progress = if (remaining <= Duration.ZERO) 1f else
                     (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat()).coerceIn(0f, 1f)
+
                 QuestMsg.TimerTick(clampedRemaining, progress)
             } else {
                 QuestMsg.TimerTick(Duration.ZERO, 0f)
