@@ -272,8 +272,8 @@ fun QuestScreen(
     // ── Adventure log sheet ──────────────────────────────────────────────────────
     if (showAdventureLog) {
         AdventureLogSheet(
-            events = uiState.adventureLog,
-            loading = uiState.isAdventureLogLoading,
+            events = if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog,
+            loading = uiState.isAdventureLogLoading && !uiState.hasActiveQuest,
             onDismiss = { showAdventureLog = false }
         )
     }

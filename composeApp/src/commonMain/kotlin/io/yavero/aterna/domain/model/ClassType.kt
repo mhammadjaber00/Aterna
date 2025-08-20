@@ -14,7 +14,7 @@ enum class ClassType(
     WARRIOR(
         "Warrior",
         "+20% Gold",
-        "Turns effort into XP.",
+        "Turns effort into Gold.",
         xpMultiplier = 1.0,
         goldMultiplier = 1.2,
         cooldownReduction = 0.0
@@ -22,7 +22,7 @@ enum class ClassType(
     MAGE(
         "Mage",
         "+30% XP",
-        "Turns insight into Gold.",
+        "Turns insight into XP.",
         xpMultiplier = 1.3,
         goldMultiplier = 1.0,
         cooldownReduction = 0.0

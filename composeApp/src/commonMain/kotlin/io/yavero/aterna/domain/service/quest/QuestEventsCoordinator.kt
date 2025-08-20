@@ -56,12 +56,30 @@ class DefaultQuestEventsCoordinator(
 
             ensurePlanIfMissing(hero, active)
 
-            // Only replay if we have a frozen ledger snapshot
             val snap = questRepository.getLedgerSnapshot(active.id)
-            val newCount = if (snap != null) {
-                replayDueEventsWithLedger(hero, active, now, snap)
-            } else 0
 
+            if (snap == null) {
+                val (preview, bump) = buildLivePreview(hero, active, now)
+                if (bump) {
+                    val endTime = active.startTime.plus(active.durationMinutes.minutes)
+                    runCatching {
+                        questNotifier.showOngoing(
+                            sessionId = active.id,
+                            title = "Quest Active",
+                            text = preview.lastOrNull()?.message ?: "Adventuring...",
+                            endAt = endTime
+                        )
+                    }
+                }
+                return@combine FeedSnapshot(
+                    preview = preview,
+                    latestText = preview.lastOrNull()?.message,
+                    bumpPulse = bump
+                )
+            }
+
+            // Existing authoritative path (unchanged)
+            val newCount = replayDueEventsWithLedger(hero, active, now, snap)
             val needRefresh = (lastPreviewQuestId != active.id) || (newCount > 0)
             if (needRefresh) {
                 cachedPreview = questRepository
@@ -86,6 +104,28 @@ class DefaultQuestEventsCoordinator(
 
             FeedSnapshot(cachedPreview, null, bumpPulse = false)
         }
+    }
+
+    private suspend fun buildLivePreview(
+        hero: Hero,
+        quest: Quest,
+        now: Instant
+    ): Pair<List<QuestEvent>, Boolean> {
+        val plan = questRepository.getQuestPlan(quest.id)
+        if (plan.isEmpty()) return emptyList<QuestEvent>() to false
+
+        val due = plan.filter { it.dueAt <= now }.sortedBy { it.idx }
+
+        val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
+        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
+        val preview = due.map { p ->
+            QuestResolver.resolveFromLedger(ctx, p, xpDelta = 0, goldDelta = 0)
+        }
+
+        val bump = (lastPreviewQuestId != quest.id) || (preview.size > cachedPreview.size)
+        lastPreviewQuestId = quest.id
+        cachedPreview = preview
+        return preview to bump
     }
 
     private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {

@@ -16,7 +16,9 @@ import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.service.quest.LedgerSnapshot
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.PlanHash
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlin.time.Instant
 
 class QuestRepositoryImpl(
@@ -36,12 +38,8 @@ class QuestRepositoryImpl(
     }
 
     override fun observeActiveQuest(): Flow<Quest?> {
-        return heroRepository.getHero()
-            .flatMapLatest {
-                flow {
-                    emit(questQueries.selectActiveQuestGlobal().executeAsOneOrNull()?.let(::mapEntityToDomain))
-                }
-            }
+        return questQueries.selectActiveQuestGlobal().asFlow()
+            .map { it.executeAsOneOrNull()?.let(::mapEntityToDomain) }
             .distinctUntilChanged()
     }
 
@@ -66,6 +64,7 @@ class QuestRepositoryImpl(
         startDate: Instant,
         endDate: Instant
     ): List<Quest> {
+        // (Optional) could be a dedicated SQL query; this is fine for now.
         return questQueries.selectQuestsByHero(heroId)
             .executeAsList()
             .filter { e ->
@@ -97,6 +96,8 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun updateQuest(quest: Quest) {
+        // NOTE: This keeps xp/gold 0 unless you're explicitly writing them here.
+        // We rely on updateQuestCompletion(...) for real totals.
         questQueries.updateQuestCompletion(
             endTime = quest.endTime?.epochSeconds,
             completed = if (quest.completed) 1L else 0L,

@@ -16,6 +16,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 class MockQuestApi : QuestApi {
 
+
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {
         delay(300L + (request.durationMinutes % 200))
 
