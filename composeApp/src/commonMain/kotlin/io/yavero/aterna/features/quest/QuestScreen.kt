@@ -51,9 +51,6 @@ fun QuestScreen(
     var showAdventureLog by rememberSaveable { mutableStateOf(false) }
     var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
 
-    // NEW: user can suppress the retreat confirm dialog
-    var dontShowRetreatConfirm by rememberSaveable { mutableStateOf(false) }
-
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -86,19 +83,13 @@ fun QuestScreen(
     // From notification hints
     LaunchedEffect(uiState.pendingShowRetreatConfirm) {
         if (uiState.pendingShowRetreatConfirm) {
-            if (dontShowRetreatConfirm) {
-                component.onGiveUpQuest()
-            } else {
-                showRetreatConfirm = true
-            }
-            component.onConsumeUiHints()
+            showRetreatConfirm = true
         }
     }
     LaunchedEffect(uiState.pendingShowAdventureLog) {
         if (uiState.pendingShowAdventureLog) {
             showAdventureLog = true
             component.onLoadAdventureLog()
-            component.onConsumeUiHints()
         }
     }
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading) {
@@ -226,11 +217,7 @@ fun QuestScreen(
                                 .fillMaxWidth(0.62f)
                                 .height(56.dp),
                             onConfirmed = {
-                                if (dontShowRetreatConfirm) {
-                                    component.onGiveUpQuest()
-                                } else {
-                                    showRetreatConfirm = true
-                                }
+                                showRetreatConfirm = true
                             }
                         )
                     }
@@ -336,20 +323,6 @@ fun QuestScreen(
                     )
 
                     Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable {
-                                dontShowRetreatConfirm = !dontShowRetreatConfirm
-                            }
-                    ) {
-                        Checkbox(
-                            checked = dontShowRetreatConfirm,
-                            onCheckedChange = { dontShowRetreatConfirm = it }
-                        )
-                        Text("Don't show this again", modifier = Modifier.padding(start = 6.dp))
-                    }
                 }
             },
             confirmButton = {

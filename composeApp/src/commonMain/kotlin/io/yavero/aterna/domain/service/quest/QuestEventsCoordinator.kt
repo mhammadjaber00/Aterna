@@ -1,5 +1,4 @@
 @file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.yavero.aterna.domain.service.quest
 
 import io.yavero.aterna.domain.model.Hero
@@ -14,11 +13,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 interface QuestEventsCoordinator {
-    /** Ensures plan and replays due events; emits preview & latest message for UI/notification */
+    /** Ensures plan; if a ledger snapshot exists, replays due beats using it. */
     fun observe(
         heroFlow: Flow<Hero?>,
         activeQuestFlow: Flow<Quest?>,
@@ -26,44 +24,54 @@ interface QuestEventsCoordinator {
     ): Flow<FeedSnapshot>
 }
 
-@OptIn(ExperimentalTime::class)
 data class FeedSnapshot(
     val preview: List<QuestEvent>,
     val latestText: String?,
     val bumpPulse: Boolean
 )
 
-@OptIn(ExperimentalTime::class)
 class DefaultQuestEventsCoordinator(
     private val questRepository: QuestRepository,
     private val questNotifier: QuestNotifier,
 ) : QuestEventsCoordinator {
 
     private var lastPlannedQuestId: String? = null
+    private var lastPreviewQuestId: String? = null
+    private var cachedPreview: List<QuestEvent> = emptyList()
 
     override fun observe(
         heroFlow: Flow<Hero?>,
         activeQuestFlow: Flow<Quest?>,
         ticker: Flow<Instant>
     ): Flow<FeedSnapshot> {
-        // Combine latest hero + active quest + tick
         val nonNullHero = heroFlow.filterNotNull()
         val nonNullActive = activeQuestFlow
 
         return combine(nonNullHero, nonNullActive, ticker) { hero, active, now ->
             if (active == null || active.endTime != null || active.gaveUp) {
+                lastPreviewQuestId = null
+                cachedPreview = emptyList()
                 return@combine FeedSnapshot(emptyList(), null, bumpPulse = false)
             }
 
             ensurePlanIfMissing(hero, active)
-            val newCount = replayDueEvents(hero, active, now)
 
-            val preview = questRepository
-                .getQuestEventsPreview(active.id, PREVIEW_WINDOW)
-                .sortedBy { it.idx }
+            // Only replay if we have a frozen ledger snapshot
+            val snap = questRepository.getLedgerSnapshot(active.id)
+            val newCount = if (snap != null) {
+                replayDueEventsWithLedger(hero, active, now, snap)
+            } else 0
+
+            val needRefresh = (lastPreviewQuestId != active.id) || (newCount > 0)
+            if (needRefresh) {
+                cachedPreview = questRepository
+                    .getQuestEventsPreview(active.id, PREVIEW_WINDOW)
+                    .sortedBy { it.idx }
+                lastPreviewQuestId = active.id
+            }
 
             if (newCount > 0) {
-                val lastText = preview.lastOrNull()?.message ?: "Adventuring..."
+                val lastText = cachedPreview.lastOrNull()?.message ?: "Adventuring..."
                 val endTime = active.startTime.plus(active.durationMinutes.minutes)
                 runCatching {
                     questNotifier.showOngoing(
@@ -73,16 +81,15 @@ class DefaultQuestEventsCoordinator(
                         endAt = endTime
                     )
                 }
-                return@combine FeedSnapshot(preview, lastText, bumpPulse = true)
+                return@combine FeedSnapshot(cachedPreview, lastText, bumpPulse = true)
             }
 
-            FeedSnapshot(preview, null, bumpPulse = false)
+            FeedSnapshot(cachedPreview, null, bumpPulse = false)
         }
     }
 
     private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
-        val alreadyPlannedFor = lastPlannedQuestId
-        if (alreadyPlannedFor == quest.id) return
+        if (lastPlannedQuestId == quest.id) return
 
         val currentPlan = questRepository.getQuestPlan(quest.id)
         if (currentPlan.isNotEmpty()) {
@@ -90,7 +97,7 @@ class DefaultQuestEventsCoordinator(
             return
         }
 
-        val seed = computeSeed(hero, quest)
+        val seed = QuestEconomyImpl.computeBaseSeed(hero, quest)
         val spec = PlannerSpec(
             durationMinutes = quest.durationMinutes,
             seed = seed,
@@ -103,34 +110,41 @@ class DefaultQuestEventsCoordinator(
         lastPlannedQuestId = quest.id
     }
 
-    private suspend fun replayDueEvents(hero: Hero, quest: Quest, now: Instant): Int {
-        val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
+    private suspend fun replayDueEventsWithLedger(
+        hero: Hero,
+        quest: Quest,
+        now: Instant,
+        snap: LedgerSnapshot
+    ): Int {
         val plan = questRepository.getQuestPlan(quest.id)
         if (plan.isEmpty()) return 0
+        val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
 
-        val ctx = QuestResolver.Context(
+        // Rebuild deterministic ledger from stored totals
+        val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
+        val ledger = RewardAllocator.allocate(
             questId = quest.id,
-            baseSeed = computeSeed(hero, quest),
+            baseSeed = baseSeed,
             heroLevel = hero.level,
-            classType = hero.classType
+            classType = hero.classType,
+            plan = plan,
+            finalTotals = io.yavero.aterna.domain.model.QuestLoot(snap.totalXp, snap.totalGold)
         )
+        val byIdx = ledger.entries.associateBy { it.eventIdx }
+        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
 
         var newCount = 0
         plan.filter { it.dueAt <= now && it.idx > lastIdx }
             .sortedBy { it.idx }
             .forEach { p ->
-                val ev = QuestResolver.resolve(ctx, p)
+                val entry = byIdx[p.idx]
+                val ev = io.yavero.aterna.domain.util.QuestResolver.resolveFromLedger(
+                    ctx, p, xpDelta = entry?.xpDelta ?: 0, goldDelta = entry?.goldDelta ?: 0
+                )
                 questRepository.appendQuestEvent(ev)
                 newCount++
             }
         return newCount
-    }
-
-    private fun computeSeed(hero: Hero, quest: Quest): Long {
-        val a = quest.startTime.toEpochMilliseconds()
-        val b = quest.id.hashCode().toLong()
-        val c = hero.id.hashCode().toLong()
-        return a xor b xor c
     }
 
     private companion object {

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.domain.repository
 
 import io.yavero.aterna.domain.model.Hero
@@ -5,15 +7,14 @@ import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.domain.service.quest.LedgerSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 interface QuestRepository {
-    @Deprecated("Use getQuestsByHero(heroId) and filter active quest in consumer")
-    fun getActiveQuest(): Flow<Quest?>
     suspend fun getCurrentActiveQuest(): Quest?
+    fun observeActiveQuest(): Flow<Quest?>
     fun getQuestsByHero(heroId: String): Flow<List<Quest>>
     fun getActiveQuestByHero(heroId: String): Flow<Quest?>
     suspend fun getRecentQuests(heroId: String, limit: Int): List<Quest>
@@ -31,19 +32,18 @@ interface QuestRepository {
     )
     suspend fun markQuestGaveUp(questId: String, endTime: Instant)
 
-    // Planner & log
+    suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot
+
+    // Plan + events
     suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>)
     suspend fun getQuestPlan(questId: String): List<PlannedEvent>
     suspend fun clearQuestPlan(questId: String)
-
     suspend fun appendQuestEvent(event: QuestEvent)
-
     suspend fun getQuestEvents(questId: String): List<QuestEvent>
-
     suspend fun getQuestEventsPreview(questId: String, limit: Int): List<QuestEvent>
-
     suspend fun getLastResolvedEventIdx(questId: String): Int
 
-    // Remote
-    suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot
+    // Ledger snapshot (freeze allocation totals + metadata)
+    suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot)
+    suspend fun getLedgerSnapshot(questId: String): LedgerSnapshot?
 }

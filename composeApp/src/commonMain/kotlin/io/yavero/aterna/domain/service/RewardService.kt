@@ -5,15 +5,14 @@ import io.yavero.aterna.domain.model.StatusEffectType
 import io.yavero.aterna.domain.repository.StatusEffectRepository
 import io.yavero.aterna.domain.util.TimeProvider
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 class RewardService(
     private val effectsRepo: StatusEffectRepository,
     private val time: TimeProvider
 ) {
-    fun applyModifiers(base: QuestLoot): QuestLoot {
+    suspend fun applyModifiers(base: QuestLoot): QuestLoot {
         val now = time.nowMs()
-        val active = runBlocking { effectsRepo.observeActiveEffects().first() }
+        val active = effectsRepo.observeActiveEffects().first()
         val curseActive = active.any { it.type == StatusEffectType.CURSE_EARLY_EXIT && now < it.expiresAtEpochMs }
 
         return if (curseActive) {

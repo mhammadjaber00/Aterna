@@ -126,6 +126,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+}
+
 sqldelight {
     databases {
         create("AternaDatabase") {

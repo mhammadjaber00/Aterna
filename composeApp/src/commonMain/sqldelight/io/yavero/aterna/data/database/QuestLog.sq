@@ -9,6 +9,13 @@ CREATE TABLE QuestLogEntity (
     xpGained INTEGER NOT NULL DEFAULT 0,
     goldGained INTEGER NOT NULL DEFAULT 0,
     serverValidated INTEGER NOT NULL DEFAULT 0,
+
+    -- Reward ledger snapshot (frozen allocation totals + metadata)
+    ledgerVersion INTEGER,           -- null until frozen; set to 1 currently
+    ledgerHash TEXT,                 -- stable hash of (version, plan, allocations)
+    ledgerTotalXp INTEGER,           -- final XP used to build the ledger
+    ledgerTotalGold INTEGER,         -- final Gold used to build the ledger
+
     createdAt INTEGER NOT NULL,
     FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
 );
@@ -20,17 +27,40 @@ SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC;
 selectRecentQuests:
 SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC LIMIT ?;
 
+-- Global helpers
+selectActiveQuestGlobal:
+SELECT * FROM QuestLogEntity WHERE endTime IS NULL AND gaveUp = 0 ORDER BY startTime DESC LIMIT 1;
+
+selectActiveQuestsGlobal:
+SELECT * FROM QuestLogEntity WHERE endTime IS NULL AND gaveUp = 0 ORDER BY startTime DESC;
+
 insertQuest:
-INSERT INTO QuestLogEntity 
-(id, heroId, durationMinutes, startTime, endTime, completed, gaveUp, xpGained, goldGained, serverValidated, createdAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO QuestLogEntity
+(id, heroId, durationMinutes, startTime, endTime, completed, gaveUp, xpGained, goldGained, serverValidated, ledgerVersion, ledgerHash, ledgerTotalXp, ledgerTotalGold, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateQuestCompletion:
-UPDATE QuestLogEntity 
+UPDATE QuestLogEntity
 SET endTime = ?, completed = ?, xpGained = ?, goldGained = ?, serverValidated = ?
+WHERE id = ?;
+
+-- Ledger snapshot helpers (used by QuestRepositoryImpl.save/getLedgerSnapshot)
+updateLedgerSnapshot:
+UPDATE QuestLogEntity
+SET ledgerVersion = ?, ledgerHash = ?, ledgerTotalXp = ?, ledgerTotalGold = ?
+WHERE id = ?;
+
+selectLedgerSnapshot:
+SELECT ledgerVersion, ledgerHash, ledgerTotalXp, ledgerTotalGold
+FROM QuestLogEntity
 WHERE id = ?;
 
 updateQuestGaveUp:
 UPDATE QuestLogEntity
 SET endTime = ?, completed = 0, gaveUp = 1, xpGained = 0, goldGained = 0, serverValidated = 0
 WHERE id = ?;
+
+-- Enforce at most one active quest globally
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_quest
+ON QuestLogEntity ((CASE WHEN endTime IS NULL AND gaveUp = 0 THEN 1 END))
+WHERE endTime IS NULL AND gaveUp = 0;

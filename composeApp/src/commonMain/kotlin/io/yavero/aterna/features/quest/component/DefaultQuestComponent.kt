@@ -23,8 +23,7 @@ class DefaultQuestComponent(
     private val onShowQuestCompleted: (QuestLoot) -> Unit = {},
     private val onShowQuestGaveUp: () -> Unit = {},
     private val onShowLevelUp: (Int) -> Unit = {},
-    private val onShowLootReward: (QuestLoot) -> Unit = {},
-    private val onShowHeroCreated: () -> Unit = {}
+    private val onShowLootReward: (QuestLoot) -> Unit = {}
 ) : QuestComponent, ComponentContext by componentContext {
 
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -65,27 +64,18 @@ class DefaultQuestComponent(
         questStore.process(QuestIntent.LoadAdventureLog)
     }
 
-    override fun onConsumeUiHints() {
-        questStore.process(QuestIntent.ConsumeUiHints)
-    }
-
     private fun handleEffect(effect: QuestEffect) {
         when (effect) {
             is QuestEffect.ShowQuestCompleted -> onShowQuestCompleted(effect.loot)
             QuestEffect.ShowQuestGaveUp -> onShowQuestGaveUp()
             is QuestEffect.ShowLevelUp -> onShowLevelUp(effect.newLevel)
             QuestEffect.ShowQuestStarted -> {}
-            QuestEffect.ShowCooldownStarted -> {}
-            QuestEffect.ShowCooldownEnded -> {}
             is QuestEffect.ShowError -> onShowError(effect.message)
             is QuestEffect.ShowSuccess -> onShowSuccess(effect.message)
             is QuestEffect.ShowLootReward -> onShowLootReward(effect.loot)
             QuestEffect.PlayQuestCompleteSound -> onPlayQuestCompleteSound()
             QuestEffect.PlayQuestFailSound -> onPlayQuestFailSound()
             QuestEffect.VibrateDevice -> onVibrateDevice()
-            QuestEffect.ShowHeroCreated -> onShowHeroCreated()
-            is QuestEffect.ShowXPGained -> {}
-            is QuestEffect.ShowGoldGained -> {}
         }
     }
 }

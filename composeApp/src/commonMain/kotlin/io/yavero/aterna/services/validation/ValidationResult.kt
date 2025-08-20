@@ -39,11 +39,9 @@ object QuestValidationService {
             return ValidationResult(false, "Quest took too long")
         }
 
-        // Start far in the future?
         if (start.epochSeconds > now.epochSeconds + futureStartGraceSeconds) {
             return ValidationResult(false, "Start time is in the future")
         }
-        // End far in the future?
         if (end.epochSeconds > now.epochSeconds + futureEndGraceSeconds) {
             return ValidationResult(false, "End time is in the future")
         }

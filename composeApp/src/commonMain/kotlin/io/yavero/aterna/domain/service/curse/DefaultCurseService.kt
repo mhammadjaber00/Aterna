@@ -7,14 +7,14 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Default implementation of CurseService.
+ * Default implementation.
  *
- * Rules summary:
- * - Grace window: first 30s from quest start -> retreat causes no curse.
- * - Late retreat: after >=80% progress -> allow loot with 25% penalty, no curse.
- * - Normal retreat: apply/extend CURSE_EARLY_EXIT; duration equals remaining quest time, accumulates if already active.
- * - Soft cap: total curse duration cannot exceed 30 minutes from now.
- * - While questing, any active curse drains 2x speed (expiry moves closer by 1x per tick in addition to time passing).
+ * Rules:
+ * - Grace window: first **10s** from quest start → no curse.
+ * - Late retreat: ≥80% progress → loot with 25% penalty, no curse.
+ * - Normal retreat: apply/extend CURSE_EARLY_EXIT by remaining time; accumulates.
+ * - Soft cap: total curse time ≤ 30m from now.
+ * - While questing: active curse drains 2× (expiry pulled in by +1× per tick).
  */
 class DefaultCurseService(
     private val effects: StatusEffectRepository
@@ -23,18 +23,23 @@ class DefaultCurseService(
     private var lastTickAtMs: Long? = null
 
     companion object {
-        private const val RETREAT_GRACE_SECONDS = 30
+        private const val RETREAT_GRACE_SECONDS = 10
         private const val LATE_RETREAT_THRESHOLD = 0.80
-        private const val LATE_RETREAT_LOOT_PENALTY = 0.35
+        private const val LATE_RETREAT_LOOT_PENALTY = 0.25
         private const val CURSE_SOFT_CAP_MIN = 30
         private const val CURSE_ID = "curse-early-exit"
     }
 
-    override fun isInGrace(elapsedSeconds: Long): Boolean = elapsedSeconds < RETREAT_GRACE_SECONDS
+    override fun rules(): CurseService.RetreatRules = CurseService.RetreatRules(
+        graceSeconds = RETREAT_GRACE_SECONDS,
+        lateThreshold = LATE_RETREAT_THRESHOLD,
+        latePenalty = LATE_RETREAT_LOOT_PENALTY,
+        softCapMinutes = CURSE_SOFT_CAP_MIN
+    )
 
+    override fun isInGrace(elapsedSeconds: Long): Boolean = elapsedSeconds < RETREAT_GRACE_SECONDS
     override fun isLateRetreat(progress: Double, inGrace: Boolean): Boolean =
         !inGrace && progress >= LATE_RETREAT_THRESHOLD
-
     override fun lateRetreatPenalty(): Double = LATE_RETREAT_LOOT_PENALTY
 
     override suspend fun onTick(isQuestActive: Boolean, nowMs: Long): Duration {
@@ -56,7 +61,7 @@ class DefaultCurseService(
 
     override suspend fun applyNormalRetreatCurse(nowMs: Long, remainingMs: Long): Long {
         val existing = effects.getActiveBy(StatusEffectType.CURSE_EARLY_EXIT, nowMs)
-        val capMs = (CURSE_SOFT_CAP_MIN * 60_000L)
+        val capMs = CURSE_SOFT_CAP_MIN * 60_000L
         val hardCapExpiry = nowMs + capMs
         val targetExpiry = if (existing != null && existing.expiresAtEpochMs > nowMs) {
             (existing.expiresAtEpochMs + remainingMs).coerceAtMost(hardCapExpiry)

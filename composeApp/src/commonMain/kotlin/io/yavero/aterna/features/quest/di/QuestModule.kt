@@ -1,10 +1,7 @@
 package io.yavero.aterna.features.quest.di
 
 import io.yavero.aterna.domain.service.curse.CurseService
-import io.yavero.aterna.domain.service.quest.DefaultQuestEventsCoordinator
-import io.yavero.aterna.domain.service.quest.QuestActionService
-import io.yavero.aterna.domain.service.quest.QuestActionServiceImpl
-import io.yavero.aterna.domain.service.quest.QuestEventsCoordinator
+import io.yavero.aterna.domain.service.quest.*
 import io.yavero.aterna.domain.service.ticker.DefaultTicker
 import io.yavero.aterna.domain.service.ticker.Ticker
 import io.yavero.aterna.features.quest.presentation.QuestStore
@@ -18,20 +15,22 @@ val focusModule = module {
 
     single<CurseService> { io.yavero.aterna.domain.service.curse.DefaultCurseService(effects = get()) }
     single<Ticker> { DefaultTicker(scope = get()) }
+    single<QuestEconomy> { QuestEconomyImpl(rewards = get()) }
     single<QuestActionService> {
         QuestActionServiceImpl(
             heroRepository = get(),
             questRepository = get(),
             questNotifier = get(),
             curseService = get(),
-            rewardService = get(),
+            economy = get(),
             bankingStrategy = get(),
         )
     }
     single<QuestEventsCoordinator> {
         DefaultQuestEventsCoordinator(
             questRepository = get(),
-            questNotifier = get()
+            questNotifier = get(),
+            economy = get()
         )
     }
 

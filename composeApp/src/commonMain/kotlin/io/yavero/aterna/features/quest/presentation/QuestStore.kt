@@ -24,7 +24,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class QuestStore(
-    private val heroRepository: HeroRepository,
+    heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
     private val actions: QuestActionService,
     private val events: QuestEventsCoordinator,
@@ -44,9 +44,9 @@ class QuestStore(
     private val heroFlow: SharedFlow<Hero?> = heroRepository.getHero()
         .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
-    private val activeQuestFlow: SharedFlow<Quest?> = heroFlow
-        .flatMapLatest { h -> if (h == null) flowOf<Quest?>(null) else questRepository.getActiveQuestByHero(h.id) }
-        .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
+    private val activeQuestFlow: SharedFlow<Quest?> =
+        questRepository.observeActiveQuest()
+            .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
 
     init {
