@@ -29,8 +29,7 @@ val focusModule = module {
     single<QuestEventsCoordinator> {
         DefaultQuestEventsCoordinator(
             questRepository = get(),
-            questNotifier = get(),
-            economy = get()
+            questNotifier = get()
         )
     }
 
