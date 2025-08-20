@@ -36,7 +36,7 @@ fun QuestBottomChrome(
         }
 
         AnimatedVisibility(
-            visible = !chromeHidden,
+            visible = hasActiveQuest,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
