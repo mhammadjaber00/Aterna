@@ -7,7 +7,7 @@ import io.yavero.aterna.data.remote.QuestApi
 import io.yavero.aterna.data.remote.createMockQuestApi
 import io.yavero.aterna.data.repository.*
 import io.yavero.aterna.domain.repository.*
-import io.yavero.aterna.domain.service.RewardService
+import io.yavero.aterna.domain.service.quest.RewardService
 import io.yavero.aterna.domain.util.FixedIntervalBankingStrategy
 import io.yavero.aterna.domain.util.RealTimeProvider
 import io.yavero.aterna.domain.util.RewardBankingStrategy

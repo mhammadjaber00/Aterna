@@ -4,7 +4,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingRootComponent
-import io.yavero.aterna.features.quest.component.QuestComponent
+import io.yavero.aterna.features.quest.presentation.QuestComponent
 
 interface AppRootComponent {
     val childStack: Value<ChildStack<*, Child>>

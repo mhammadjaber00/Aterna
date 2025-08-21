@@ -248,8 +248,15 @@ class QuestStore(
 
             is QuestMsg.CurseTick -> state.copy(curseTimeRemaining = msg.timeRemaining)
 
-            QuestMsg.WantRetreatConfirm -> state.copy(pendingShowRetreatConfirm = true)
-            QuestMsg.WantAdventureLog -> state.copy(pendingShowAdventureLog = true)
+            QuestMsg.WantRetreatConfirm -> state.copy(
+                pendingShowRetreatConfirm = true,
+                pendingShowAdventureLog = false
+            )
+
+            QuestMsg.WantAdventureLog -> state.copy(
+                pendingShowAdventureLog = true,
+                pendingShowRetreatConfirm = false
+            )
 
             is QuestMsg.RulesLoaded -> state.copy(
                 retreatGraceSeconds = msg.rules.graceSeconds,

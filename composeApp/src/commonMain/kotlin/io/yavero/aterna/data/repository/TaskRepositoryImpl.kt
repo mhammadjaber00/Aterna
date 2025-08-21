@@ -11,7 +11,7 @@ import io.yavero.aterna.data.database.TaskEntity
 import io.yavero.aterna.domain.model.Subtask
 import io.yavero.aterna.domain.model.Task
 import io.yavero.aterna.domain.repository.TaskRepository
-import io.yavero.aterna.domain.service.TaskNotificationService
+import io.yavero.aterna.domain.service.quest.TaskNotificationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.features.quest.component.*
+import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.ui.components.MagicalBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,8 +72,8 @@ fun QuestScreen(
     LaunchedEffect(uiState.pendingShowRetreatConfirm) {
         if (uiState.pendingShowRetreatConfirm) showRetreatConfirm = true
     }
-    LaunchedEffect(uiState.pendingShowAdventureLog) {
-        if (uiState.pendingShowAdventureLog) {
+    LaunchedEffect(uiState.pendingShowAdventureLog, uiState.pendingShowRetreatConfirm) {
+        if (uiState.pendingShowAdventureLog && !uiState.pendingShowRetreatConfirm) {
             showAdventureLog = true
             component.onLoadAdventureLog()
         }

@@ -1,7 +1,6 @@
-package io.yavero.aterna.features.quest.component
+package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.features.quest.presentation.QuestState
 import kotlinx.coroutines.flow.StateFlow
 
 interface QuestComponent {

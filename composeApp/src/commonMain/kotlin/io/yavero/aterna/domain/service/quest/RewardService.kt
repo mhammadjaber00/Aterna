@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.service
+package io.yavero.aterna.domain.service.quest
 
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.StatusEffectType

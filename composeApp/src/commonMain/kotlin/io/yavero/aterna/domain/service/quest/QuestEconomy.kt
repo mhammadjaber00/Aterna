@@ -5,10 +5,10 @@ package io.yavero.aterna.domain.service.quest
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
-import io.yavero.aterna.domain.service.RewardService
 import io.yavero.aterna.domain.util.LootRoller
 
 interface QuestEconomy {
+
     suspend fun completion(hero: Hero, quest: Quest, serverLootOverride: QuestLoot? = null): EconomyResult
     suspend fun banked(hero: Hero, quest: Quest, minutes: Int, penalty: Double? = null): EconomyResult
 }

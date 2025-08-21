@@ -16,7 +16,7 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.classselection.ClassSelectionScreen
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
-import io.yavero.aterna.features.quest.component.QuestComponent
+import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.features.timer.TimerScreen
 import io.yavero.aterna.navigation.AppRootComponent
 import io.yavero.aterna.features.quest.screen.QuestScreen as FeatureQuestScreen

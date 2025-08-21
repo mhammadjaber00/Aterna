@@ -1,13 +1,9 @@
-package io.yavero.aterna.features.quest.component
+package io.yavero.aterna.features.quest.presentation
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.QuestLoot
-import io.yavero.aterna.features.quest.presentation.QuestEffect
-import io.yavero.aterna.features.quest.presentation.QuestIntent
-import io.yavero.aterna.features.quest.presentation.QuestState
-import io.yavero.aterna.features.quest.presentation.QuestStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 

@@ -8,7 +8,7 @@ import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.SettingsRepository
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
-import io.yavero.aterna.features.quest.component.DefaultQuestComponent
+import io.yavero.aterna.features.quest.presentation.DefaultQuestComponent
 import io.yavero.aterna.features.quest.presentation.QuestIntent
 import io.yavero.aterna.features.quest.presentation.QuestStore
 import kotlinx.coroutines.runBlocking
