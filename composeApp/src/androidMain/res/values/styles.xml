@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App theme applied after the splash screen -->
+    <style name="Theme.Aterna" parent="@android:style/Theme.Material.Light.NoActionBar"/>
+
+    <!-- SplashScreen theme (Android 12+) -->
+    <style name="Theme.Aterna.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Aterna</item>
+    </style>
+</resources>

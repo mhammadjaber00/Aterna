@@ -27,7 +27,6 @@ fun QuestScreen(
 ) {
     val uiState by component.uiState.collectAsState()
 
-    // Ephemeral UI flags
     var showStatsPopup by rememberSaveable { mutableStateOf(false) }
     var showInventoryPopup by rememberSaveable { mutableStateOf(false) }
     var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
@@ -40,7 +39,6 @@ fun QuestScreen(
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
     var showLoot by rememberSaveable { mutableStateOf(false) }
 
-    // ---- Side effects (kept here for clarity, but isolated) -------------------
     LaunchedEffect(uiState.hasActiveQuest) { chromeHidden = uiState.hasActiveQuest }
 
     LaunchedEffect(uiState.hero?.level) {
@@ -56,7 +54,6 @@ fun QuestScreen(
     LaunchedEffect(uiState.isQuestCompleted) {
         if (uiState.isQuestCompleted) component.onLoadAdventureLog()
     }
-    // Only hit the DB when the sheet is open AND there’s no active quest
     LaunchedEffect(uiState.eventPulseCounter, showAdventureLog, uiState.hasActiveQuest) {
         if (showAdventureLog && !uiState.hasActiveQuest) component.onLoadAdventureLog()
     }
@@ -68,7 +65,6 @@ fun QuestScreen(
         }
     }
 
-    // Notification hints
     LaunchedEffect(uiState.pendingShowRetreatConfirm) {
         if (uiState.pendingShowRetreatConfirm) showRetreatConfirm = true
     }
@@ -81,7 +77,6 @@ fun QuestScreen(
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) showLoot = true
     }
-    // ---------------------------------------------------------------------------
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -144,7 +139,6 @@ fun QuestScreen(
                             .padding(horizontal = 16.dp)
                     )
 
-                    // Bottom chrome (retreat button + log peek)
                     QuestBottomChrome(
                         hasActiveQuest = uiState.hasActiveQuest,
                         chromeHidden = chromeHidden,
@@ -156,8 +150,6 @@ fun QuestScreen(
             }
         }
     }
-
-    // ---- Overlays --------------------------------------------------------------
 
     if (showLoot) {
         val questAtOpen = remember(showLoot) { uiState.activeQuest }

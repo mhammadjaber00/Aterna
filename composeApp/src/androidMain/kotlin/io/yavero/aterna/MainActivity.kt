@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arkivanov.decompose.defaultComponentContext
 import io.yavero.aterna.features.quest.notification.QuestActions
 import io.yavero.aterna.features.quest.presentation.QuestIntent
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var rootComponent: DefaultAppRootComponent
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
