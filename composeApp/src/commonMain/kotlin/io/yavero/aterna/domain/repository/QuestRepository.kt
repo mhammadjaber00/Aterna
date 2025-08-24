@@ -42,6 +42,7 @@ interface QuestRepository {
     suspend fun getQuestEvents(questId: String): List<QuestEvent>
     suspend fun getQuestEventsPreview(questId: String, limit: Int): List<QuestEvent>
     suspend fun getLastResolvedEventIdx(questId: String): Int
+    suspend fun countNarrationEvents(questId: String): Int
 
     // Ledger snapshot (freeze allocation totals + metadata)
     suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot)

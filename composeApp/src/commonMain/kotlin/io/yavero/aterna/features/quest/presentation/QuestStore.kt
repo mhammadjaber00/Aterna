@@ -107,6 +107,7 @@ class QuestStore(
                 reduce(QuestMsg.WantAdventureLog)
                 loadAdventureLog()
             }
+            QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }
 

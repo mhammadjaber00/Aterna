@@ -11,6 +11,7 @@ class DefaultQuestComponent(
     componentContext: ComponentContext,
     private val questStore: QuestStore,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
+    private val onNavigateToInventoryCallback: () -> Unit = {},
 
     // UI channels / side effects
     private val onShowError: (String) -> Unit = {},
@@ -64,6 +65,10 @@ class DefaultQuestComponent(
 
     override fun onNavigateToTimer(initialMinutes: Int, classType: ClassType) {
         onNavigateToTimerCallback(initialMinutes, classType)
+    }
+
+    override fun onNavigateToInventory() {
+        onNavigateToInventoryCallback()
     }
 
     override fun onLoadAdventureLog() {

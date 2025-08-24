@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.features.quest.component.*
+import io.yavero.aterna.features.quest.component.dialogs.AnalyticsPopupDialog
+import io.yavero.aterna.features.quest.component.dialogs.LootDisplayDialog
 import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.ui.components.MagicalBackground
 
@@ -28,7 +30,6 @@ fun QuestScreen(
     val uiState by component.uiState.collectAsState()
 
     var showStatsPopup by rememberSaveable { mutableStateOf(false) }
-    var showInventoryPopup by rememberSaveable { mutableStateOf(false) }
     var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
     var showAdventureLog by rememberSaveable { mutableStateOf(false) }
     var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
@@ -133,7 +134,7 @@ fun QuestScreen(
                             statsBadge = statsBadge,
                             inventoryBadge = inventoryBadge,
                             onToggleStats = { statsBadge = false; showStatsPopup = true },
-                            onToggleInventory = { inventoryBadge = false; showInventoryPopup = true },
+                            onToggleInventory = { inventoryBadge = false; component.onNavigateToInventory() },
                             onToggleAnalytics = { showAnalyticsPopup = true }
                         )
                     }
@@ -211,15 +212,6 @@ fun QuestScreen(
 
     AnimatedVisibility(visible = showStatsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
         StatsPopupDialog(hero = uiState.hero, onDismiss = { showStatsPopup = false })
-    }
-
-    AnimatedVisibility(visible = showInventoryPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-        InventoryPopupDialog(
-            hero = uiState.hero,
-            ownedItemIds = uiState.ownedItemIds,
-            newlyAcquiredItemIds = uiState.newlyAcquiredItemIds,
-            onDismiss = { showInventoryPopup = false }
-        )
     }
 
     AnimatedVisibility(visible = showAnalyticsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {

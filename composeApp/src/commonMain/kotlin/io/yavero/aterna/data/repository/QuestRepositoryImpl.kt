@@ -267,6 +267,10 @@ class QuestRepositoryImpl(
         return questEventsQueries.selectLastResolvedIdx(questId).executeAsOneOrNull()?.toInt() ?: -1
     }
 
+    override suspend fun countNarrationEvents(questId: String): Int {
+        return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
+    }
+
     // ── Ledger snapshot I/O (single source of truth) ────────────────────────────
     override suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot) {
         questQueries.updateLedgerSnapshot(

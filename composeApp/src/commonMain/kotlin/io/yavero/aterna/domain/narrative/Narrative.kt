@@ -43,7 +43,6 @@ object Narrative {
         when (classType) {
             ClassType.WARRIOR -> Category.StartWarrior
             ClassType.MAGE -> Category.StartMage
-            else -> Category.StartCommon
         }
 
     // ── banks (trimmed for brevity, contains all lines you gave + spice) ─────────

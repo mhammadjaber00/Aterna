@@ -7,6 +7,7 @@ import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.repository.QuestRepository
+import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.QuestResolver
 import io.yavero.aterna.features.quest.notification.QuestNotifier
 import kotlinx.coroutines.flow.Flow
@@ -119,17 +120,41 @@ class DefaultQuestEventsCoordinator(
 
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
         val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
+
+        // NEW: provisional totals for the whole quest using the same seed
+        val estBase = LootRoller.rollLoot(
+            questDurationMinutes = quest.durationMinutes,
+            heroLevel = hero.level,
+            classType = hero.classType,
+            serverSeed = baseSeed
+        )
+
+        // If you want curse to affect preview, inject RewardService here and:
+        // val estFinal = rewardService.applyModifiers(estBase) else use estBase as-is.
+        val provisional = RewardAllocator.allocate(
+            questId = quest.id,
+            baseSeed = baseSeed,
+            heroLevel = hero.level,
+            classType = hero.classType,
+            plan = plan,
+            finalTotals = QuestLoot(estBase.xp, estBase.gold) // items don’t matter for ledger
+        )
+        val byIdx = provisional.entries.associateBy { it.eventIdx }
+
         val preview = due.map { p ->
-            QuestResolver.resolveFromLedger(ctx, p, xpDelta = 0, goldDelta = 0)
+            val e = byIdx[p.idx]
+            QuestResolver.resolveFromLedger(
+                ctx,
+                p,
+                xpDelta = e?.xpDelta ?: 0,
+                goldDelta = e?.goldDelta ?: 0
+            )
         }
 
-        // Include any appended ad-hoc events (e.g., NARRATION) already stored
-        val appended = questRepository
-            .getQuestEventsPreview(quest.id, 1)
-            .firstOrNull()
-        val effectivePreview = if (appended != null && appended.idx >= (preview.lastOrNull()?.idx ?: -1)) {
-            preview + appended
-        } else preview
+        // keep your appended-NARRATION logic
+        val appended = questRepository.getQuestEventsPreview(quest.id, 1).firstOrNull()
+        val effectivePreview =
+            if (appended != null && appended.idx > (preview.lastOrNull()?.idx ?: -1)) preview + appended else preview
 
         val bump = (lastPreviewQuestId != quest.id) || (effectivePreview.size > cachedPreview.size)
         lastPreviewQuestId = quest.id
@@ -197,6 +222,6 @@ class DefaultQuestEventsCoordinator(
     }
 
     private companion object {
-        const val PREVIEW_WINDOW = 1
+        const val PREVIEW_WINDOW = 10
     }
 }

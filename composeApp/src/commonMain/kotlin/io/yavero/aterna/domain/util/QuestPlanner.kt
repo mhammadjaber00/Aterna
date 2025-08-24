@@ -95,10 +95,19 @@ object QuestPlanner {
         val majorSlots = evenlySpacedIndices(totalBeats, majorBeats)
 
         var placedMidOnce = false
+        var lastType: EventType? = null
 
         return beatTimes.mapIndexed { index, dueAt ->
             val isMajor = index in majorSlots
-            val type = pickEventType(isMajor, rng)
+            var type = pickEventType(isMajor, rng)
+            if (lastType != null && type == lastType) {
+                type = if (isMajor) {
+                    if (lastType == EventType.MOB) EventType.CHEST else EventType.MOB
+                } else {
+                    val options = listOf(EventType.CHEST, EventType.QUIRKY, EventType.TRINKET).filter { it != lastType }
+                    options[rng.nextInt(0, options.size)]
+                }
+            }
 
             val tier = if (type == EventType.MOB) {
                 pickMobTier(spec.durationMinutes, rng, placedMidOnce).also {
@@ -106,7 +115,7 @@ object QuestPlanner {
                 }
             } else null
 
-            PlannedEvent(
+            val event = PlannedEvent(
                 questId = "",
                 idx = index,
                 dueAt = dueAt,
@@ -114,6 +123,8 @@ object QuestPlanner {
                 isMajor = isMajor,
                 mobTier = tier
             )
+            lastType = type
+            event
         }
     }
 
