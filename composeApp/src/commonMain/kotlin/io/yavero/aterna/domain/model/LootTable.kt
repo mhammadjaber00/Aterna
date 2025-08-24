@@ -100,4 +100,23 @@ object ItemPool {
     fun getAllLootTables(): List<LootTable> = ItemRarity.entries.map { rarity ->
         LootTable(rarity, getItemsByRarity(rarity))
     }
+
+    fun getById(id: String): Item? =
+        ItemRarity.values().asSequence()
+            .flatMap { getItemsByRarity(it).asSequence() }
+            .firstOrNull { it.id == id }
+
+    /** Convenience for UI lists. */
+    fun getAllByIds(ids: Set<String>): List<Item> =
+        ids.mapNotNull { getById(it) }
+
+    /** Return a placeholder item if an id is unknown (for debug / UI). */
+    fun placeholder(id: String): Item = Item(
+        id = id,
+        name = "Unknown Item",
+        description = "This item is not in the pool",
+        itemType = ItemType.TRINKET,
+        rarity = ItemRarity.COMMON,
+        value = 0
+    )
 }

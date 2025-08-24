@@ -11,12 +11,14 @@ interface AppRootComponent {
     fun navigateToClassSelect()
     fun navigateToQuestHub()
     fun navigateToTimer(initialMinutes: Int = 25, classType: String = "WARRIOR")
+    fun navigateToInventory()
     fun startQuest(durationMinutes: Int, classType: String)
 
     sealed class Child {
         data class Onboarding(val component: OnboardingRootComponent) : Child()
         data class ClassSelect(val component: ClassSelectComponent) : Child()
         data class QuestHub(val component: QuestComponent) : Child()
+        data class Inventory(val component: io.yavero.aterna.features.inventory.InventoryComponent) : Child()
         data class Timer(val initialMinutes: Int, val classType: String) : Child()
     }
 }

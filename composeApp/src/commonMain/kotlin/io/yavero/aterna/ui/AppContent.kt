@@ -14,6 +14,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.classselection.ClassSelectionScreen
+import io.yavero.aterna.features.inventory.InventoryScreen
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
 import io.yavero.aterna.features.quest.presentation.QuestComponent
@@ -49,6 +50,7 @@ fun AppContent(
                     is AppRootComponent.Child.Onboarding -> OnboardingScreen(component = instance.component)
                     is AppRootComponent.Child.ClassSelect -> ClassSelectScreen(component = instance.component)
                     is AppRootComponent.Child.QuestHub -> QuestHubScreen(component = instance.component)
+                    is AppRootComponent.Child.Inventory -> InventoryScreen(component = instance.component)
                     is AppRootComponent.Child.Timer -> TimerScreenWrapper(
                         initialMinutes = instance.initialMinutes,
                         classType = instance.classType,

@@ -1,0 +1,16 @@
+CREATE TABLE HeroItemEntity (
+  heroId TEXT NOT NULL,
+  itemId TEXT NOT NULL,
+  acquiredAt INTEGER NOT NULL,
+  PRIMARY KEY (heroId, itemId),
+  FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
+);
+
+selectItemsByHero:
+SELECT itemId, acquiredAt FROM HeroItemEntity WHERE heroId = ? ORDER BY acquiredAt DESC;
+
+insertHeroItem:
+INSERT OR IGNORE INTO HeroItemEntity (heroId, itemId, acquiredAt) VALUES (?, ?, ?);
+
+hasHeroItem:
+SELECT EXISTS(SELECT 1 FROM HeroItemEntity WHERE heroId = ? AND itemId = ?) AS owned;

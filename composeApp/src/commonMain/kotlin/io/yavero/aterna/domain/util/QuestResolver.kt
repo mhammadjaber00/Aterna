@@ -2,6 +2,7 @@ package io.yavero.aterna.domain.util
 
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.*
+import io.yavero.aterna.domain.narrative.EventPhrases
 import kotlin.math.max
 import kotlin.random.Random
 import kotlin.time.ExperimentalTime
@@ -26,6 +27,7 @@ object QuestResolver {
     fun resolveFromLedger(ctx: Context, plan: PlannedEvent, xpDelta: Int, goldDelta: Int): QuestEvent {
         val perBeatSeed = ctx.baseSeed + plan.idx * SEED_STRIDE
         val rng = Random(perBeatSeed)
+        val textRng = TextRng(ctx.baseSeed)
         return when (plan.type) {
             EventType.MOB -> {
                 val tier = plan.mobTier ?: MobTier.LIGHT
@@ -51,7 +53,7 @@ object QuestResolver {
                 val msg = if (flee)
                     "Above your pay grade. You retreat with dignity. +$xp XP."
                 else
-                    "$mobName defeated. +$xp XP, +$gold gold."
+                    EventPhrases.mob(xp, gold, textRng, salt = 10_000L + plan.idx)
                 QuestEvent(
                     ctx.questId, plan.idx, plan.dueAt, EventType.MOB, msg, xp, gold,
                     if (flee) EventOutcome.Flee(mobName, mobLevel) else EventOutcome.Win(mobName, mobLevel)
@@ -60,21 +62,19 @@ object QuestResolver {
 
             EventType.CHEST -> {
                 val g = goldDelta.coerceAtLeast(0)
-                val prefix =
-                    if (plan.isMajor) QuestStrings.ChestMessages.RICH_CHEST else QuestStrings.ChestMessages.LOOSE_BRICK
-                val msg = if (g > 0) "$prefix hides $g gold." else "$prefix. Empty."
+                val msg = EventPhrases.chest(g, textRng, salt = 20_000L + plan.idx)
                 QuestEvent(ctx.questId, plan.idx, plan.dueAt, EventType.CHEST, msg, 0, g, EventOutcome.None)
             }
 
             EventType.QUIRKY -> {
-                val template = QuestStrings.QuirkyMessages.getAllTemplates().random(rng)
                 val x = xpDelta.coerceAtLeast(0)
+                val msg = EventPhrases.quirky(x, textRng, salt = 30_000L + plan.idx)
                 QuestEvent(
                     ctx.questId,
                     plan.idx,
                     plan.dueAt,
                     EventType.QUIRKY,
-                    template.replace("%d", x.toString()),
+                    msg,
                     x,
                     0,
                     EventOutcome.None
@@ -82,17 +82,16 @@ object QuestResolver {
             }
 
             EventType.TRINKET -> {
-                val msg = QuestStrings.TrinketMessages.getAllMessages().random(rng)
+                val msg = EventPhrases.trinket(textRng, salt = 40_000L + plan.idx)
                 QuestEvent(ctx.questId, plan.idx, plan.dueAt, EventType.TRINKET, msg, 0, 0, EventOutcome.None)
             }
-        }
-    }
 
-    /** Legacy API (kept for tests/backwards compat). Prefer resolveFromLedger. */
-    fun resolve(
-        ctx: Context,
-        plan: PlannedEvent
-    ): QuestEvent { /* unchanged, omitted for brevity */ throw NotImplementedError()
+            EventType.NARRATION -> QuestEvent(
+                ctx.questId, plan.idx, plan.dueAt,
+                EventType.NARRATION,
+                "", 0, 0, EventOutcome.None
+            )
+        }
     }
 
     data class Context(

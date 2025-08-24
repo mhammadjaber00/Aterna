@@ -1,13 +1,15 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.error.getUserMessage
 import io.yavero.aterna.domain.error.toAppError
-import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.mvi.MviStore
 import io.yavero.aterna.domain.mvi.createEffectsFlow
 import io.yavero.aterna.domain.repository.HeroRepository
+import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.service.curse.CurseService
 import io.yavero.aterna.domain.service.quest.QuestActionService
@@ -30,7 +32,8 @@ class QuestStore(
     private val events: QuestEventsCoordinator,
     private val curseService: CurseService,
     private val ticker: Ticker,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val inventoryRepository: InventoryRepository
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
 
     private val _state = MutableStateFlow(QuestState(isLoading = true))
@@ -48,8 +51,8 @@ class QuestStore(
         questRepository.observeActiveQuest()
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
-
     init {
+        // Core loader: hero + active quest + timer projection
         scope.launch {
             refresh
                 .flatMapLatest { buildState() }
@@ -62,6 +65,14 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
+        // NEW: load static retreat/curse rules once (non-fatal if it fails)
+        scope.launch {
+            runCatching { curseService.rules() }
+                .onSuccess { rules -> reduce(QuestMsg.RulesLoaded(rules)) }
+                .onFailure { /* keep defaults */ }
+        }
+
+        // Heartbeat: drive curse timer each second
         scope.launch {
             ticker.seconds.collect { currentTime ->
                 val nowMs = currentTime.toEpochMilliseconds()
@@ -71,12 +82,14 @@ class QuestStore(
             }
         }
 
+        // Live event preview feed (lightweight ticker/narration)
         scope.launch {
             events.observe(heroFlow, activeQuestFlow, ticker.seconds).collect { snap ->
                 reduce(QuestMsg.FeedUpdated(snap.preview, snap.bumpPulse))
             }
         }
 
+        // Auto-complete when duration elapses
         scope.launch {
             combine(activeQuestFlow, ticker.seconds) { q, now ->
                 q != null && q.isActive && (now - q.startTime) >= q.durationMinutes.minutes
@@ -84,6 +97,14 @@ class QuestStore(
                 .distinctUntilChanged()
                 .filter { it }
                 .collect { completeQuest() }
+        }
+
+        // Keep owned items in sync with hero changes
+        scope.launch {
+            heroFlow.collect { hero ->
+                val ids = hero?.id?.let { inventoryRepository.getOwnedItemIds(it) } ?: emptySet()
+                reduce(QuestMsg.OwnedItemsLoaded(ids))
+            }
         }
     }
 
@@ -95,12 +116,13 @@ class QuestStore(
             QuestIntent.Complete -> completeQuest()
             QuestIntent.ClearError -> clearError()
             QuestIntent.LoadAdventureLog -> loadAdventureLog()
-
             QuestIntent.RequestRetreatConfirm -> reduce(QuestMsg.WantRetreatConfirm)
             QuestIntent.RequestShowAdventureLog -> {
                 reduce(QuestMsg.WantAdventureLog)
                 loadAdventureLog()
             }
+
+            QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }
 
@@ -114,15 +136,13 @@ class QuestStore(
             ticker.seconds
         ) { activeFromRepo, now ->
             val a = activeFromRepo ?: _state.value.activeQuest
-
             if (a != null && a.isActive) {
                 val total = a.durationMinutes.minutes
                 val elapsed = now - a.startTime
-                val remaining = (total - elapsed)
+                val remaining = total - elapsed
                 val clampedRemaining = if (remaining <= Duration.ZERO) Duration.ZERO else remaining
                 val progress = if (remaining <= Duration.ZERO) 1f else
                     (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat()).coerceIn(0f, 1f)
-
                 QuestMsg.TimerTick(clampedRemaining, progress)
             } else {
                 QuestMsg.TimerTick(Duration.ZERO, 0f)
@@ -132,7 +152,7 @@ class QuestStore(
         return merge(dataFlow, tickFlow)
     }
 
-    private fun startQuest(durationMinutes: Int, classType: ClassType) {
+    private fun startQuest(durationMinutes: Int, classType: io.yavero.aterna.domain.model.ClassType) {
         scope.launch {
             runCatching { actions.start(durationMinutes, classType) }
                 .onSuccess { r ->
@@ -153,6 +173,10 @@ class QuestStore(
                 .onSuccess { r ->
                     reduce(QuestMsg.QuestCompleted(r.quest, r.loot))
                     reduce(QuestMsg.HeroUpdated(r.updatedHero))
+                    val heroId = r.quest.heroId
+                    val owned = inventoryRepository.getOwnedItemIds(heroId)
+                    reduce(QuestMsg.OwnedItemsLoaded(owned))
+                    reduce(QuestMsg.NewlyAcquired(r.newItemIds))
                     r.uiEffects.forEach { _effects.tryEmit(it) }
                 }
                 .onFailure { e ->
@@ -262,7 +286,10 @@ class QuestStore(
                 retreatGraceSeconds = msg.rules.graceSeconds,
                 lateRetreatThreshold = msg.rules.lateThreshold,
                 lateRetreatPenalty = msg.rules.latePenalty,
-                curseSoftCapMinutes = msg.rules.softCapMinutes
+                curseSoftCapMinutes = msg.rules.softCapMinutes,
             )
+
+            is QuestMsg.OwnedItemsLoaded -> state.copy(ownedItemIds = msg.ids)
+            is QuestMsg.NewlyAcquired -> state.copy(newlyAcquiredItemIds = msg.ids)
         }
 }

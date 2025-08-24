@@ -1,11 +1,12 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class, kotlin.uuid.ExperimentalUuidApi::class)
 package io.yavero.aterna.domain.service.quest
 
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.narrative.Narrative
 import io.yavero.aterna.domain.repository.HeroRepository
+import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.service.curse.CurseService
 import io.yavero.aterna.domain.util.QuestPlanner
@@ -17,7 +18,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 interface QuestActionService {
@@ -26,26 +29,31 @@ interface QuestActionService {
     suspend fun retreat(): RetreatResult
 }
 
+@OptIn(ExperimentalTime::class)
 data class StartResult(
     val quest: Quest,
     val endAt: Instant,
     val uiEffects: List<QuestEffect> = emptyList(),
 )
+
 data class CompleteResult(
     val quest: Quest,
     val updatedHero: Hero,
     val loot: QuestLoot,
     val leveledUpTo: Int?,
+    val newItemIds: Set<String> = emptySet(),
     val uiEffects: List<QuestEffect> = emptyList(),
 )
+
 data class RetreatResult(
-    val quest: Quest,               // marked gaveUp
+    val quest: Quest,
     val updatedHero: Hero,
-    val bankedLoot: QuestLoot?,     // if any
+    val bankedLoot: QuestLoot?,
     val curseApplied: Boolean,
     val uiEffects: List<QuestEffect> = emptyList(),
 )
 
+@OptIn(ExperimentalTime::class)
 class QuestActionServiceImpl(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
@@ -53,11 +61,13 @@ class QuestActionServiceImpl(
     private val curseService: CurseService,
     private val economy: QuestEconomy,
     private val bankingStrategy: RewardBankingStrategy,
+    private val inventory: InventoryRepository,
 ) : QuestActionService {
 
     private val completeMutex = Mutex()
     private val retreatMutex = Mutex()
 
+    @OptIn(ExperimentalUuidApi::class)
     override suspend fun start(durationMinutes: Int, classType: ClassType): StartResult {
         val hero = heroRepository.getCurrentHero() ?: createDefaultHero(classType)
         val quest = Quest(
@@ -78,7 +88,18 @@ class QuestActionServiceImpl(
         )
         questNotifier.scheduleEnd(sessionId = quest.id, endAt = endTime)
 
-        return StartResult(quest, endTime, listOf(QuestEffect.ShowQuestStarted))
+        val startLine = Narrative.pickWeighted(
+            Narrative.startCategoryFor(classType),
+            mapOf("HERO_NAME" to hero.name)
+        )
+        if (startLine != null) appendNarration(quest.id, startLine)
+
+        val fx = buildList {
+            add(QuestEffect.ShowQuestStarted)
+            startLine?.let { add(QuestEffect.ShowNarration(it)) }
+        }
+
+        return StartResult(quest, endTime, fx)
     }
 
     override suspend fun complete(): CompleteResult = completeMutex.withLock {
@@ -88,11 +109,9 @@ class QuestActionServiceImpl(
 
         val completed = active.copy(endTime = Clock.System.now(), completed = true)
 
-        // Server (or offline) final totals
         val serverLoot = questRepository.completeQuestRemote(hero, active, completed.endTime!!)
         val econ = economy.completion(hero, active, serverLootOverride = serverLoot)
 
-        // Build a frozen ledger from final totals and persist snapshot
         val plan = questRepository.getQuestPlan(active.id)
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, active)
         val ledger = RewardAllocator.allocate(
@@ -113,19 +132,17 @@ class QuestActionServiceImpl(
             )
         )
 
-        // Append any missing events strictly from the ledger
         val byIdx = ledger.entries.associateBy { it.eventIdx }
         val lastIdx = questRepository.getLastResolvedEventIdx(active.id)
         val ctx = QuestResolver.Context(active.id, baseSeed, hero.level, hero.classType)
         plan.filter { it.idx > lastIdx }.sortedBy { it.idx }.forEach { p ->
             val e = byIdx[p.idx]
-            val ev = io.yavero.aterna.domain.util.QuestResolver.resolveFromLedger(
+            val ev = QuestResolver.resolveFromLedger(
                 ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
             )
             questRepository.appendQuestEvent(ev)
         }
 
-        // Update hero progression and quest totals (from final)
         val updatedHero = hero.copy(
             xp = econ.newXp,
             level = econ.newLevel,
@@ -135,7 +152,11 @@ class QuestActionServiceImpl(
         )
         heroRepository.updateHero(updatedHero)
 
-        // Notifications
+        val ownedBefore = inventory.getOwnedItemIds(hero.id)
+        val newItems = econ.final.items.filter { it.id !in ownedBefore }
+        newItems.forEach { inventory.addItemOnce(hero.id, it.id) }
+        val newItemIds = newItems.map { it.id }.toSet()
+
         questNotifier.cancelScheduledEnd(active.id)
         questNotifier.clearOngoing(active.id)
         questNotifier.showCompleted(
@@ -144,16 +165,31 @@ class QuestActionServiceImpl(
             text = "+${econ.final.xp} XP, +${econ.final.gold} gold"
         )
 
+        val lootLine = if (newItems.isNotEmpty())
+            Narrative.pickWeighted(
+                Narrative.Category.LootGain,
+                mapOf("ITEMS" to newItems.joinToString { it.name })
+            ) else null
+        val closer = Narrative.pickWeighted(Narrative.Category.Closer)
+
+        lootLine?.let { appendNarration(active.id, it) }
+        closer?.let { appendNarration(active.id, it) }
+
+        val fx = buildList {
+            add(QuestEffect.ShowQuestCompleted(econ.final))
+            econ.leveledUpTo?.let { add(QuestEffect.ShowLevelUp(it)) }
+            lootLine?.let { add(QuestEffect.ShowNarration(it)) }
+            closer?.let { add(QuestEffect.ShowNarration(it)) }
+            add(QuestEffect.PlayQuestCompleteSound)
+        }
+
         return CompleteResult(
             quest = completed,
             updatedHero = updatedHero,
             loot = econ.final,
             leveledUpTo = econ.leveledUpTo,
-            uiEffects = buildList {
-                add(QuestEffect.ShowQuestCompleted(econ.final))
-                econ.leveledUpTo?.let { add(QuestEffect.ShowLevelUp(it)) }
-                add(QuestEffect.PlayQuestCompleteSound)
-            }
+            newItemIds = newItemIds,
+            uiEffects = fx
         )
     }
 
@@ -232,13 +268,34 @@ class QuestActionServiceImpl(
         questNotifier.cancelScheduledEnd(active.id)
         questNotifier.clearOngoing(active.id)
 
+        Narrative.pickWeighted(Narrative.Category.Closer)?.let {
+            appendNarration(active.id, it)
+            uiFx += QuestEffect.ShowNarration(it)
+        }
+
         uiFx += QuestEffect.ShowQuestGaveUp
         uiFx += QuestEffect.PlayQuestFailSound
 
         return RetreatResult(gaveUp, updatedHero, bankedLoot, curseApplied, uiFx)
     }
 
-    /** Build a partial ledger up to [cutoffMinutes] and write missing events. */
+    private suspend fun appendNarration(questId: String, text: String) {
+        // Use negative indices for narration to avoid overwriting planned beats
+        val countNarr = questRepository.countNarrationEvents(questId)
+        val negIdx = -(countNarr + 1)
+        val ev = io.yavero.aterna.domain.model.quest.QuestEvent(
+            questId = questId,
+            idx = negIdx,
+            at = Clock.System.now(),
+            type = io.yavero.aterna.domain.model.quest.EventType.NARRATION,
+            message = text,
+            xpDelta = 0,
+            goldDelta = 0,
+            outcome = io.yavero.aterna.domain.model.quest.EventOutcome.None
+        )
+        questRepository.appendQuestEvent(ev)
+    }
+
     private suspend fun appendBankedEvents(hero: Hero, quest: Quest, cutoffMinutes: Int, totals: QuestLoot) {
         if (cutoffMinutes <= 0) return
         var plan = questRepository.getQuestPlan(quest.id)
@@ -266,7 +323,6 @@ class QuestActionServiceImpl(
             plan = dueSubset,
             finalTotals = totals
         )
-        // Freeze/overwrite snapshot to make partial bank consistent
         questRepository.saveLedgerSnapshot(
             quest.id,
             LedgerSnapshot(
@@ -282,13 +338,14 @@ class QuestActionServiceImpl(
         val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
         dueSubset.filter { it.idx > lastIdx }.sortedBy { it.idx }.forEach { p ->
             val e = byIdx[p.idx]
-            val ev = io.yavero.aterna.domain.util.QuestResolver.resolveFromLedger(
+            val ev = QuestResolver.resolveFromLedger(
                 ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
             )
             questRepository.appendQuestEvent(ev)
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private suspend fun createDefaultHero(classType: ClassType): Hero {
         val hero = Hero(
             id = Uuid.random().toString(),

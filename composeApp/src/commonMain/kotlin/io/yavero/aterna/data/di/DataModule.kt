@@ -38,6 +38,7 @@ val dataModule = module {
     singleOf(::FocusSessionRepositoryImpl) bind FocusSessionRepository::class
     singleOf(::HeroRepositoryImpl) bind HeroRepository::class
     singleOf(::QuestRepositoryImpl) bind QuestRepository::class
+    singleOf(::InventoryRepositoryImpl) bind InventoryRepository::class
 
     singleOf(::RealTimeProvider) bind TimeProvider::class
     single<StatusEffectRepository> {

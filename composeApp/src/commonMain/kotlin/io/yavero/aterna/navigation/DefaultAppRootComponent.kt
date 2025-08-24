@@ -5,7 +5,9 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.repository.HeroRepository
+import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.features.inventory.InventoryComponentImpl
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.aterna.features.quest.presentation.DefaultQuestComponent
@@ -22,6 +24,7 @@ class DefaultAppRootComponent(
     private val navigation = StackNavigation<Config>()
     private val questStore: QuestStore by inject()
     private val heroRepository: HeroRepository by inject()
+    private val inventoryRepository: InventoryRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
 
     private fun resolveInitialConfig(): Config = runBlocking {
@@ -62,7 +65,20 @@ class DefaultAppRootComponent(
                     questStore = questStore,
                     onNavigateToTimerCallback = { initialMinutes, classType ->
                         navigateToTimer(initialMinutes, classType.name)
+                    },
+                    onNavigateToInventoryCallback = {
+                        navigateToInventory()
                     }
+                )
+            )
+
+            is Config.Inventory -> AppRootComponent.Child.Inventory(
+                InventoryComponentImpl(
+                    ctx = componentContext,
+                    heroRepo = heroRepository,
+                    invRepo = inventoryRepository,
+                    questStore = questStore,
+                    onClose = { navigation.pop() }
                 )
             )
 
@@ -82,6 +98,10 @@ class DefaultAppRootComponent(
 
     override fun navigateToTimer(initialMinutes: Int, classType: String) {
         navigation.bringToFront(Config.Timer(initialMinutes, classType))
+    }
+
+    override fun navigateToInventory() {
+        navigation.bringToFront(Config.Inventory)
     }
 
     override fun startQuest(durationMinutes: Int, classType: String) {

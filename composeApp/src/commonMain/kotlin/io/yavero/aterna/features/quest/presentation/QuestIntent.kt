@@ -15,4 +15,7 @@ sealed interface QuestIntent : MviIntent {
     // NEW: store-driven UI requests
     data object RequestRetreatConfirm : QuestIntent
     data object RequestShowAdventureLog : QuestIntent
+
+    // Inventory: clear newly acquired flags when opening inventory
+    data object ClearNewlyAcquired : QuestIntent
 }

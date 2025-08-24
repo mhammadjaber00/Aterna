@@ -11,6 +11,7 @@ class DefaultQuestComponent(
     componentContext: ComponentContext,
     private val questStore: QuestStore,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
+    private val onNavigateToInventoryCallback: () -> Unit = {},
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
@@ -19,7 +20,8 @@ class DefaultQuestComponent(
     private val onShowQuestCompleted: (QuestLoot) -> Unit = {},
     private val onShowQuestGaveUp: () -> Unit = {},
     private val onShowLevelUp: (Int) -> Unit = {},
-    private val onShowLootReward: (QuestLoot) -> Unit = {}
+    private val onShowLootReward: (QuestLoot) -> Unit = {},
+    private val onShowNarration: (String) -> Unit = {}
 ) : QuestComponent, ComponentContext by componentContext {
 
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -52,12 +54,21 @@ class DefaultQuestComponent(
     override fun onClearError() {
         questStore.process(QuestIntent.ClearError)
     }
+
     override fun onNavigateToTimer(initialMinutes: Int, classType: ClassType) {
         onNavigateToTimerCallback(initialMinutes, classType)
     }
 
+    override fun onNavigateToInventory() {
+        onNavigateToInventoryCallback()
+    }
+
     override fun onLoadAdventureLog() {
         questStore.process(QuestIntent.LoadAdventureLog)
+    }
+
+    override fun onClearNewlyAcquired() {
+        questStore.process(QuestIntent.ClearNewlyAcquired)
     }
 
     private fun handleEffect(effect: QuestEffect) {
@@ -65,10 +76,15 @@ class DefaultQuestComponent(
             is QuestEffect.ShowQuestCompleted -> onShowQuestCompleted(effect.loot)
             QuestEffect.ShowQuestGaveUp -> onShowQuestGaveUp()
             is QuestEffect.ShowLevelUp -> onShowLevelUp(effect.newLevel)
-            QuestEffect.ShowQuestStarted -> {}
+            QuestEffect.ShowQuestStarted -> Unit
+
             is QuestEffect.ShowError -> onShowError(effect.message)
             is QuestEffect.ShowSuccess -> onShowSuccess(effect.message)
+
             is QuestEffect.ShowLootReward -> onShowLootReward(effect.loot)
+
+            is QuestEffect.ShowNarration -> onShowNarration(effect.text)
+
             QuestEffect.PlayQuestCompleteSound -> onPlayQuestCompleteSound()
             QuestEffect.PlayQuestFailSound -> onPlayQuestFailSound()
             QuestEffect.VibrateDevice -> onVibrateDevice()
