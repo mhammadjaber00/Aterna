@@ -299,7 +299,7 @@ fun LoreCaption(
     startDelayMs: Int = 90,
     maxWidthFraction: Float = 0.86f,
     skipOnTap: Boolean = true,
-    highlightWords: List<String> = listOf("Warrior", "Mage", "quest", "habit"),
+    highlightWords: List<String> = listOf("Warrior", "Mage", "quests", "focused", "timer", "rewards"),
     registerSkipHandler: ((() -> Boolean) -> Unit)? = null
 ) {
     var visibleLength by remember(text) { mutableIntStateOf(0) }

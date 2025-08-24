@@ -19,25 +19,25 @@ object OnboardingScenes {
         Scene(
             id = 1,
             backgroundRes = CAMP_BACKGROUND,
-            message = "Under a patient sky, Aterna calls its champions. Here, your mind is the map and your days the quest log. Ready yourself for the road ahead.",
+            message = "Aterna helps you stay focused!",
             warriorState = WarriorState.Idle
         ),
         Scene(
             id = 2,
             backgroundRes = PATH_BACKGROUND,
-            message = "Then came the Pale Fog—soft as sleep, greedy as time. Distractions steal focus and scatter goals. With discipline, the path clears beneath your feet.",
+            message = "Transform your boring tasks into quests.",
             warriorState = WarriorState.Walking
         ),
         Scene(
             id = 3,
             backgroundRes = DUNGEON_GATE_BACKGROUND,
-            message = "Every finished task strikes at the chains. Each habit is a torch in the dark. Progress isn't given—it's earned, quest by quest.",
+            message = "Start a timer and earn rewards.",
             warriorState = WarriorState.SwordReady
         ),
         Scene(
             id = 4,
             backgroundRes = OPEN_GATE_BACKGROUND,
-            message = "Choose your Class. Warrior for gold, Mage for wisdom. Step through; the world will shape to your focus. Every quest sharpens the blade; every habit lights the way.",
+            message = "Pick your Class: Warrior for gold, Mage for XP.",
             warriorState = WarriorState.Idle
         )
     )
