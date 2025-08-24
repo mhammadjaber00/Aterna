@@ -2,13 +2,14 @@ package io.yavero.aterna.features.quest.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import aterna.composeapp.generated.resources.*
 import io.yavero.aterna.designsystem.component.AternaPrimaryButton
 import io.yavero.aterna.domain.model.Hero
-import io.yavero.aterna.domain.model.Item
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.ui.theme.AternaColors
@@ -100,10 +100,6 @@ fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier
         AternaPrimaryButton(text = "Try Again", onClick = onRetry)
     }
 }
-
-// ───────────────────────────────────────────────────────────────────────────────
-// Magical event line + Adventure Log sheet (with Notes tab)
-// ───────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun MagicalEventRow(event: QuestEvent) {
@@ -180,12 +176,23 @@ fun AdventureLogSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Adventure Log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "Adventure Log",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterChipPill("All", filter == LogFilter.All) { filter = LogFilter.All }
                 FilterChipPill("Battles", filter == LogFilter.Battles) { filter = LogFilter.Battles }
                 FilterChipPill("Loot", filter == LogFilter.Loot) { filter = LogFilter.Loot }
@@ -196,11 +203,17 @@ fun AdventureLogSheet(
             when {
                 loading -> Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 filtered.isEmpty() -> Text("No entries yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())
-                ) {
-                    filtered.forEach { e -> MagicalEventRow(e) }
+                else -> {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 480.dp)
+                    ) {
+                        items(filtered, key = { it.idx }) { e ->
+                            MagicalEventRow(e)
+                        }
+                    }
                 }
             }
 
@@ -212,90 +225,19 @@ fun AdventureLogSheet(
     }
 }
 
-/** Local helper so our pill chips don’t collide with Material’s FilterChip in imports. */
+/** Single-line chip label so it never stacks vertically. */
 @Composable
 fun FilterChipPill(text: String, selected: Boolean, onClick: () -> Unit) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text) }
+        label = {
+            Text(
+                text = text,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip
+            )
+        }
     )
-}
-
-private enum class InvFilter { All, Weapons, Armor, Consumables, Trinkets }
-
-private enum class InvSort(val comparator: Comparator<Item>) {
-    RarityDesc(compareByDescending<Item> { it.rarity.ordinal }.thenBy { it.name }),
-    RarityAsc(compareBy<Item> { it.rarity.ordinal }.thenBy { it.name }),
-    NameAsc(compareBy { it.name }),
-    ValueDesc(compareByDescending<Item> { it.value }.thenBy { it.name });
-
-    companion object {
-        val entriesForMenu = listOf(RarityDesc, RarityAsc, NameAsc, ValueDesc)
-    }
-}
-
-@Composable
-private fun SortMenu(sort: InvSort, onChange: (InvSort) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        OutlinedButton(onClick = { open = true }) {
-            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text(
-                when (sort) {
-                    InvSort.RarityDesc -> "Rarity ↓"
-                    InvSort.RarityAsc -> "Rarity ↑"
-                    InvSort.NameAsc -> "Name A–Z"
-                    InvSort.ValueDesc -> "Value ↓"
-                }
-            )
-        }
-        DropdownMenu(open, onDismissRequest = { open = false }) {
-            InvSort.entriesForMenu.forEach { opt ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            when (opt) {
-                                InvSort.RarityDesc -> "Rarity ↓"
-                                InvSort.RarityAsc -> "Rarity ↑"
-                                InvSort.NameAsc -> "Name A–Z"
-                                InvSort.ValueDesc -> "Value ↓"
-                            }
-                        )
-                    },
-                    onClick = { onChange(opt); open = false }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyInventoryState(hasItems: Boolean, onClearQuery: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = if (hasItems) Icons.Default.Search else Icons.Default.Inventory,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            if (hasItems) "No items match your filters." else "No items yet.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (hasItems) {
-            TextButton(onClick = onClearQuery) { Text("Clear filters") }
-        } else {
-            Text(
-                "Complete quests to find gear, trinkets, and consumables.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }

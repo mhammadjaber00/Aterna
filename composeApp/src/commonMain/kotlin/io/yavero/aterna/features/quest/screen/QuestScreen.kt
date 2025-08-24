@@ -20,6 +20,7 @@ import io.yavero.aterna.features.quest.component.dialogs.AnalyticsPopupDialog
 import io.yavero.aterna.features.quest.component.dialogs.LootDisplayDialog
 import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.ui.components.MagicalBackground
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -40,6 +41,7 @@ fun QuestScreen(
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
     var showLoot by rememberSaveable { mutableStateOf(false) }
+    var lastLootQuestIdShown by rememberSaveable { mutableStateOf<String?>(null) }
 
     var tickerText by rememberSaveable { mutableStateOf<String?>(null) }
     var tickerPulseSeen by rememberSaveable { mutableStateOf(0) }
@@ -81,8 +83,16 @@ fun QuestScreen(
             logBadge = false
         }
     }
-    LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading) {
-        if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) showLoot = true
+
+    // Show loot once per quest completion
+    LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading, uiState.activeQuest?.id) {
+        if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
+            val qid = uiState.activeQuest?.id
+            if (qid != null && qid != lastLootQuestIdShown) {
+                showLoot = true
+                lastLootQuestIdShown = qid
+            }
+        }
     }
 
     LaunchedEffect(uiState.eventPulseCounter) {
@@ -91,17 +101,24 @@ fun QuestScreen(
             tickerText = latest
             tickerPulseSeen = uiState.eventPulseCounter
             if (!showAdventureLog) logBadge = true
+
+            delay(4500)
+            if (tickerPulseSeen == uiState.eventPulseCounter) {
+                tickerText = null
+            }
         }
     }
 
-    val eventsForSheet = remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
-        if (uiState.hasActiveQuest) {
-            val m = linkedMapOf<Int, io.yavero.aterna.domain.model.quest.QuestEvent>()
-            (uiState.adventureLog + uiState.eventFeed)
-                .sortedBy { it.idx }
-                .forEach { m[it.idx] = it }
-            m.values.toList()
-        } else uiState.adventureLog
+    val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
+        derivedStateOf {
+            if (uiState.hasActiveQuest) {
+                val m = linkedMapOf<Int, io.yavero.aterna.domain.model.quest.QuestEvent>()
+                (uiState.adventureLog + uiState.eventFeed)
+                    .sortedBy { it.idx }
+                    .forEach { m[it.idx] = it }
+                m.values.toList()
+            } else uiState.adventureLog
+        }
     }
 
     Scaffold(
@@ -134,7 +151,11 @@ fun QuestScreen(
                             statsBadge = statsBadge,
                             inventoryBadge = inventoryBadge,
                             onToggleStats = { statsBadge = false; showStatsPopup = true },
-                            onToggleInventory = { inventoryBadge = false; component.onNavigateToInventory() },
+                            onToggleInventory = {
+                                inventoryBadge = false
+                                component.onClearNewlyAcquired()
+                                component.onNavigateToInventory()
+                            },
                             onToggleAnalytics = { showAnalyticsPopup = true }
                         )
                     }

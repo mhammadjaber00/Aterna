@@ -237,14 +237,12 @@ fun MagicalEventRow(x0: QuestEvent) {
                             // keep it subtle; you can show mob name/level if present
                             MetaChip(text = "Win")
                         }
-
                         is io.yavero.aterna.domain.model.quest.EventOutcome.Flee -> {
                             MetaChip(
                                 text = "Retreat",
                                 tonal = true
                             )
                         }
-
                         else -> Unit
                     }
                 }

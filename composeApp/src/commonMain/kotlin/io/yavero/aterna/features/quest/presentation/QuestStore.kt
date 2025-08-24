@@ -1,8 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.error.getUserMessage
 import io.yavero.aterna.domain.error.toAppError
-import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.mvi.MviStore
@@ -51,6 +52,7 @@ class QuestStore(
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
     init {
+        // Core loader: hero + active quest + timer projection
         scope.launch {
             refresh
                 .flatMapLatest { buildState() }
@@ -63,6 +65,14 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
+        // NEW: load static retreat/curse rules once (non-fatal if it fails)
+        scope.launch {
+            runCatching { curseService.rules() }
+                .onSuccess { rules -> reduce(QuestMsg.RulesLoaded(rules)) }
+                .onFailure { /* keep defaults */ }
+        }
+
+        // Heartbeat: drive curse timer each second
         scope.launch {
             ticker.seconds.collect { currentTime ->
                 val nowMs = currentTime.toEpochMilliseconds()
@@ -72,12 +82,14 @@ class QuestStore(
             }
         }
 
+        // Live event preview feed (lightweight ticker/narration)
         scope.launch {
             events.observe(heroFlow, activeQuestFlow, ticker.seconds).collect { snap ->
                 reduce(QuestMsg.FeedUpdated(snap.preview, snap.bumpPulse))
             }
         }
 
+        // Auto-complete when duration elapses
         scope.launch {
             combine(activeQuestFlow, ticker.seconds) { q, now ->
                 q != null && q.isActive && (now - q.startTime) >= q.durationMinutes.minutes
@@ -86,6 +98,8 @@ class QuestStore(
                 .filter { it }
                 .collect { completeQuest() }
         }
+
+        // Keep owned items in sync with hero changes
         scope.launch {
             heroFlow.collect { hero ->
                 val ids = hero?.id?.let { inventoryRepository.getOwnedItemIds(it) } ?: emptySet()
@@ -107,6 +121,7 @@ class QuestStore(
                 reduce(QuestMsg.WantAdventureLog)
                 loadAdventureLog()
             }
+
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }
@@ -137,7 +152,7 @@ class QuestStore(
         return merge(dataFlow, tickFlow)
     }
 
-    private fun startQuest(durationMinutes: Int, classType: ClassType) {
+    private fun startQuest(durationMinutes: Int, classType: io.yavero.aterna.domain.model.ClassType) {
         scope.launch {
             runCatching { actions.start(durationMinutes, classType) }
                 .onSuccess { r ->
@@ -208,12 +223,14 @@ class QuestStore(
     private fun reduceMessage(state: QuestState, msg: QuestMsg): QuestState =
         when (msg) {
             QuestMsg.Loading -> state.copy(isLoading = true, error = null)
+
             is QuestMsg.DataLoaded -> state.copy(
                 isLoading = false, error = null,
                 hero = msg.hero, activeQuest = msg.activeQuest
             )
 
             is QuestMsg.Error -> state.copy(isLoading = false, error = msg.message.takeIf { it.isNotBlank() })
+
             is QuestMsg.TimerTick -> state.copy(
                 isLoading = false, error = null,
                 timeRemaining = msg.timeRemaining,
@@ -249,9 +266,12 @@ class QuestStore(
 
             is QuestMsg.HeroCreated -> state.copy(hero = msg.hero)
             is QuestMsg.HeroUpdated -> state.copy(hero = msg.hero)
+
             QuestMsg.AdventureLogLoading -> state.copy(isAdventureLogLoading = true)
             is QuestMsg.AdventureLogLoaded -> state.copy(isAdventureLogLoading = false, adventureLog = msg.events)
+
             is QuestMsg.CurseTick -> state.copy(curseTimeRemaining = msg.timeRemaining)
+
             QuestMsg.WantRetreatConfirm -> state.copy(
                 pendingShowRetreatConfirm = true,
                 pendingShowAdventureLog = false

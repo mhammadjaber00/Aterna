@@ -12,23 +12,15 @@ class DefaultQuestComponent(
     private val questStore: QuestStore,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onNavigateToInventoryCallback: () -> Unit = {},
-
-    // UI channels / side effects
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
     private val onPlayQuestFailSound: () -> Unit = {},
     private val onVibrateDevice: () -> Unit = {},
-
-    // Quest milestones
     private val onShowQuestCompleted: (QuestLoot) -> Unit = {},
     private val onShowQuestGaveUp: () -> Unit = {},
     private val onShowLevelUp: (Int) -> Unit = {},
-
-    // (legacy) if you still emit a separate loot reward effect
     private val onShowLootReward: (QuestLoot) -> Unit = {},
-
-    // NEW: short narration lines (start, loot, closers, mid-run, etc.)
     private val onShowNarration: (String) -> Unit = {}
 ) : QuestComponent, ComponentContext by componentContext {
 
@@ -73,6 +65,10 @@ class DefaultQuestComponent(
 
     override fun onLoadAdventureLog() {
         questStore.process(QuestIntent.LoadAdventureLog)
+    }
+
+    override fun onClearNewlyAcquired() {
+        questStore.process(QuestIntent.ClearNewlyAcquired)
     }
 
     private fun handleEffect(effect: QuestEffect) {

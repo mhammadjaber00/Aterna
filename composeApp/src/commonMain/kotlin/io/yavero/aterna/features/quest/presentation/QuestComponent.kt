@@ -13,6 +13,6 @@ interface QuestComponent {
     fun onClearError()
     fun onNavigateToTimer(initialMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
     fun onNavigateToInventory()
-
     fun onLoadAdventureLog()
+    fun onClearNewlyAcquired()
 }
