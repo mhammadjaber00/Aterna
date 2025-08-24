@@ -24,6 +24,7 @@ val focusModule = module {
             curseService = get(),
             economy = get(),
             bankingStrategy = get(),
+            inventory = get()
         )
     }
     single<QuestEventsCoordinator> {
@@ -41,7 +42,8 @@ val focusModule = module {
             events = get(),
             curseService = get(),
             ticker = get(),
-            scope = get()
+            scope = get(),
+            inventoryRepository = get(),
         )
     }
 }

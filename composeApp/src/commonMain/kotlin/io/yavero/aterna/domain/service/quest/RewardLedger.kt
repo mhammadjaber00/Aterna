@@ -70,7 +70,7 @@ object RewardAllocator {
         plan.forEach { p ->
             val perBeatSeed = baseSeed + p.idx * 1_337L
             val r = Random(perBeatSeed)
-            val jitter = 0.25 + r.nextDouble() * 0.25 // avoid zeros, vary slightly
+            val jitter = 0.25 + r.nextDouble() * 0.25
             val w = when (p.type) {
                 EventType.CHEST -> W(xp = 0.0, gold = (if (finalTotals.gold > 0) 1.0 else 0.0) * jitter)
                 EventType.QUIRKY -> W(xp = 1.0 * jitter, gold = 0.0)
@@ -82,6 +82,7 @@ object RewardAllocator {
                 }
 
                 EventType.TRINKET -> W(0.0, 0.0)
+                EventType.NARRATION -> W(0.0, 0.0)
             }
             weights[p.idx] = w
         }

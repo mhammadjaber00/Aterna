@@ -85,6 +85,12 @@ object QuestResolver {
                 val msg = QuestStrings.TrinketMessages.getAllMessages().random(rng)
                 QuestEvent(ctx.questId, plan.idx, plan.dueAt, EventType.TRINKET, msg, 0, 0, EventOutcome.None)
             }
+
+            EventType.NARRATION -> QuestEvent(
+                ctx.questId, plan.idx, plan.dueAt,
+                EventType.NARRATION,
+                "", 0, 0, EventOutcome.None
+            )
         }
     }
 

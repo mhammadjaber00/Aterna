@@ -19,7 +19,7 @@ import io.yavero.aterna.features.quest.component.*
 import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.ui.components.MagicalBackground
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun QuestScreen(
     component: QuestComponent,
@@ -35,9 +35,13 @@ fun QuestScreen(
 
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
+    var logBadge by rememberSaveable { mutableStateOf(false) }
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
     var showLoot by rememberSaveable { mutableStateOf(false) }
+
+    var tickerText by rememberSaveable { mutableStateOf<String?>(null) }
+    var tickerPulseSeen by rememberSaveable { mutableStateOf(0) }
 
     LaunchedEffect(uiState.hasActiveQuest) { chromeHidden = uiState.hasActiveQuest }
 
@@ -50,6 +54,7 @@ fun QuestScreen(
 
     LaunchedEffect(showAdventureLog) {
         if (showAdventureLog) component.onLoadAdventureLog()
+        if (showAdventureLog) logBadge = false
     }
     LaunchedEffect(uiState.isQuestCompleted) {
         if (uiState.isQuestCompleted) component.onLoadAdventureLog()
@@ -72,10 +77,30 @@ fun QuestScreen(
         if (uiState.pendingShowAdventureLog && !uiState.pendingShowRetreatConfirm) {
             showAdventureLog = true
             component.onLoadAdventureLog()
+            logBadge = false
         }
     }
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) showLoot = true
+    }
+
+    LaunchedEffect(uiState.eventPulseCounter) {
+        val latest = (if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog).lastOrNull()?.message
+        if (latest != null && uiState.eventPulseCounter != tickerPulseSeen) {
+            tickerText = latest
+            tickerPulseSeen = uiState.eventPulseCounter
+            if (!showAdventureLog) logBadge = true
+        }
+    }
+
+    val eventsForSheet = remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
+        if (uiState.hasActiveQuest) {
+            val m = linkedMapOf<Int, io.yavero.aterna.domain.model.quest.QuestEvent>()
+            (uiState.adventureLog + uiState.eventFeed)
+                .sortedBy { it.idx }
+                .forEach { m[it.idx] = it }
+            m.values.toList()
+        } else uiState.adventureLog
     }
 
     Scaffold(
@@ -93,9 +118,7 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
-
                 else -> {
-                    // Top chrome (header + curse)
                     AnimatedVisibility(
                         visible = !chromeHidden,
                         enter = fadeIn(tween(180)) + slideInVertically { -it / 3 },
@@ -115,7 +138,6 @@ fun QuestScreen(
                         )
                     }
 
-                    // Portal area (center)
                     QuestPortalArea(
                         uiState = uiState,
                         onStopQuest = { showRetreatConfirm = true },
@@ -132,7 +154,11 @@ fun QuestScreen(
                                 uiState.hero?.classType ?: ClassType.WARRIOR
                             )
                         },
-                        onOpenAdventureLog = { showAdventureLog = true },
+                        onOpenAdventureLog = {
+                            logBadge = false
+                            showAdventureLog = true
+                            component.onLoadAdventureLog()
+                        },
                         onToggleChrome = { chromeHidden = !chromeHidden },
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -143,11 +169,23 @@ fun QuestScreen(
                         hasActiveQuest = uiState.hasActiveQuest,
                         chromeHidden = chromeHidden,
                         onHoldToRetreat = { showRetreatConfirm = true },
-                        onOpenAdventureLog = { showAdventureLog = true },
+                        onOpenAdventureLog = {
+                            logBadge = false
+                            showAdventureLog = true
+                            component.onLoadAdventureLog()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
+
+            EventTicker(
+                message = tickerText,
+                visible = tickerText != null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(WindowInsets.safeDrawing.asPaddingValues())
+            )
         }
     }
 
@@ -174,17 +212,24 @@ fun QuestScreen(
     AnimatedVisibility(visible = showStatsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
         StatsPopupDialog(hero = uiState.hero, onDismiss = { showStatsPopup = false })
     }
+
     AnimatedVisibility(visible = showInventoryPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-        InventoryPopupDialog(hero = uiState.hero, onDismiss = { showInventoryPopup = false })
+        InventoryPopupDialog(
+            hero = uiState.hero,
+            ownedItemIds = uiState.ownedItemIds,
+            newlyAcquiredItemIds = uiState.newlyAcquiredItemIds,
+            onDismiss = { showInventoryPopup = false }
+        )
     }
+
     AnimatedVisibility(visible = showAnalyticsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
         AnalyticsPopupDialog(hero = uiState.hero, onDismiss = { showAnalyticsPopup = false })
     }
 
     if (showAdventureLog) {
         AdventureLogSheet(
-            events = if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog,
-            loading = uiState.isAdventureLogLoading && !uiState.hasActiveQuest,
+            events = eventsForSheet,
+            loading = uiState.isAdventureLogLoading,
             onDismiss = { showAdventureLog = false }
         )
     }

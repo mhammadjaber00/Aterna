@@ -8,6 +8,7 @@ import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.mvi.MviStore
 import io.yavero.aterna.domain.mvi.createEffectsFlow
 import io.yavero.aterna.domain.repository.HeroRepository
+import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.service.curse.CurseService
 import io.yavero.aterna.domain.service.quest.QuestActionService
@@ -30,7 +31,8 @@ class QuestStore(
     private val events: QuestEventsCoordinator,
     private val curseService: CurseService,
     private val ticker: Ticker,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val inventoryRepository: InventoryRepository
 ) : MviStore<QuestIntent, QuestState, QuestEffect> {
 
     private val _state = MutableStateFlow(QuestState(isLoading = true))
@@ -47,7 +49,6 @@ class QuestStore(
     private val activeQuestFlow: SharedFlow<Quest?> =
         questRepository.observeActiveQuest()
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
-
 
     init {
         scope.launch {
@@ -85,6 +86,12 @@ class QuestStore(
                 .filter { it }
                 .collect { completeQuest() }
         }
+        scope.launch {
+            heroFlow.collect { hero ->
+                val ids = hero?.id?.let { inventoryRepository.getOwnedItemIds(it) } ?: emptySet()
+                reduce(QuestMsg.OwnedItemsLoaded(ids))
+            }
+        }
     }
 
     override fun process(intent: QuestIntent) {
@@ -95,7 +102,6 @@ class QuestStore(
             QuestIntent.Complete -> completeQuest()
             QuestIntent.ClearError -> clearError()
             QuestIntent.LoadAdventureLog -> loadAdventureLog()
-
             QuestIntent.RequestRetreatConfirm -> reduce(QuestMsg.WantRetreatConfirm)
             QuestIntent.RequestShowAdventureLog -> {
                 reduce(QuestMsg.WantAdventureLog)
@@ -114,15 +120,13 @@ class QuestStore(
             ticker.seconds
         ) { activeFromRepo, now ->
             val a = activeFromRepo ?: _state.value.activeQuest
-
             if (a != null && a.isActive) {
                 val total = a.durationMinutes.minutes
                 val elapsed = now - a.startTime
-                val remaining = (total - elapsed)
+                val remaining = total - elapsed
                 val clampedRemaining = if (remaining <= Duration.ZERO) Duration.ZERO else remaining
                 val progress = if (remaining <= Duration.ZERO) 1f else
                     (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat()).coerceIn(0f, 1f)
-
                 QuestMsg.TimerTick(clampedRemaining, progress)
             } else {
                 QuestMsg.TimerTick(Duration.ZERO, 0f)
@@ -153,6 +157,10 @@ class QuestStore(
                 .onSuccess { r ->
                     reduce(QuestMsg.QuestCompleted(r.quest, r.loot))
                     reduce(QuestMsg.HeroUpdated(r.updatedHero))
+                    val heroId = r.quest.heroId
+                    val owned = inventoryRepository.getOwnedItemIds(heroId)
+                    reduce(QuestMsg.OwnedItemsLoaded(owned))
+                    reduce(QuestMsg.NewlyAcquired(r.newItemIds))
                     r.uiEffects.forEach { _effects.tryEmit(it) }
                 }
                 .onFailure { e ->
@@ -199,14 +207,12 @@ class QuestStore(
     private fun reduceMessage(state: QuestState, msg: QuestMsg): QuestState =
         when (msg) {
             QuestMsg.Loading -> state.copy(isLoading = true, error = null)
-
             is QuestMsg.DataLoaded -> state.copy(
                 isLoading = false, error = null,
                 hero = msg.hero, activeQuest = msg.activeQuest
             )
 
             is QuestMsg.Error -> state.copy(isLoading = false, error = msg.message.takeIf { it.isNotBlank() })
-
             is QuestMsg.TimerTick -> state.copy(
                 isLoading = false, error = null,
                 timeRemaining = msg.timeRemaining,
@@ -242,12 +248,9 @@ class QuestStore(
 
             is QuestMsg.HeroCreated -> state.copy(hero = msg.hero)
             is QuestMsg.HeroUpdated -> state.copy(hero = msg.hero)
-
             QuestMsg.AdventureLogLoading -> state.copy(isAdventureLogLoading = true)
             is QuestMsg.AdventureLogLoaded -> state.copy(isAdventureLogLoading = false, adventureLog = msg.events)
-
             is QuestMsg.CurseTick -> state.copy(curseTimeRemaining = msg.timeRemaining)
-
             QuestMsg.WantRetreatConfirm -> state.copy(
                 pendingShowRetreatConfirm = true,
                 pendingShowAdventureLog = false
@@ -262,7 +265,10 @@ class QuestStore(
                 retreatGraceSeconds = msg.rules.graceSeconds,
                 lateRetreatThreshold = msg.rules.lateThreshold,
                 lateRetreatPenalty = msg.rules.latePenalty,
-                curseSoftCapMinutes = msg.rules.softCapMinutes
+                curseSoftCapMinutes = msg.rules.softCapMinutes,
             )
+
+            is QuestMsg.OwnedItemsLoaded -> state.copy(ownedItemIds = msg.ids)
+            is QuestMsg.NewlyAcquired -> state.copy(newlyAcquiredItemIds = msg.ids)
         }
 }

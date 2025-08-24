@@ -38,6 +38,8 @@ data class QuestState(
     val lateRetreatThreshold: Double = 1.0,
     val lateRetreatPenalty: Double = 0.0,
     val curseSoftCapMinutes: Int = 0,
+    val ownedItemIds: Set<String> = emptySet(),
+    val newlyAcquiredItemIds: Set<String> = emptySet(),
 ) : MviState, LoadingState {
 
     val hasActiveQuest: Boolean get() = activeQuest?.isActive == true

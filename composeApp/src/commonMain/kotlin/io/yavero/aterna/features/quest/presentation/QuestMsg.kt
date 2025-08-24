@@ -24,6 +24,10 @@ sealed interface QuestMsg : MviMsg {
     data class HeroCreated(val hero: Hero) : QuestMsg
     data class HeroUpdated(val hero: Hero) : QuestMsg
 
+    data class OwnedItemsLoaded(val ids: Set<String>) : QuestMsg
+
+    data class NewlyAcquired(val ids: Set<String>) : QuestMsg
+
     data class CurseTick(val timeRemaining: Duration) : QuestMsg
     data class FeedUpdated(val events: List<QuestEvent>, val bumpPulse: Boolean = true) : QuestMsg
 

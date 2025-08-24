@@ -8,7 +8,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @Serializable
-enum class EventType { CHEST, TRINKET, QUIRKY, MOB }
+enum class EventType { CHEST, TRINKET, QUIRKY, MOB, NARRATION }
 
 @Serializable
 enum class MobTier { LIGHT, MID, RARE }

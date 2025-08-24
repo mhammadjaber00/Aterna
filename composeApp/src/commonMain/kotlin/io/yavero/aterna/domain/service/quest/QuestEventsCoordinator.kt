@@ -1,18 +1,19 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.domain.service.quest
 
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
-import io.yavero.aterna.domain.model.quest.PlannerSpec
+import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.repository.QuestRepository
-import io.yavero.aterna.domain.util.QuestPlanner
 import io.yavero.aterna.domain.util.QuestResolver
 import io.yavero.aterna.features.quest.notification.QuestNotifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 interface QuestEventsCoordinator {
@@ -122,10 +123,18 @@ class DefaultQuestEventsCoordinator(
             QuestResolver.resolveFromLedger(ctx, p, xpDelta = 0, goldDelta = 0)
         }
 
-        val bump = (lastPreviewQuestId != quest.id) || (preview.size > cachedPreview.size)
+        // Include any appended ad-hoc events (e.g., NARRATION) already stored
+        val appended = questRepository
+            .getQuestEventsPreview(quest.id, 1)
+            .firstOrNull()
+        val effectivePreview = if (appended != null && appended.idx >= (preview.lastOrNull()?.idx ?: -1)) {
+            preview + appended
+        } else preview
+
+        val bump = (lastPreviewQuestId != quest.id) || (effectivePreview.size > cachedPreview.size)
         lastPreviewQuestId = quest.id
-        cachedPreview = preview
-        return preview to bump
+        cachedPreview = effectivePreview
+        return effectivePreview to bump
     }
 
     private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
@@ -138,14 +147,14 @@ class DefaultQuestEventsCoordinator(
         }
 
         val seed = QuestEconomyImpl.computeBaseSeed(hero, quest)
-        val spec = PlannerSpec(
+        val spec = io.yavero.aterna.domain.model.quest.PlannerSpec(
             durationMinutes = quest.durationMinutes,
             seed = seed,
             startAt = quest.startTime,
             heroLevel = hero.level,
             classType = hero.classType
         )
-        val planned = QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
+        val planned = io.yavero.aterna.domain.util.QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
         questRepository.saveQuestPlan(quest.id, planned)
         lastPlannedQuestId = quest.id
     }
@@ -168,7 +177,7 @@ class DefaultQuestEventsCoordinator(
             heroLevel = hero.level,
             classType = hero.classType,
             plan = plan,
-            finalTotals = io.yavero.aterna.domain.model.QuestLoot(snap.totalXp, snap.totalGold)
+            finalTotals = QuestLoot(snap.totalXp, snap.totalGold)
         )
         val byIdx = ledger.entries.associateBy { it.eventIdx }
         val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
@@ -178,7 +187,7 @@ class DefaultQuestEventsCoordinator(
             .sortedBy { it.idx }
             .forEach { p ->
                 val entry = byIdx[p.idx]
-                val ev = io.yavero.aterna.domain.util.QuestResolver.resolveFromLedger(
+                val ev = QuestResolver.resolveFromLedger(
                     ctx, p, xpDelta = entry?.xpDelta ?: 0, goldDelta = entry?.goldDelta ?: 0
                 )
                 questRepository.appendQuestEvent(ev)

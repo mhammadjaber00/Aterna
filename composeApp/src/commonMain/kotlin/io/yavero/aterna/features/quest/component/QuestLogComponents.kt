@@ -14,19 +14,20 @@ import androidx.compose.ui.unit.dp
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
 
-enum class LogFilter { All, Battles, Loot, Quirks }
+enum class LogFilter { All, Battles, Loot, Quirks, Notes }
 
 fun List<QuestEvent>.filterBy(filter: LogFilter): List<QuestEvent> = when (filter) {
     LogFilter.All -> this
     LogFilter.Battles -> filter { it.type == EventType.MOB }
     LogFilter.Loot -> filter { it.type == EventType.CHEST || it.type == EventType.TRINKET }
     LogFilter.Quirks -> filter { it.type == EventType.QUIRKY }
+    LogFilter.Notes -> filter { it.type == EventType.NARRATION }
 }
 
+/** Simple pill used in a few legacy spots. */
 @Composable
 fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
-        
         color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
         border = BorderStroke(
             1.dp,
