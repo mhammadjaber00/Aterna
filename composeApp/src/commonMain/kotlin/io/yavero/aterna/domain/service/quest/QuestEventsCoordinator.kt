@@ -85,8 +85,7 @@ class DefaultQuestEventsCoordinator(
             val needRefresh = (lastPreviewQuestId != active.id) || (newCount > 0)
             if (needRefresh) {
                 cachedPreview = questRepository
-                    .getQuestEventsPreview(active.id, PREVIEW_WINDOW)
-                    .sortedBy { it.idx }
+                    .getQuestEvents(active.id)
                 lastPreviewQuestId = active.id
             }
 

@@ -159,5 +159,144 @@ fun LootDisplayDialog(
 
 @Composable
 fun MagicalEventRow(x0: QuestEvent) {
-    TODO("Not yet implemented")
+    // Style + icon per event type
+    val (icon, tint) = when (x0.type) {
+        io.yavero.aterna.domain.model.quest.EventType.MOB -> Icons.Default.Star to MaterialTheme.colorScheme.tertiary
+        io.yavero.aterna.domain.model.quest.EventType.CHEST -> Icons.Default.AttachMoney to MaterialTheme.colorScheme.secondary
+        io.yavero.aterna.domain.model.quest.EventType.QUIRKY -> Icons.Default.Star to MaterialTheme.colorScheme.primary
+        io.yavero.aterna.domain.model.quest.EventType.TRINKET -> Icons.Default.Star to MaterialTheme.colorScheme.primary
+        io.yavero.aterna.domain.model.quest.EventType.NARRATION -> Icons.Default.Star to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    // Narration = subdued, italic, no stat chips
+    if (x0.type == io.yavero.aterna.domain.model.quest.EventType.NARRATION) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                icon, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(16.dp)
+            )
+            Text(
+                text = x0.message.ifBlank { stringResource(Res.string.no_entries_recorded) },
+                style = AternaTypography.Default.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    // Non‑narration: icon + message + chips (xp/gold) + optional outcome tag
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                icon, null,
+                tint = tint,
+                modifier = Modifier.size(18.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = x0.message,
+                    style = AternaTypography.Default.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (x0.xpDelta > 0) {
+                        StatChip(text = "+${x0.xpDelta} XP")
+                    }
+                    if (x0.goldDelta > 0) {
+                        StatChip(
+                            text = "+${x0.goldDelta} ${
+                                stringResource(
+                                    Res.string.gold_reward_format, /* fallback: */
+                                    ""
+                                )
+                            }".ifEmpty { "+${x0.goldDelta} gold" })
+                    }
+
+                    // Outcome badge (e.g., Win/Flee) if available
+                    when (val o = x0.outcome) {
+                        is io.yavero.aterna.domain.model.quest.EventOutcome.Win -> {
+                            // keep it subtle; you can show mob name/level if present
+                            MetaChip(text = "Win")
+                        }
+
+                        is io.yavero.aterna.domain.model.quest.EventOutcome.Flee -> {
+                            MetaChip(
+                                text = "Retreat",
+                                tonal = true
+                            )
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatChip(text: String) {
+    Box(
+        modifier = Modifier
+            .wrapContentSize()
+            .padding(vertical = 2.dp)
+            .padding(end = 0.dp)
+            .then(
+                Modifier
+                    .padding(0.dp)
+            )
+    ) {
+        AternaCard { // reuse your card styling for cohesion
+            Text(
+                text = text,
+                style = AternaTypography.Default.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+/**
+ * A lighter, meta-ish chip (for outcomes etc.). If `tonal` is true,
+ * it slightly emphasizes (used for Retreat/Flee).
+ */
+@Composable
+private fun MetaChip(text: String, tonal: Boolean = false) {
+    val bg = if (tonal) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val fg = if (tonal) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .wrapContentSize()
+    ) {
+        AternaCard {
+            Text(
+                text = text,
+                style = AternaTypography.Default.labelSmall,
+                color = fg,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
 }
