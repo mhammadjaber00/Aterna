@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun TimerScreen(
     initialMinutes: Int = 25,
-    minMinutes: Int = 1,
+    minMinutes: Int = 10,
     maxMinutes: Int = 120,
     stepMinutes: Int = 5,
     classType: ClassType = ClassType.WARRIOR,

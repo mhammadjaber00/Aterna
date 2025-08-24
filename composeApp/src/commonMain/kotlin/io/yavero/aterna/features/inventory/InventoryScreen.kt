@@ -12,22 +12,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import io.yavero.aterna.features.inventory.components.InventoryRow
-import io.yavero.aterna.features.quest.component.ErrorState
 import io.yavero.aterna.features.quest.component.FilterChipPill
-import io.yavero.aterna.features.quest.component.LoadingState
+import io.yavero.aterna.ui.components.ErrorState
+import io.yavero.aterna.ui.components.LoadingState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(component: InventoryComponent, modifier: Modifier = Modifier) {
     val state by component.uiState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier

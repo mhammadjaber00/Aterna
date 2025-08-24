@@ -20,16 +20,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import aterna.composeapp.generated.resources.*
-import io.yavero.aterna.designsystem.component.AternaPrimaryButton
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.ui.theme.AternaColors
-import io.yavero.aterna.ui.theme.AternaSpacing
 import io.yavero.aterna.ui.theme.AternaTypography
 import org.jetbrains.compose.resources.stringResource
 
@@ -59,109 +56,6 @@ fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Mo
         confirmButton = { Button(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
         modifier = modifier
     )
-}
-
-@Composable
-fun LoadingState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)
-    ) {
-        CircularProgressIndicator()
-        Text(
-            stringResource(Res.string.loading_quest_data),
-            style = AternaTypography.Default.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-fun ErrorState(error: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(AternaSpacing.Large),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)
-    ) {
-        Text(
-            "Something went wrong",
-            style = AternaTypography.Default.titleMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            error,
-            style = AternaTypography.Default.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        AternaPrimaryButton(text = "Try Again", onClick = onRetry)
-    }
-}
-
-@Composable
-private fun MagicalEventRow(event: QuestEvent) {
-    val tint = when (event.type) {
-        EventType.CHEST -> AternaColors.GoldAccent
-        EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
-        EventType.QUIRKY -> AternaColors.Ink
-        EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-        EventType.NARRATION -> MaterialTheme.colorScheme.primary
-    }
-    val icon = when (event.type) {
-        EventType.CHEST -> Icons.Filled.Inventory
-        EventType.TRINKET -> Icons.Filled.EmojiObjects
-        EventType.QUIRKY -> Icons.Filled.Star
-        EventType.MOB -> Icons.Filled.Bolt
-        EventType.NARRATION -> Icons.Filled.Edit
-    }
-
-    Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-        shape = RoundedCornerShape(14.dp),
-        tonalElevation = 2.dp,
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-        )
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            tint.copy(alpha = 0.10f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                )
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                event.message,
-                style = AternaTypography.Default.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.weight(1f))
-            Text("✧", color = tint.copy(alpha = 0.9f))
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -225,7 +119,6 @@ fun AdventureLogSheet(
     }
 }
 
-/** Single-line chip label so it never stacks vertically. */
 @Composable
 fun FilterChipPill(text: String, selected: Boolean, onClick: () -> Unit) {
     FilterChip(
@@ -240,4 +133,71 @@ fun FilterChipPill(text: String, selected: Boolean, onClick: () -> Unit) {
             )
         }
     )
+}
+
+@Composable
+private fun MagicalEventRow(event: QuestEvent) {
+    val tint = when (event.type) {
+        EventType.CHEST -> AternaColors.GoldAccent
+        EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
+        EventType.QUIRKY -> AternaColors.Ink
+        EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+        EventType.NARRATION -> MaterialTheme.colorScheme.primary
+    }
+    val icon = when (event.type) {
+        EventType.CHEST -> Icons.Filled.Inventory
+        EventType.TRINKET -> Icons.Filled.EmojiObjects
+        EventType.QUIRKY -> Icons.Filled.Star
+        EventType.MOB -> Icons.Filled.Bolt
+        EventType.NARRATION -> Icons.Filled.Edit
+    }
+
+    val gradient = remember(tint) {
+        Brush.horizontalGradient(listOf(tint.copy(alpha = 0.10f), Color.Transparent))
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(14.dp),
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(brush = gradient, shape = RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            }
+
+            Spacer(Modifier.width(10.dp))
+
+            Text(
+                text = event.message,
+                style = AternaTypography.Default.bodyMedium,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .alignByBaseline()
+            )
+
+            Text(
+                text = "✧",
+                color = tint.copy(alpha = 0.9f),
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .alignByBaseline()
+            )
+        }
+    }
 }

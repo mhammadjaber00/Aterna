@@ -64,14 +64,12 @@ fun InventoryRow(item: Item, isNew: Boolean) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(Modifier.width(8.dp))
-                    RarityPill(item.rarity)
                     if (isNew) {
                         Spacer(Modifier.width(6.dp))
                         NewPill()
                     }
                 }
-                item.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                item.description.takeIf { it.isNotBlank() }?.let { desc ->
                     Text(
                         desc,
                         style = AternaTypography.Default.bodySmall,
@@ -80,20 +78,6 @@ fun InventoryRow(item: Item, isNew: Boolean) {
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.AttachMoney,
-                    null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    "${item.value}",
-                    style = AternaTypography.Default.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
             }
         }
     }
