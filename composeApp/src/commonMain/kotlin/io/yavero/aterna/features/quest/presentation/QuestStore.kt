@@ -4,6 +4,7 @@ package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.error.getUserMessage
 import io.yavero.aterna.domain.error.toAppError
+import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.mvi.MviStore
@@ -44,7 +45,8 @@ class QuestStore(
 
     private val refresh = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
-    private val heroFlow: SharedFlow<Hero?> = heroRepository.getHero()
+    private val heroFlow: SharedFlow<Hero?> = heroRepository
+        .getHero()
         .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
     private val activeQuestFlow: SharedFlow<Quest?> =
@@ -65,7 +67,7 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
-        // NEW: load static retreat/curse rules once (non-fatal if it fails)
+        // Load static retreat/curse rules once (non-fatal if it fails)
         scope.launch {
             runCatching { curseService.rules() }
                 .onSuccess { rules -> reduce(QuestMsg.RulesLoaded(rules)) }
@@ -121,7 +123,6 @@ class QuestStore(
                 reduce(QuestMsg.WantAdventureLog)
                 loadAdventureLog()
             }
-
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }
@@ -152,7 +153,7 @@ class QuestStore(
         return merge(dataFlow, tickFlow)
     }
 
-    private fun startQuest(durationMinutes: Int, classType: io.yavero.aterna.domain.model.ClassType) {
+    private fun startQuest(durationMinutes: Int, classType: ClassType) {
         scope.launch {
             runCatching { actions.start(durationMinutes, classType) }
                 .onSuccess { r ->

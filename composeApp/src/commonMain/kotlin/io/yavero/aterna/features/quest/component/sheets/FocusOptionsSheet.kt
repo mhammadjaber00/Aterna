@@ -41,6 +41,7 @@ fun FocusOptionsSheet(
         onDismissRequest = onClose,
         dragHandle = { BottomSheetDefaults.DragHandle() },
         shape = sheetShape,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Box(Modifier.fillMaxWidth()) {
             Column(

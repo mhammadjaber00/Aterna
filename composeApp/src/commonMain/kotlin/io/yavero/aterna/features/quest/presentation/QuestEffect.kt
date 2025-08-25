@@ -4,7 +4,6 @@ import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.mvi.MviEffect
 
 sealed interface QuestEffect : MviEffect {
-
     data class ShowQuestCompleted(val loot: QuestLoot) : QuestEffect
     data object ShowQuestGaveUp : QuestEffect
     data class ShowLevelUp(val newLevel: Int) : QuestEffect

@@ -1,4 +1,4 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 
 package io.yavero.aterna.features.quest.screen
 
@@ -46,99 +46,107 @@ import io.yavero.aterna.ui.components.MagicalBackground
 import kotlinx.coroutines.delay
 
 private enum class TutorialStep { None, Hero, Halo }
+private enum class Modal { None, Stats, Analytics, AdventureLog, Retreat, Focus, Settings, Loot }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun QuestScreen(
     component: QuestComponent,
     modifier: Modifier = Modifier
 ) {
     val uiState by component.uiState.collectAsState()
+    val tutorialSeen by component.tutorialSeen.collectAsState()
 
-    var showStatsPopup by rememberSaveable { mutableStateOf(false) }
-    var showAnalyticsPopup by rememberSaveable { mutableStateOf(false) }
-    var showAdventureLog by rememberSaveable { mutableStateOf(false) }
-    var showRetreatConfirm by rememberSaveable { mutableStateOf(false) }
-    var showFocusSheet by rememberSaveable { mutableStateOf(false) }
-    var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
+    // -------- UI state (save what should survive config change)
+    var modal by rememberSaveable { mutableStateOf(Modal.None) }
+    var chromeHidden by rememberSaveable { mutableStateOf(false) }
 
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
     var logBadge by rememberSaveable { mutableStateOf(false) }
     var lastLevelSeen by rememberSaveable { mutableStateOf<Int?>(null) }
-    var chromeHidden by rememberSaveable { mutableStateOf(false) }
 
-    var showLoot by rememberSaveable { mutableStateOf(false) }
     var lastLootQuestIdShown by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var tickerText by rememberSaveable { mutableStateOf<String?>(null) }
+    // Ticker: keep only pulse + visibility; derive text from state
     var tickerPulseSeen by rememberSaveable { mutableStateOf(0) }
+    var tickerVisible by rememberSaveable { mutableStateOf(false) }
 
+    // Session options (consider hoisting to SettingsRepository later)
     var deepFocusEnabled by rememberSaveable { mutableStateOf(false) }
     var hapticsOn by rememberSaveable { mutableStateOf(true) }
     var soundtrack by rememberSaveable { mutableStateOf(Soundtrack.None) }
 
-    val tutorialSeen by component.tutorialSeen.collectAsState()
+    // Tutorial
     var tutorialStep by rememberSaveable { mutableStateOf(TutorialStep.None) }
 
-    LaunchedEffect(tutorialSeen) {
-        tutorialStep = if (!tutorialSeen) TutorialStep.Hero else TutorialStep.None
-    }
+    // Layout anchors (ephemeral)
     var rootSize by remember { mutableStateOf<IntSize?>(null) }
     var heroAnchor by remember { mutableStateOf<Rect?>(null) }
     var haloAnchor by remember { mutableStateOf<Rect?>(null) }
 
-    val snackbarHost = remember { SnackbarHostState() }
     val haptic = LocalHapticFeedback.current
 
-    LaunchedEffect(uiState.hasActiveQuest) { chromeHidden = uiState.hasActiveQuest }
+    // -------- Effects
 
+    // Start tutorial if not seen
+    LaunchedEffect(tutorialSeen) {
+        tutorialStep = if (!tutorialSeen) TutorialStep.Hero else TutorialStep.None
+    }
+
+    // Hide top chrome during an active quest
+    LaunchedEffect(uiState.hasActiveQuest) {
+        chromeHidden = uiState.hasActiveQuest
+    }
+
+    // Stats badge on level up
     LaunchedEffect(uiState.hero?.level) {
         val lvl = uiState.hero?.level
-        val prev = lastLevelSeen
-        if (lvl != null && prev != null && lvl > prev) statsBadge = true
+        if (lvl != null && (lastLevelSeen != null) && lvl > (lastLevelSeen ?: lvl)) {
+            statsBadge = true
+        }
         lastLevelSeen = lvl
     }
 
-    LaunchedEffect(showAdventureLog) {
-        if (showAdventureLog) component.onLoadAdventureLog()
-        if (showAdventureLog) logBadge = false
-    }
-    LaunchedEffect(uiState.isQuestCompleted) {
-        if (uiState.isQuestCompleted) component.onLoadAdventureLog()
-    }
-    LaunchedEffect(uiState.eventPulseCounter, showAdventureLog, uiState.hasActiveQuest) {
-        if (showAdventureLog && !uiState.hasActiveQuest) component.onLoadAdventureLog()
-    }
-
-    LaunchedEffect(uiState.eventFeed.size) {
-        val last = uiState.eventFeed.lastOrNull()
-        if (last?.type == EventType.CHEST || last?.type == EventType.TRINKET) {
-            inventoryBadge = true
+    // Load log when opening the sheet
+    LaunchedEffect(modal) {
+        if (modal == Modal.AdventureLog) {
+            component.onLoadAdventureLog()
+            logBadge = false
         }
     }
 
+    // If quest finishes, refresh log once ready and show loot once per quest
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading, uiState.activeQuest?.id) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
+            component.onLoadAdventureLog()
             val qid = uiState.activeQuest?.id
             if (qid != null && qid != lastLootQuestIdShown) {
-                showLoot = true
+                modal = Modal.Loot
                 lastLootQuestIdShown = qid
             }
         }
     }
 
-    LaunchedEffect(uiState.eventPulseCounter) {
-        val latest = (if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog).lastOrNull()?.message
-        if (latest != null && uiState.eventPulseCounter != tickerPulseSeen) {
-            tickerText = latest
-            tickerPulseSeen = uiState.eventPulseCounter
-            if (!showAdventureLog) logBadge = true
-            delay(4500)
-            if (tickerPulseSeen == uiState.eventPulseCounter) tickerText = null
+    // Inventory badge when loot events appear in the live feed
+    LaunchedEffect(uiState.eventFeed.size) {
+        when (uiState.eventFeed.lastOrNull()?.type) {
+            EventType.CHEST, EventType.TRINKET -> inventoryBadge = true
+            else -> Unit
         }
     }
 
+    // Event ticker: show latest message for a bit on new pulse
+    LaunchedEffect(uiState.eventPulseCounter) {
+        if (uiState.eventPulseCounter != tickerPulseSeen) {
+            tickerPulseSeen = uiState.eventPulseCounter
+            if (modal != Modal.AdventureLog) logBadge = true
+            tickerVisible = true
+            delay(4500)
+            if (tickerPulseSeen == uiState.eventPulseCounter) tickerVisible = false
+        }
+    }
+
+    // AdventureLog sheet content: merge active feed + log on-the-fly
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -149,11 +157,20 @@ fun QuestScreen(
         }
     }
 
+    // Derive ticker text when visible
+    val currentTicker by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog, tickerVisible) {
+        mutableStateOf(
+            if (tickerVisible) {
+                val list = if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog
+                list.lastOrNull()?.message
+            } else null
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0),
-        containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHost) }
+        containerColor = Color.Transparent
     ) { _ ->
         Box(
             Modifier
@@ -170,7 +187,7 @@ fun QuestScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
                 else -> {
-                    // TOP CHROME
+                    // TOP
                     AnimatedVisibility(
                         visible = !chromeHidden,
                         enter = fadeIn(tween(180)) + slideInVertically { -it / 3 },
@@ -184,24 +201,24 @@ fun QuestScreen(
                             uiState = uiState,
                             statsBadge = statsBadge,
                             inventoryBadge = inventoryBadge,
-                            onToggleStats = { statsBadge = false; showStatsPopup = true },
+                            onToggleStats = { statsBadge = false; modal = Modal.Stats },
                             onToggleInventory = {
                                 inventoryBadge = false
                                 component.onClearNewlyAcquired()
                                 component.onNavigateToInventory()
                             },
-                            onToggleAnalytics = { showAnalyticsPopup = true },
-                            onOpenSettings = { showSettingsSheet = true },
-                            // 👇 anchor the hero avatar for tutorial
+                            onToggleAnalytics = { modal = Modal.Analytics },
+                            onOpenSettings = { modal = Modal.Settings },
                             avatarAnchorModifier = Modifier.onGloballyPositioned {
                                 heroAnchor = it.boundsInRoot()
                             }
                         )
                     }
 
+                    // CENTER
                     QuestPortalArea(
                         uiState = uiState,
-                        onStopQuest = { showRetreatConfirm = true },
+                        onStopQuest = { modal = Modal.Retreat },
                         onCompleteQuest = { component.onCompleteQuest() },
                         onQuickSelect = { minutes ->
                             component.onNavigateToTimer(
@@ -217,15 +234,13 @@ fun QuestScreen(
                         },
                         onOpenAdventureLog = {
                             logBadge = false
-                            showAdventureLog = true
-                            component.onLoadAdventureLog()
+                            modal = Modal.AdventureLog
                         },
                         onToggleChrome = { chromeHidden = !chromeHidden },
                         onLongPressHalo = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            showFocusSheet = true
+                            if (hapticsOn) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            modal = Modal.Focus
                         },
-                        // 👇 anchor the halo for tutorial
                         haloAnchorModifier = Modifier.onGloballyPositioned {
                             haloAnchor = it.boundsInRoot()
                         },
@@ -238,11 +253,10 @@ fun QuestScreen(
                     QuestBottomChrome(
                         hasActiveQuest = uiState.hasActiveQuest,
                         chromeHidden = chromeHidden,
-                        onHoldToRetreat = { showRetreatConfirm = true },
+                        onHoldToRetreat = { modal = Modal.Retreat },
                         onOpenAdventureLog = {
                             logBadge = false
-                            showAdventureLog = true
-                            component.onLoadAdventureLog()
+                            modal = Modal.AdventureLog
                         },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -251,8 +265,8 @@ fun QuestScreen(
 
             // Event ticker
             EventTicker(
-                message = tickerText,
-                visible = tickerText != null,
+                message = currentTicker,
+                visible = currentTicker != null,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(WindowInsets.safeDrawing.asPaddingValues())
@@ -262,53 +276,48 @@ fun QuestScreen(
             val size = rootSize
             if (!tutorialSeen && size != null) {
                 when (tutorialStep) {
-                    TutorialStep.Hero -> {
-                        heroAnchor?.let { target ->
-                            SpotlightOverlay(
-                                root = size,
-                                target = target,
-                                title = "Tap your hero",
-                                body = "Expand stats and quick actions.",
-                                primaryLabel = "Next",
-                                onPrimary = { tutorialStep = TutorialStep.Halo },
-                                secondaryLabel = "Skip",
-                                onSecondary = {
-                                    component.onMarkTutorialSeen()
-                                    tutorialStep = TutorialStep.None
-                                }
-                            )
-                        }
+                    TutorialStep.Hero -> heroAnchor?.let { target ->
+                        SpotlightOverlay(
+                            root = size,
+                            target = target,
+                            title = "Tap your hero",
+                            body = "Expand stats and quick actions.",
+                            primaryLabel = "Next",
+                            onPrimary = { tutorialStep = TutorialStep.Halo },
+                            secondaryLabel = "Skip",
+                            onSecondary = {
+                                component.onMarkTutorialSeen()
+                                tutorialStep = TutorialStep.None
+                            }
+                        )
                     }
 
-                    TutorialStep.Halo -> {
-                        haloAnchor?.let { target ->
-                            SpotlightOverlay(
-                                root = size,
-                                target = target,
-                                title = "Long-press the halo",
-                                body = "Open Session Options: Deep Focus, Soundtrack, Haptics.",
-                                primaryLabel = "Got it",
-                                onPrimary = {
-                                    component.onMarkTutorialSeen()
-                                    tutorialStep = TutorialStep.None
-                                },
-                                secondaryLabel = null,
-                                onSecondary = null
-                            )
-                        }
+                    TutorialStep.Halo -> haloAnchor?.let { target ->
+                        SpotlightOverlay(
+                            root = size,
+                            target = target,
+                            title = "Long-press the halo",
+                            body = "Open Session Options: Deep Focus, Soundtrack, Haptics.",
+                            primaryLabel = "Got it",
+                            onPrimary = {
+                                component.onMarkTutorialSeen()
+                                tutorialStep = TutorialStep.None
+                            }
+                        )
                     }
-
                     else -> Unit
                 }
             }
         }
     }
 
-    if (showLoot) {
-        val questAtOpen = remember(showLoot) { uiState.activeQuest }
-        val heroAtOpen = remember(showLoot) { uiState.hero }
-        val lootAtOpen = remember(showLoot) { uiState.lastLoot }
-        val eventsAtOpen = remember(showLoot) { uiState.adventureLog.toList() }
+    // -------- Modals / Sheets
+
+    if (modal == Modal.Loot) {
+        val questAtOpen = remember(modal) { uiState.activeQuest }
+        val heroAtOpen = remember(modal) { uiState.hero }
+        val lootAtOpen = remember(modal) { uiState.lastLoot }
+        val eventsAtOpen = remember(modal) { uiState.adventureLog.toList() }
 
         if (questAtOpen != null && lootAtOpen != null) {
             LootDisplayDialog(
@@ -317,29 +326,37 @@ fun QuestScreen(
                 loot = lootAtOpen,
                 events = eventsAtOpen,
                 onDismiss = {
-                    showLoot = false
+                    modal = Modal.None
                     component.onRefresh()
                 }
             )
+        } else {
+            // Safety: close if needed data vanished
+            modal = Modal.None
         }
     }
 
-    AnimatedVisibility(visible = showStatsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-        StatsPopupDialog(hero = uiState.hero, onDismiss = { showStatsPopup = false })
-    }
-    AnimatedVisibility(visible = showAnalyticsPopup, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
-        AnalyticsPopupDialog(hero = uiState.hero, onDismiss = { showAnalyticsPopup = false })
+    AnimatedVisibility(visible = modal == Modal.Stats, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
+        StatsPopupDialog(hero = uiState.hero, onDismiss = { modal = Modal.None })
     }
 
-    if (showAdventureLog) {
+    AnimatedVisibility(
+        visible = modal == Modal.Analytics,
+        enter = scaleIn() + fadeIn(),
+        exit = scaleOut() + fadeOut()
+    ) {
+        AnalyticsPopupDialog(hero = uiState.hero, onDismiss = { modal = Modal.None })
+    }
+
+    if (modal == Modal.AdventureLog) {
         AdventureLogSheet(
             events = eventsForSheet,
             loading = uiState.isAdventureLogLoading,
-            onDismiss = { showAdventureLog = false }
+            onDismiss = { modal = Modal.None }
         )
     }
 
-    if (showRetreatConfirm) {
+    if (modal == Modal.Retreat) {
         RetreatConfirmDialog(
             totalMinutes = uiState.activeQuest?.durationMinutes ?: 0,
             timeRemaining = uiState.timeRemaining,
@@ -347,18 +364,16 @@ fun QuestScreen(
             lateRetreatThreshold = uiState.lateRetreatThreshold,
             lateRetreatPenalty = uiState.lateRetreatPenalty,
             curseSoftCapMinutes = uiState.curseSoftCapMinutes,
-            onConfirm = { showRetreatConfirm = false; component.onGiveUpQuest() },
-            onDismiss = { showRetreatConfirm = false }
+            onConfirm = { modal = Modal.None; component.onGiveUpQuest() },
+            onDismiss = { modal = Modal.None }
         )
     }
 
-    if (showSettingsSheet) {
-        SettingsSheet(
-            onDismiss = { showSettingsSheet = false },
-        )
+    if (modal == Modal.Settings) {
+        SettingsSheet(onDismiss = { modal = Modal.None })
     }
 
-    if (showFocusSheet) {
+    if (modal == Modal.Focus) {
         FocusOptionsSheet(
             deepFocusOn = deepFocusEnabled,
             onDeepFocusChange = { deepFocusEnabled = it },
@@ -366,8 +381,8 @@ fun QuestScreen(
             onSoundtrackChange = { soundtrack = it },
             hapticsOn = hapticsOn,
             onHapticsChange = { hapticsOn = it },
-            onManageExceptions = { /* TODO */ },
-            onClose = { showFocusSheet = false }
+            onManageExceptions = { /* TODO: open exceptions screen */ },
+            onClose = { modal = Modal.None }
         )
     }
 }
@@ -385,10 +400,12 @@ private fun SpotlightOverlay(
 ) {
     val placeBelow = target.center.y < root.height / 2f
     val bubbleY = if (placeBelow) target.bottom + 12f else target.top - 12f
+    val density = LocalDensity.current
 
     Box(
         Modifier
             .fillMaxSize()
+            // swallow touches behind overlay
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) awaitPointerEvent()
@@ -411,7 +428,6 @@ private fun SpotlightOverlay(
             )
         }
 
-        // Bubble
         Surface(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 2.dp,
@@ -419,16 +435,8 @@ private fun SpotlightOverlay(
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .padding(horizontal = 20.dp)
-                .absoluteOffset(
-                    x = 0.dp, // center horizontally using Box
-                    y = 0.dp
-                )
-                .align(
-                    if (placeBelow) Alignment.TopCenter else Alignment.BottomCenter
-                )
-                .offset(
-                    y = with(LocalDensity.current) { bubbleY.toDp() - (if (placeBelow) 0.dp else 0.dp) }
-                )
+                .align(if (placeBelow) Alignment.TopCenter else Alignment.BottomCenter)
+                .offset(y = with(density) { bubbleY.toDp() })
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

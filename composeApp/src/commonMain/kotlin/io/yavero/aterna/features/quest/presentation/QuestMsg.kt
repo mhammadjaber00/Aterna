@@ -9,7 +9,6 @@ import io.yavero.aterna.domain.service.curse.CurseService
 import kotlin.time.Duration
 
 sealed interface QuestMsg : MviMsg {
-
     data object Loading : QuestMsg
 
     data class DataLoaded(val hero: Hero?, val activeQuest: Quest?) : QuestMsg
@@ -25,7 +24,6 @@ sealed interface QuestMsg : MviMsg {
     data class HeroUpdated(val hero: Hero) : QuestMsg
 
     data class OwnedItemsLoaded(val ids: Set<String>) : QuestMsg
-
     data class NewlyAcquired(val ids: Set<String>) : QuestMsg
 
     data class CurseTick(val timeRemaining: Duration) : QuestMsg

@@ -98,7 +98,6 @@ class DefaultQuestComponent(
             is QuestEffect.ShowSuccess -> onShowSuccess(effect.message)
 
             is QuestEffect.ShowLootReward -> onShowLootReward(effect.loot)
-
             is QuestEffect.ShowNarration -> onShowNarration(effect.text)
 
             QuestEffect.PlayQuestCompleteSound -> onPlayQuestCompleteSound()

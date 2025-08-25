@@ -30,14 +30,17 @@ data class QuestState(
     val lastLoot: QuestLoot? = null,
     val curseTimeRemaining: Duration = Duration.ZERO,
 
-    // NEW: UI-hint flags (set by store; consumed by UI then cleared)
+    // UI-hint flags (set by store; consumed by UI then cleared)
     val pendingShowRetreatConfirm: Boolean = false,
     val pendingShowAdventureLog: Boolean = false,
 
+    // Retreat / curse rules
     val retreatGraceSeconds: Int = 0,
     val lateRetreatThreshold: Double = 1.0,
     val lateRetreatPenalty: Double = 0.0,
     val curseSoftCapMinutes: Int = 0,
+
+    // Inventory
     val ownedItemIds: Set<String> = emptySet(),
     val newlyAcquiredItemIds: Set<String> = emptySet(),
 ) : MviState, LoadingState {
