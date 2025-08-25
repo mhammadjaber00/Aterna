@@ -182,7 +182,7 @@ fun FocusOptionsSheet(
             )
 
             Spacer(Modifier.height(16.dp))
-            Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(12.dp))
 
             // Deep Focus
