@@ -129,6 +129,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+        firebaseCrashlytics {
+            mappingFileUploadEnabled = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
