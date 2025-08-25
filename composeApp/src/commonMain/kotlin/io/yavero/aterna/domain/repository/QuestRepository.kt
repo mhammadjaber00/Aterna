@@ -34,7 +34,7 @@ interface QuestRepository {
 
     suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot
 
-    // Plan + events
+
     suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>)
     suspend fun getQuestPlan(questId: String): List<PlannedEvent>
     suspend fun clearQuestPlan(questId: String)
@@ -44,7 +44,7 @@ interface QuestRepository {
     suspend fun getLastResolvedEventIdx(questId: String): Int
     suspend fun countNarrationEvents(questId: String): Int
 
-    // Ledger snapshot (freeze allocation totals + metadata)
+
     suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot)
     suspend fun getLedgerSnapshot(questId: String): LedgerSnapshot?
 }

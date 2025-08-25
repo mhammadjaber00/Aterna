@@ -54,7 +54,7 @@ class QuestStore(
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
     init {
-        // Core loader: hero + active quest + timer projection
+
         scope.launch {
             refresh
                 .flatMapLatest { buildState() }
@@ -67,14 +67,14 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
-        // Load static retreat/curse rules once (non-fatal if it fails)
+
         scope.launch {
             runCatching { curseService.rules() }
                 .onSuccess { rules -> reduce(QuestMsg.RulesLoaded(rules)) }
-                .onFailure { /* keep defaults */ }
+                .onFailure { }
         }
 
-        // Heartbeat: drive curse timer each second
+
         scope.launch {
             ticker.seconds.collect { currentTime ->
                 val nowMs = currentTime.toEpochMilliseconds()
@@ -84,14 +84,14 @@ class QuestStore(
             }
         }
 
-        // Live event preview feed (lightweight ticker/narration)
+
         scope.launch {
             events.observe(heroFlow, activeQuestFlow, ticker.seconds).collect { snap ->
                 reduce(QuestMsg.FeedUpdated(snap.preview, snap.bumpPulse))
             }
         }
 
-        // Auto-complete when duration elapses
+
         scope.launch {
             combine(activeQuestFlow, ticker.seconds) { q, now ->
                 q != null && q.isActive && (now - q.startTime) >= q.durationMinutes.minutes
@@ -101,7 +101,7 @@ class QuestStore(
                 .collect { completeQuest() }
         }
 
-        // Keep owned items in sync with hero changes
+
         scope.launch {
             heroFlow.collect { hero ->
                 val ids = hero?.id?.let { inventoryRepository.getOwnedItemIds(it) } ?: emptySet()

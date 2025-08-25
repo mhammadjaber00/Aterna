@@ -3,9 +3,7 @@ package io.yavero.aterna.domain.narrative
 import io.yavero.aterna.domain.util.TextBits
 import io.yavero.aterna.domain.util.TextRng
 
-/**
- * Banks of templates & wordlists. Keep these growable.
- */
+
 object EventPhrases {
     private val enemies = listOf(
         "gnarled task", "tiny dragon of distraction", "looming deadline", "ringing notification",
@@ -16,7 +14,7 @@ object EventPhrases {
     private val trinkets = listOf("inked note", "lucky paperclip", "coffee bean", "polished thought", "sticky idea")
     private val places = listOf("old inbox", "foggy backlog", "focus lane", "quiet grove", "deep work cave")
 
-    // Templates use {slots}. Keep counts modest, add more over time.
+
     private val mobTemplates = listOf(
         "You {verb} a {enemy}. +{xp} {xpWord}{goldMaybe}",
         "A {enemy} lunges—blocked! +{xp} {xpWord}{goldMaybe}",

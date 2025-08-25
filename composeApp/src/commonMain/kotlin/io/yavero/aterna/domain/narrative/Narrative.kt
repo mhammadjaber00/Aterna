@@ -45,7 +45,7 @@ object Narrative {
             ClassType.MAGE -> Category.StartMage
         }
 
-    // ── banks (trimmed for brevity, contains all lines you gave + spice) ─────────
+
     private val pools: Map<Category, List<Line>> = mapOf(
         Category.StartCommon to listOf(
             Line("\$HERO_NAME checks the sky. New quest.", 100),

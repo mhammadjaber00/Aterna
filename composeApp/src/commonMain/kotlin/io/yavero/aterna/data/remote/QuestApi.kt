@@ -14,13 +14,13 @@ interface QuestApi {
 @Serializable
 data class QuestCompletionRequest(
     val heroId: String,
-    val heroLevel: Int,            // NEW: remove server guesswork
+    val heroLevel: Int,            
     val questId: String,
     val durationMinutes: Int,
-    val questStartTime: String,    // ISO-8601
-    val questEndTime: String,      // ISO-8601
+    val questStartTime: String,
+    val questEndTime: String,      
     val classType: String,
-    val baseSeed: Long,            // canonical seed from client
+    val baseSeed: Long,            
     val resolverVersion: Int,
     val clientPlanHash: String? = null
 )
@@ -31,7 +31,7 @@ data class QuestCompletionResponse(
     val loot: QuestLootDto,
     val levelUp: Boolean = false,
     val newLevel: Int? = null,
-    val serverSeed: Long,              // echo of baseSeed or HMAC(baseSeed)
+    val serverSeed: Long,              
     val serverPlanHash: String? = null,
     val resolverVersion: Int? = null,
     val resolverMismatch: Boolean = false,
@@ -42,8 +42,8 @@ data class QuestCompletionResponse(
 data class QuestValidationRequest(
     val heroId: String,
     val questId: String,
-    val startTime: String,          // ISO-8601
-    val endTime: String,            // ISO-8601
+    val startTime: String,
+    val endTime: String,            
     val durationMinutes: Int,
     val baseSeed: Long? = null,
     val resolverVersion: Int? = null,
@@ -72,7 +72,6 @@ data class ItemDto(
     val value: Int
 )
 
-// ── DTO ↔ domain ────────────────────────────────────────────────────────────────
 
 fun QuestLootDto.toDomain(): QuestLoot = QuestLoot(
     xp = xp,

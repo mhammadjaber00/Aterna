@@ -2,10 +2,6 @@ package io.yavero.aterna.services.rng
 
 import kotlin.math.abs
 
-/**
- * Portable SplitMix64 RNG. Seed → identical sequence everywhere.
- * Minimal API needed for loot/planner logic.
- */
 class SplitMix64(seed: ULong) {
     private var state: ULong = seed
 
@@ -17,16 +13,13 @@ class SplitMix64(seed: ULong) {
         return z xor (z shr 31)
     }
 
-    fun nextLong(): Long = nextULong().toLong()
     fun nextDouble(): Double {
-        // Take upper 53 bits to produce [0,1) double
         val v = nextULong() shr 11
         return v.toDouble() / (1UL shl 53).toDouble()
     }
 
     fun nextInt(bound: Int): Int {
         require(bound > 0)
-        // 32-bit from 64
         val raw = (nextULong() shr 32).toUInt().toInt()
         val nonNeg = abs(raw)
         return nonNeg % bound

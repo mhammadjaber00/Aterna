@@ -280,7 +280,7 @@ class QuestActionServiceImpl(
     }
 
     private suspend fun appendNarration(questId: String, text: String) {
-        // Use negative indices for narration to avoid overwriting planned beats
+
         val countNarr = questRepository.countNarrationEvents(questId)
         val negIdx = -(countNarr + 1)
         val ev = io.yavero.aterna.domain.model.quest.QuestEvent(

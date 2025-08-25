@@ -47,13 +47,13 @@ fun SettingsSheet(
                 title = "Soundtracks",
                 subtitle = "Pick a vibe for quests",
                 icon = { OrbIcon { Icon(Icons.Outlined.MusicNote, contentDescription = null) } },
-                onClick = { /* TODO: open soundtracks */ }
+                onClick = { }
             )
             SettingsTile(
                 title = "Notifications",
                 subtitle = "Reminders and session complete",
                 icon = { OrbIcon { Icon(Icons.Outlined.Notifications, contentDescription = null) } },
-                onClick = { /* TODO: open notifications */ }
+                onClick = { }
             )
 
             Spacer(Modifier.Companion.height(16.dp))
@@ -62,12 +62,12 @@ fun SettingsSheet(
             SettingsTile(
                 title = "Privacy Policy",
                 icon = { OrbIcon { Icon(Icons.Outlined.Policy, contentDescription = null) } },
-                onClick = { /* TODO: open policy */ }
+                onClick = { }
             )
             SettingsTile(
                 title = "Restore Purchases",
                 icon = { OrbIcon { Icon(Icons.Outlined.Restore, contentDescription = null) } },
-                onClick = { /* TODO: restore */ }
+                onClick = { }
             )
 
             Spacer(Modifier.Companion.height(8.dp))

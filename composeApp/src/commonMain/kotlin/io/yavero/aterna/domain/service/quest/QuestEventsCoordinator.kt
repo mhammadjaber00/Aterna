@@ -18,7 +18,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 interface QuestEventsCoordinator {
-    /** Ensures plan; if a ledger snapshot exists, replays due beats using it. */
+
     fun observe(
         heroFlow: Flow<Hero?>,
         activeQuestFlow: Flow<Quest?>,
@@ -80,7 +80,7 @@ class DefaultQuestEventsCoordinator(
                 )
             }
 
-            // Existing authoritative path (unchanged)
+
             val newCount = replayDueEventsWithLedger(hero, active, now, snap)
             val needRefresh = (lastPreviewQuestId != active.id) || (newCount > 0)
             if (needRefresh) {
@@ -120,7 +120,7 @@ class DefaultQuestEventsCoordinator(
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
         val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
 
-        // NEW: provisional totals for the whole quest using the same seed
+
         val estBase = LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
@@ -128,15 +128,14 @@ class DefaultQuestEventsCoordinator(
             serverSeed = baseSeed
         )
 
-        // If you want curse to affect preview, inject RewardService here and:
-        // val estFinal = rewardService.applyModifiers(estBase) else use estBase as-is.
+
         val provisional = RewardAllocator.allocate(
             questId = quest.id,
             baseSeed = baseSeed,
             heroLevel = hero.level,
             classType = hero.classType,
             plan = plan,
-            finalTotals = QuestLoot(estBase.xp, estBase.gold) // items don’t matter for ledger
+            finalTotals = QuestLoot(estBase.xp, estBase.gold) 
         )
         val byIdx = provisional.entries.associateBy { it.eventIdx }
 
@@ -150,7 +149,7 @@ class DefaultQuestEventsCoordinator(
             )
         }
 
-        // keep your appended-NARRATION logic
+
         val appended = questRepository.getQuestEventsPreview(quest.id, 1).firstOrNull()
         val effectivePreview =
             if (appended != null && appended.idx > (preview.lastOrNull()?.idx ?: -1)) preview + appended else preview
@@ -193,7 +192,7 @@ class DefaultQuestEventsCoordinator(
         if (plan.isEmpty()) return 0
         val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
 
-        // Rebuild deterministic ledger from stored totals
+
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
         val ledger = RewardAllocator.allocate(
             questId = quest.id,

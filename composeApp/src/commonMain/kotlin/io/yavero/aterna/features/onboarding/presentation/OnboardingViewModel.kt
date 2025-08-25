@@ -68,7 +68,7 @@ class OnboardingViewModel(
             Event.BackPressed -> moveBack()
             Event.Finish -> finishOnboarding()
             Event.Skip -> skipOnboarding()
-            Event.Retry -> { /* no-op for now */
+            Event.Retry -> { 
             }
         }
     }

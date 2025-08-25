@@ -23,33 +23,30 @@ import kotlin.time.ExperimentalTime
 
 @Composable
 fun PathSilhouette(
-    modifier: Modifier = Modifier,
-    fireflies: Boolean = true
+    modifier: Modifier = Modifier, fireflies: Boolean = true
 ) {
-    // time drivers
     val trans = rememberInfiniteTransition(label = "pathScene")
     val windT by trans.animateFloat(
-        initialValue = 0f, targetValue = 1f,
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing)),
         label = "wind"
     )
     val glowT by trans.animateFloat(
-        initialValue = 0f, targetValue = 1f,
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(4000, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "glow"
     )
 
-    // deterministic 0..1 hash (no external seed)
     fun hash01(n: Int): Float {
         var v = n
         v = v xor (v shl 13)
         v = v xor (v ushr 17)
         v = v xor (v shl 5)
-        // keep positive and map to 0..1
         return ((v * 0x85ebca6b.toInt()).ushr(1) and 0x7fffffff) / 2147483647f
     }
 
-    // smooth value noise used for wind/jitter
     fun valueNoise1D(x: Float): Float {
         val i = floor(x).toInt()
         val f = x - floor(x)
@@ -65,13 +62,9 @@ fun PathSilhouette(
         return a * (1 - u) + b * u
     }
 
-    // tree placed left/right outside the path, with lateral offset
+
     data class Tree(
-        val side: Int,          // -1 = left, +1 = right
-        val xOff01: Float,      // 0..1 distance from path edge outward
-        val y01: Float,         // 0..1 vertical placement
-        val scale: Float,
-        val layer: Int
+        val side: Int, val xOff01: Float, val y01: Float, val scale: Float, val layer: Int
     )
 
     val trees = remember {
@@ -82,18 +75,18 @@ fun PathSilhouette(
                     val y = yMin + (yMax - yMin) * hash01(++idx)
                     val s = sMin + (sMax - sMin) * hash01(++idx)
                     val side = if (hash01(++idx) < 0.5f) -1 else 1
-                    val xOff = hash01(++idx) // how far from the edge
+                    val xOff = hash01(++idx)
                     add(Tree(side = side, xOff01 = xOff, y01 = y, scale = s, layer = layer))
                 }
             }
-            // farther → fewer; nearer → larger
+
             makeLayer(18, 0, 0.42f, 0.60f, 0.7f, 1.1f)
             makeLayer(26, 1, 0.55f, 0.74f, 0.9f, 1.4f)
             makeLayer(18, 2, 0.70f, 0.88f, 1.2f, 1.8f)
         }.sortedWith(compareBy<Tree> { it.layer }.thenBy { it.y01 })
     }
 
-    // deterministic fireflies too
+
     data class Fly(val x01: Float, val y01: Float, val phase: Float, val speed: Float)
 
     val flies = remember {
@@ -112,7 +105,7 @@ fun PathSilhouette(
         val h = size.height
         val minD = min(w, h)
 
-        // palette
+
         val nearTrunk = Color(0xFF131528)
         val nearCrown = Color(0xFF0E1222)
         val midTrunk = Color(0xFF0F1120).copy(alpha = 0.92f)
@@ -122,7 +115,7 @@ fun PathSilhouette(
         val pathGlowA = Color(0xFF2A2644).copy(alpha = 0.35f + 0.15f * glowT)
         val pathGlowB = Color(0xFF3D4A7A).copy(alpha = 0.55f + 0.20f * glowT)
 
-        // perspective / path
+
         val vp = Offset(w * 0.5f, h * 0.36f)
         val baseY = h * 0.88f
         val baseHalf = w * 0.28f
@@ -141,11 +134,8 @@ fun PathSilhouette(
             close()
         }
         drawPath(
-            path = path,
-            brush = Brush.verticalGradient(
-                0f to Color.Transparent,
-                0.65f to pathGlowA,
-                1f to pathGlowB
+            path = path, brush = Brush.verticalGradient(
+                0f to Color.Transparent, 0.65f to pathGlowA, 1f to pathGlowB
             )
         )
 
@@ -157,55 +147,49 @@ fun PathSilhouette(
             val trunkW = max(2f, width * 0.20f)
             val swayPx = sway * (6f * s)
 
-            // trunk
+
             drawRect(
                 color = trunk,
                 topLeft = Offset(x - trunkW * 0.5f + swayPx * 0.2f, y - height),
                 size = Size(trunkW, height * 0.48f)
             )
 
-            // crown (teardrop)
+
             val crownPath = Path().apply {
                 moveTo(x + swayPx, y - height)
                 quadraticTo(
-                    x - width * 0.8f + swayPx, y - height * 0.45f,
-                    x + swayPx, y - height * 0.10f
+                    x - width * 0.8f + swayPx, y - height * 0.45f, x + swayPx, y - height * 0.10f
                 )
                 quadraticTo(
-                    x + width * 0.8f + swayPx, y - height * 0.45f,
-                    x + swayPx, y - height
+                    x + width * 0.8f + swayPx, y - height * 0.45f, x + swayPx, y - height
                 )
                 close()
             }
             drawPath(
-                path = crownPath,
-                brush = Brush.verticalGradient(
-                    0f to crown.copy(alpha = 0.92f),
-                    1f to crown.copy(alpha = 0.75f)
+                path = crownPath, brush = Brush.verticalGradient(
+                    0f to crown.copy(alpha = 0.92f), 1f to crown.copy(alpha = 0.75f)
                 )
             )
 
-            // contact shadow
+
             drawCircle(
                 brush = Brush.radialGradient(
                     listOf(Color.Black.copy(alpha = 0.25f), Color.Transparent)
-                ),
-                radius = width * 0.9f,
-                center = Offset(x, y + 2f)
+                ), radius = width * 0.9f, center = Offset(x, y + 2f)
             )
         }
 
-        // already sorted at construction; just iterate
+
         for (t in trees) {
             val y = h * t.y01
-            val yLerp = ((y - vp.y) / (baseY - vp.y)).coerceIn(0f, 1f)     // 0 top → 1 base
+            val yLerp = ((y - vp.y) / (baseY - vp.y)).coerceIn(0f, 1f)
             val halfAtY = lerp(topHalf, baseHalf, yLerp)
 
-            // edges of the path at this y
+
             val edgeLeft = vp.x - halfAtY
             val edgeRight = vp.x + halfAtY
 
-            // outward padding & spread scale with depth, so near trees sit further out
+
             val pad = lerp(w * 0.02f, w * 0.08f, yLerp)
             val spread = lerp(w * 0.08f, w * 0.22f, yLerp)
 
@@ -215,10 +199,10 @@ fun PathSilhouette(
                 edgeRight + (pad + t.xOff01 * spread)
             }
 
-            // wind sway via noise
+
             val windPhase = windT * (0.6f + 0.2f * t.layer) * 6f
-            val sway = (valueNoise1D(windPhase + (t.y01 + t.xOff01) * 7.3f) - 0.5f) *
-                    (if (t.layer == 2) 2.4f else if (t.layer == 1) 1.6f else 1.0f)
+            val sway =
+                (valueNoise1D(windPhase + (t.y01 + t.xOff01) * 7.3f) - 0.5f) * (if (t.layer == 2) 2.4f else if (t.layer == 1) 1.6f else 1.0f)
 
             val (trunkC, crownC) = when (t.layer) {
                 0 -> farTrunk to farCrown
@@ -229,7 +213,7 @@ fun PathSilhouette(
             drawTree(x = x, y = y, s = t.scale, trunk = trunkC, crown = crownC, sway = sway)
         }
 
-        // subtle “step” reflections along path
+
         repeat(5) { i ->
             val t = i / 4f
             val y = lerp(vp.y + h * 0.02f, baseY - h * 0.02f, t)
@@ -243,7 +227,7 @@ fun PathSilhouette(
             )
         }
 
-        // fireflies (deterministic)
+
         if (fireflies) {
             flies.forEach { f ->
                 val driftX = (valueNoise1D(glowT * f.speed * 10f + f.phase) - 0.5f) * 20f
@@ -253,9 +237,7 @@ fun PathSilhouette(
                 val twinkle = 0.35f + 0.65f * abs(sin(glowT * f.speed * (2f * PI).toFloat() + f.phase))
                 val a = 0.35f * twinkle
                 drawCircle(
-                    color = Color(0xFFFFE08A).copy(alpha = a),
-                    radius = 1.6f + 1.6f * twinkle,
-                    center = Offset(x, y)
+                    color = Color(0xFFFFE08A).copy(alpha = a), radius = 1.6f + 1.6f * twinkle, center = Offset(x, y)
                 )
             }
         }
@@ -268,30 +250,21 @@ fun CampSilhouette(modifier: Modifier = Modifier) {
     val emberAnimation = rememberInfiniteTransition(label = "embers")
 
     val fireIntensity by fireAnimation.animateFloat(
-        0.8f, 1.3f,
-        animationSpec = infiniteRepeatable(
-            tween(800, easing = EaseInOutSine),
-            RepeatMode.Reverse
-        ),
-        label = "fire"
+        0.8f, 1.3f, animationSpec = infiniteRepeatable(
+            tween(800, easing = EaseInOutSine), RepeatMode.Reverse
+        ), label = "fire"
     )
 
     val emberFloat by emberAnimation.animateFloat(
-        0f, 1f,
-        animationSpec = infiniteRepeatable(
-            tween(3000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
-        label = "emberFloat"
+        0f, 1f, animationSpec = infiniteRepeatable(
+            tween(3000, easing = LinearEasing), RepeatMode.Restart
+        ), label = "emberFloat"
     )
 
     Canvas(modifier) {
         val cx = size.width / 2f
         val baseY = size.height
 
-        // (removed a no-op rect)
-
-        // warm ground glow
         drawCircle(
             brush = Brush.radialGradient(
                 listOf(
@@ -299,24 +272,19 @@ fun CampSilhouette(modifier: Modifier = Modifier) {
                     Color(0xFFFFA94D).copy(alpha = .08f * fireIntensity),
                     Color.Transparent
                 )
-            ),
-            radius = min(size.width, size.height) * .22f * fireIntensity,
-            center = Offset(cx, baseY - 8.dp.toPx())
+            ), radius = min(size.width, size.height) * .22f * fireIntensity, center = Offset(cx, baseY - 8.dp.toPx())
         )
 
-        // inner ember halo
+
         drawCircle(
             brush = Brush.radialGradient(
                 listOf(
-                    Color(0xFFFFD700).copy(alpha = .25f * fireIntensity),
-                    Color.Transparent
+                    Color(0xFFFFD700).copy(alpha = .25f * fireIntensity), Color.Transparent
                 )
-            ),
-            radius = min(size.width, size.height) * .08f * fireIntensity,
-            center = Offset(cx, baseY - 12.dp.toPx())
+            ), radius = min(size.width, size.height) * .08f * fireIntensity, center = Offset(cx, baseY - 12.dp.toPx())
         )
 
-        // embers
+
         repeat(8) { i ->
             val emberX = cx + sin(emberFloat * 2 * PI + i) * (30f + i * 10f)
             val emberY = baseY - 20f - emberFloat * 100f - i * 15f
@@ -330,7 +298,7 @@ fun CampSilhouette(modifier: Modifier = Modifier) {
             }
         }
 
-        // smoke wisps
+
         repeat(3) { i ->
             val smokeX = cx + (i - 1) * 15f + sin(emberFloat * PI + i) * 8f
             val smokeY = baseY - 40f - emberFloat * 80f
@@ -348,36 +316,26 @@ fun CampSilhouette(modifier: Modifier = Modifier) {
 
 @Composable
 fun CrystalChamberSilhouette(
-    modifier: Modifier = Modifier,
-    runesOn: Boolean = true
+    modifier: Modifier = Modifier, runesOn: Boolean = true
 ) {
     val trans = rememberInfiniteTransition(label = "crystalChamber")
 
     val breathe by trans.animateFloat(
-        initialValue = 0.7f, targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            tween(3200, easing = EaseInOutSine),
-            RepeatMode.Reverse
-        ),
-        label = "breathe"
+        initialValue = 0.7f, targetValue = 1.2f, animationSpec = infiniteRepeatable(
+            tween(3200, easing = EaseInOutSine), RepeatMode.Reverse
+        ), label = "breathe"
     )
 
     val twinkle by trans.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(2400, easing = EaseInOutSine),
-            RepeatMode.Reverse
-        ),
-        label = "twinkle"
+        initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(
+            tween(2400, easing = EaseInOutSine), RepeatMode.Reverse
+        ), label = "twinkle"
     )
 
     val orbitPhase by trans.animateFloat(
-        initialValue = 0f, targetValue = 2 * PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            tween(8000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
-        label = "orbit"
+        initialValue = 0f, targetValue = 2 * PI.toFloat(), animationSpec = infiniteRepeatable(
+            tween(8000, easing = LinearEasing), RepeatMode.Restart
+        ), label = "orbit"
     )
 
     Canvas(modifier) {
@@ -394,33 +352,23 @@ fun CrystalChamberSilhouette(
         val cx = w * 0.5f
         val cy = h * 0.58f
 
-        // background
+
         drawRect(
             brush = Brush.verticalGradient(
-                0f to Color(0xFF090913),
-                0.60f to Color(0xFF0B0C14),
-                1f to Color(0xFF0D0E18)
-            ),
-            size = size
+                0f to Color(0xFF090913), 0.60f to Color(0xFF0B0C14), 1f to Color(0xFF0D0E18)
+            ), size = size
         )
-        // vignette
+
         drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(Color.Transparent, Color(0xFF000000).copy(alpha = 0.55f)),
                 center = Offset(cx, cy),
                 radius = min(w, h) * 0.75f
-            ),
-            size = size
+            ), size = size
         )
 
         fun stalactitesLayer(
-            yBase: Float,
-            amp: Float,
-            freq: Float,
-            color: Color,
-            alpha: Float,
-            seed: Float,
-            invert: Boolean = false
+            yBase: Float, amp: Float, freq: Float, color: Color, alpha: Float, seed: Float, invert: Boolean = false
         ) {
             val steps = 48
             val path = Path()
@@ -440,25 +388,18 @@ fun CrystalChamberSilhouette(
                 path.lineTo(w, h); path.close()
             }
             drawPath(
-                path = path,
-                brush = Brush.verticalGradient(
+                path = path, brush = Brush.verticalGradient(
                     listOf(color.copy(alpha = alpha), color.copy(alpha = alpha * 0.3f))
                 )
             )
         }
 
-        // layers
+
         stalactitesLayer(yBase = 0.20f, amp = 0.03f, freq = 1.7f, color = rockDeep, alpha = 0.9f, seed = 0.1f)
         stalactitesLayer(yBase = 0.26f, amp = 0.04f, freq = 2.2f, color = rockMid, alpha = 0.9f, seed = 0.55f)
         stalactitesLayer(yBase = 0.32f, amp = 0.05f, freq = 3.0f, color = rockNear, alpha = 0.95f, seed = 1.1f)
         stalactitesLayer(
-            yBase = 0.18f,
-            amp = 0.03f,
-            freq = 2.0f,
-            color = rockMid,
-            alpha = 0.7f,
-            seed = 0.9f,
-            invert = true
+            yBase = 0.18f, amp = 0.03f, freq = 2.0f, color = rockMid, alpha = 0.7f, seed = 0.9f, invert = true
         )
 
         fun lightBeam(angleDeg: Float, spread: Float, strength: Float, phase: Float) {
@@ -472,15 +413,13 @@ fun CrystalChamberSilhouette(
                         0.15f to glowCenter.copy(alpha = 0.08f * strength),
                         0.45f to glowMid.copy(alpha = 0.05f * strength),
                         1f to Color.Transparent
-                    ),
-                    topLeft = topLeft,
-                    size = Size(beamW, beamH)
+                    ), topLeft = topLeft, size = Size(beamW, beamH)
                 )
             }
         }
         for (i in 0..4) lightBeam(angleDeg = -22f + i * 11f, spread = 0.10f, strength = 1f, phase = 60f)
 
-        // pedestal
+
         val pedW = w * 0.26f
         val pedH = h * 0.065f
         val pedTop = cy + h * 0.07f
@@ -497,7 +436,7 @@ fun CrystalChamberSilhouette(
             strokeWidth = 2f
         )
 
-        // crystal + core
+
         val cW = w * 0.12f
         val cH = h * 0.16f
         val crystal = Path().apply {
@@ -516,8 +455,7 @@ fun CrystalChamberSilhouette(
         }
 
         drawPath(
-            path = crystal,
-            brush = Brush.verticalGradient(
+            path = crystal, brush = Brush.verticalGradient(
                 0f to Color(0xFFFFF2C4).copy(alpha = 0.80f * breathe),
                 1f to Color(0xFFFFD36B).copy(alpha = 0.60f * breathe)
             )
@@ -527,15 +465,12 @@ fun CrystalChamberSilhouette(
         drawLine(Color(0xFFFFF7DA).copy(alpha = 0.18f), Offset(cx - cW / 2.5f, cy), Offset(cx + cW / 2.5f, cy), 1f)
 
         drawPath(
-            path = core,
-            brush = Brush.radialGradient(
+            path = core, brush = Brush.radialGradient(
                 listOf(
                     Color(0xFFFFF7DA).copy(alpha = 0.88f * breathe),
                     Color(0xFFFFE083).copy(alpha = 0.65f * breathe),
                     Color.Transparent
-                ),
-                center = Offset(cx, cy),
-                radius = min(w, h) * 0.10f * breathe
+                ), center = Offset(cx, cy), radius = min(w, h) * 0.10f * breathe
             )
         )
 
@@ -548,9 +483,7 @@ fun CrystalChamberSilhouette(
                     glowOuter.copy(alpha = 0.06f * breathe),
                     Color.Transparent
                 )
-            ),
-            radius = glowR,
-            center = Offset(cx, cy)
+            ), radius = glowR, center = Offset(cx, cy)
         )
 
         fun glint(a: Float, len: Float, alpha: Float) {
@@ -558,6 +491,7 @@ fun CrystalChamberSilhouette(
             val p2 = Offset(p1.x + cos(a + PI.toFloat() / 2) * len, p1.y + sin(a + PI.toFloat() / 2) * len)
             drawLine(Color.White.copy(alpha = alpha), p1, p2, strokeWidth = 1.5f)
         }
+
         val ping = (0.5f + 0.5f * twinkle)
         glint(a = orbitPhase * 0.8f, len = 14f, alpha = 0.25f * ping)
         glint(a = orbitPhase * 1.3f + 1.6f, len = 10f, alpha = 0.18f * ping)
@@ -582,8 +516,7 @@ fun CrystalChamberSilhouette(
                     radius = r,
                     center = Offset(cx, cy),
                     style = Stroke(
-                        width = 1.8f,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), dashPhase)
+                        width = 1.8f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), dashPhase)
                     )
                 )
             }
@@ -596,22 +529,25 @@ fun SwordAndWandSilhouette(
     modifier: Modifier = Modifier,
     showSigils: Boolean = true,
     highlight: ChoiceHighlight = ChoiceHighlight.None,
-    showBeams: Boolean = false // toggleable; default off to keep your current look
+    showBeams: Boolean = false
 ) {
     val trans = rememberInfiniteTransition(label = "choiceScene")
 
     val breathe by trans.animateFloat(
-        0.92f, 1.08f,
+        0.92f,
+        1.08f,
         animationSpec = infiniteRepeatable(tween(2400, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "breathe"
     )
     val orbit by trans.animateFloat(
-        0f, (2 * PI).toFloat(),
+        0f,
+        (2 * PI).toFloat(),
         animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing), RepeatMode.Restart),
         label = "orbit"
     )
     val bob by trans.animateFloat(
-        0f, 1f,
+        0f,
+        1f,
         animationSpec = infiniteRepeatable(tween(2200, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "bob"
     )
@@ -620,22 +556,21 @@ fun SwordAndWandSilhouette(
         val w = size.width
         val h = size.height
         val cx = w * 0.5f
-        val cy = h * 0.42f // higher so choices read clearly below
+        val cy = h * 0.42f
 
-        // palette (matches chamber)
+
         val rockDeep = Color(0xFF0E0F1F)
         val rockNear = Color(0xFF181A28)
         val goldCore = Color(0xFFFFF7DA)
         val goldMid = Color(0xFFFFE083)
         val goldOut = Color(0xFFFFD76B)
 
-        // background
+
         drawRect(
-            brush = Brush.verticalGradient(0f to Color(0xFF0B0A12), 1f to Color(0xFF0D0E18)),
-            size = size
+            brush = Brush.verticalGradient(0f to Color(0xFF0B0A12), 1f to Color(0xFF0D0E18)), size = size
         )
 
-        // foreground ridge
+
         val ridge = Path().apply {
             moveTo(0f, h * 0.78f)
             cubicTo(w * 0.18f, h * 0.72f, w * 0.36f, h * 0.80f, w * 0.50f, h * 0.76f)
@@ -644,7 +579,7 @@ fun SwordAndWandSilhouette(
         }
         drawPath(ridge, brush = Brush.verticalGradient(listOf(rockNear, rockDeep)))
 
-        // portal
+
         val portalR = min(w, h) * 0.10f * breathe
         drawCircle(
             brush = Brush.radialGradient(
@@ -654,9 +589,7 @@ fun SwordAndWandSilhouette(
                     goldOut.copy(alpha = 0.20f),
                     Color.Transparent
                 )
-            ),
-            radius = portalR * 1.45f,
-            center = Offset(cx, cy)
+            ), radius = portalR * 1.45f, center = Offset(cx, cy)
         )
         drawCircle(
             brush = Brush.radialGradient(listOf(goldCore, goldMid.copy(alpha = 0.7f), Color.Transparent)),
@@ -664,12 +597,11 @@ fun SwordAndWandSilhouette(
             center = Offset(cx, cy)
         )
 
-        // rune rings
+
         repeat(3) { i ->
             val r = portalR * (1.05f + i * 0.27f)
             val dash = PathEffect.dashPathEffect(
-                floatArrayOf(5f, 8f),
-                (orbit * (10 + i * 4)) % (2f * PI).toFloat()
+                floatArrayOf(5f, 8f), (orbit * (10 + i * 4)) % (2f * PI).toFloat()
             )
             drawCircle(
                 color = goldMid.copy(alpha = 0.22f - i * 0.05f),
@@ -679,7 +611,7 @@ fun SwordAndWandSilhouette(
             )
         }
 
-        // soft light beams (optional)
+
         if (showBeams) {
             fun beam(angle: Float, spread: Float, strength: Float, phase: Float) {
                 val beamH = h * 0.9f
@@ -692,9 +624,7 @@ fun SwordAndWandSilhouette(
                             0.2f to goldCore.copy(alpha = 0.10f * strength),
                             0.6f to goldMid.copy(alpha = 0.06f * strength),
                             1f to Color.Transparent
-                        ),
-                        topLeft = topLeft,
-                        size = Size(beamW, beamH)
+                        ), topLeft = topLeft, size = Size(beamW, beamH)
                     )
                 }
             }
@@ -715,11 +645,12 @@ fun SwordAndWandSilhouette(
                 )
                 drawCircle(
                     brush = Brush.radialGradient(listOf(Color.Black.copy(alpha = 0.20f), Color.Transparent)),
-                    radius = pedW * 0.6f, center = Offset(center.x, center.y + pedH + 26f)
+                    radius = pedW * 0.6f,
+                    center = Offset(center.x, center.y + pedH + 26f)
                 )
             }
 
-            // positions + sizes
+
             val sigilY = cy + portalR * 0.85f
             val left = Offset(cx - w * 0.28f, sigilY + bobY)
             val right = Offset(cx + w * 0.28f, sigilY - bobY)
@@ -738,7 +669,7 @@ fun SwordAndWandSilhouette(
             drawSword(center = left, scale = 4f, alpha = swordAlpha)
             drawWand(center = right, scale = 4f, alpha = wandAlpha)
 
-            // subtle arc links → portal
+
             fun link(from: Offset, to: Offset) {
                 val p = Path().apply {
                     moveTo(from.x, from.y - 14f)
@@ -750,7 +681,7 @@ fun SwordAndWandSilhouette(
             link(right, Offset(cx + portalR * 0.6f, cy))
         }
 
-        // dust motes
+
         repeat(16) { i ->
             val a = (orbit * (1.2f + i * 0.05f)).toFloat()
             val r = portalR * (1.1f + (i % 6) * 0.12f)
@@ -758,17 +689,14 @@ fun SwordAndWandSilhouette(
             drawCircle(Color.White.copy(alpha = 0.18f), radius = 1.5f, center = p)
         }
 
-        // bottom vignette
+
         drawRect(
             brush = Brush.verticalGradient(
-                0f to Color.Transparent,
-                1f to Color(0xFF060711).copy(alpha = 0.85f)
-            ),
-            topLeft = Offset(0f, h * 0.86f),
-            size = Size(w, h * 0.14f)
+                0f to Color.Transparent, 1f to Color(0xFF060711).copy(alpha = 0.85f)
+            ), topLeft = Offset(0f, h * 0.86f), size = Size(w, h * 0.14f)
         )
 
-        // stepped path leading to the portal
+
         val yEnd = cy + portalR * 0.95f
         val yStart = h * 0.92f
         repeat(6) { i ->
@@ -797,22 +725,17 @@ fun SwordAndWandSilhouette(
 
 enum class ChoiceHighlight { None, Warrior, Mage }
 
-// --- pixel helper (integer px for crisp edges) -------------------------------
-private fun DrawScope.pixelPx(scale: Float): Float =
-    max(3f, (4f * scale)).toInt().toFloat() // round to whole pixels
+
+private fun DrawScope.pixelPx(scale: Float): Float = max(3f, (4f * scale)).toInt().toFloat()
 
 private fun DrawScope.drawSprite(
-    center: Offset,
-    sprite: Array<String>,      // fixed-width rows; '.' = transparent
-    px: Float,
-    alpha: Float = 1f,
-    palette: (Char) -> Color?   // char -> color
+    center: Offset, sprite: Array<String>, px: Float, alpha: Float = 1f, palette: (Char) -> Color?
 ) {
     val rows = sprite.size
     val cols = sprite.firstOrNull()?.length ?: 0
     if (rows == 0 || cols == 0) return
 
-    // align to the pixel grid
+
     val startX = kotlin.math.floor(center.x - cols * px / 2f)
     val startY = kotlin.math.floor(center.y - rows * px / 2f)
 
@@ -828,7 +751,7 @@ private fun DrawScope.drawSprite(
     }
 }
 
-// --- SWORD (16x16) -----------------------------------------------------------
+
 private val SWORD = arrayOf(
     ".......1........",
     ".......1........",
@@ -848,27 +771,24 @@ private val SWORD = arrayOf(
     "................",
 ).map { it.replace(' ', '.') }.toTypedArray()
 
-// Shimmer masks
+
 private val SWORD_SHIM = listOf(
     arrayOf(
         "................", "........9.......", ".......9........", "......9.........",
         "................", "................", "................", "................",
         "................", "................", "................", "................",
         "................", "................", "................", "................",
-    ),
-    arrayOf(
+    ), arrayOf(
         "................", "................", "........9.......", ".......9........",
         "......9.........", "................", "................", "................",
         "................", "................", "................", "................",
         "................", "................", "................", "................",
-    ),
-    arrayOf(
+    ), arrayOf(
         "................", "................", "................", "........9.......",
         ".......9........", "......9.........", "................", "................",
         "................", "................", "................", "................",
         "................", "................", "................", "................",
-    ),
-    arrayOf(
+    ), arrayOf(
         "................", "................", "................", "................",
         "........9.......", ".......9........", "......9.........", "................",
         "................", "................", "................", "................",
@@ -876,7 +796,7 @@ private val SWORD_SHIM = listOf(
     )
 )
 
-// --- WAND (16x16) ------------------------------------------------------------
+
 private val WAND = arrayOf(
     "........e.......",
     ".......aba......",
@@ -896,7 +816,7 @@ private val WAND = arrayOf(
     "................",
 ).map { it.replace(' ', '.') }.toTypedArray()
 
-// --- colors shared with your scene palette -----------------------------------
+
 private val C_outline = Color(0xFF121426)
 private val C_white = Color(0xFFFFFFFF)
 
@@ -916,15 +836,15 @@ private val C_orbMd = Color(0xFF9CC7FF)
 private val C_orbDk = Color(0xFF6EA2FF)
 private val C_rimDk = Color(0xFF2E3D7A)
 
-// --- draw functions with shimmer/pulse --------------------------------------
+
 @OptIn(ExperimentalTime::class)
 fun DrawScope.drawSword(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
     val px = pixelPx(scale)
 
-    // soft drop shadow
+
     drawSprite(center.copy(y = center.y + px * 0.4f), SWORD, px, alpha = 0.30f) { C_outline.copy(alpha = 0.30f) }
 
-    // base sprite
+
     drawSprite(center, SWORD, px, alpha) { ch ->
         when (ch) {
             '0' -> C_outline
@@ -950,7 +870,7 @@ fun DrawScope.drawSword(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
 fun DrawScope.drawWand(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
     val px = pixelPx(scale)
 
-    // base
+
     drawSprite(center, WAND, px, alpha) { ch ->
         when (ch) {
             '0' -> C_outline
@@ -965,7 +885,7 @@ fun DrawScope.drawWand(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
         }
     }
 
-    // centered orb pulse (fixed)
+
     val orbCenter = center + Offset(px * 0.5f, -(7.5f - 2f) * px)
     val pulse = 0.7f + 0.3f * sin(
         (kotlin.time.Clock.System.now().toEpochMilliseconds() % 1400L) / 1400f * 2f * PI
@@ -991,28 +911,32 @@ fun DrawScope.drawWand(center: Offset, scale: Float = 1f, alpha: Float = 1f) {
 @Composable
 fun PaleFogOverlay(
     modifier: Modifier = Modifier,
-    intensity: Float = 0.85f,   // 0..1
+    intensity: Float = 0.85f,
 ) {
     val trans = rememberInfiniteTransition(label = "paleFog")
 
     val driftFar by trans.animateFloat(
-        initialValue = -1f, targetValue = 1f,
+        initialValue = -1f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(12000, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "driftFar"
     )
     val driftMid by trans.animateFloat(
-        initialValue = -1f, targetValue = 1f,
+        initialValue = -1f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(10000, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "driftMid"
     )
     val driftNear by trans.animateFloat(
-        initialValue = -1f, targetValue = 1f,
+        initialValue = -1f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(8000, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "driftNear"
     )
 
     val breathe by trans.animateFloat(
-        0.85f, 1.15f,
+        0.85f,
+        1.15f,
         animationSpec = infiniteRepeatable(tween(3600, easing = EaseInOutSine), RepeatMode.Reverse),
         label = "breathe"
     )
@@ -1047,24 +971,20 @@ fun PaleFogOverlay(
             drawPath(path = p, brush = Brush.verticalGradient(listOf(fogA, fogB, fogA)))
         }
 
-        // 3 layered horizontal fog bands (far → near) with parallax
+
         band(phase = driftFar, y = h * 0.36f, amp = 22f, width = 80f, seed = 0.15f)
         band(phase = driftMid, y = h * 0.52f, amp = 28f, width = 100f, seed = 0.65f)
         band(phase = driftNear, y = h * 0.68f, amp = 34f, width = 120f, seed = 1.25f)
 
-        // “clearing” over the path
+
         val clearR = min(w, h) * 0.36f * breathe
         drawCircle(
             brush = Brush.radialGradient(
-                0f to back.copy(alpha = 0.90f),
-                0.55f to back.copy(alpha = 0.50f),
-                1f to Color.Transparent
-            ),
-            radius = clearR,
-            center = Offset(cx, pathY - h * 0.06f)
+                0f to back.copy(alpha = 0.90f), 0.55f to back.copy(alpha = 0.50f), 1f to Color.Transparent
+            ), radius = clearR, center = Offset(cx, pathY - h * 0.06f)
         )
 
-        // low ground haze at bottom edge
+
         drawRect(
             brush = Brush.verticalGradient(0f to Color.Transparent, 1f to back.copy(alpha = 0.85f * intensity)),
             topLeft = Offset(0f, h * 0.88f),

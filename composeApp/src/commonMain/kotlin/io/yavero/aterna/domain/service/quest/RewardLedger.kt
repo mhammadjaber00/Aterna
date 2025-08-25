@@ -10,37 +10,24 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.random.Random
 
-/** Deterministic per-event allocation of final totals (XP, gold). */
+
 data class RewardLedgerEntry(
-    val eventIdx: Int,
-    val xpDelta: Int,
-    val goldDelta: Int
+    val eventIdx: Int, val xpDelta: Int, val goldDelta: Int
 )
 
-/** Snapshot used to freeze allocation for an in-progress quest. */
+
 data class LedgerSnapshot(
-    val version: Int,
-    val hash: String,
-    val totalXp: Int,
-    val totalGold: Int
+    val version: Int, val hash: String, val totalXp: Int, val totalGold: Int
 )
 
 data class RewardLedger(
-    val questId: String,
-    val version: Int,
-    val hash: String,
-    val entries: List<RewardLedgerEntry>
+    val questId: String, val version: Int, val hash: String, val entries: List<RewardLedgerEntry>
 )
 
 object RewardAllocator {
     const val VERSION = 1
 
-    /**
-     * Build a deterministic ledger for the given plan and final totals.
-     * - Uses the same per-beat seed schedule as QuestResolver for outcome awareness.
-     * - Type weights: CHEST→gold, QUIRKY→xp, MOB→both (but gold=0 on flee).
-     * - Largest-remainder rounding; final drift fixed on the last eligible event.
-     */
+
     fun allocate(
         questId: String,
         baseSeed: Long,
@@ -58,7 +45,7 @@ object RewardAllocator {
             )
         }
 
-        // Predict MOB flee outcomes deterministically.
+
         val outcomes = plan.associate { p ->
             val flee = if (p.type == EventType.MOB) QuestResolver.predictMobFlee(baseSeed, heroLevel, p) else null
             p.idx to flee
@@ -110,9 +97,7 @@ object RewardAllocator {
     }
 
     private fun allocateInt(
-        total: Int,
-        eligible: List<PlannedEvent>,
-        w: (PlannedEvent) -> Double
+        total: Int, eligible: List<PlannedEvent>, w: (PlannedEvent) -> Double
     ): Map<Int, Int> {
         if (total <= 0 || eligible.isEmpty()) return emptyMap()
         val ws = eligible.map { e -> w(e).coerceAtLeast(0.0) }
@@ -147,12 +132,9 @@ object RewardAllocator {
         entries: List<RewardLedgerEntry>
     ): String {
         val planHash = PlanHash.compute(plan)
-        val acc = StringBuilder()
-            .append("v").append(VERSION)
-            .append(":q=").append(questId)
-            .append(":s=").append(baseSeed)
-            .append(":c=").append(classType.name)
-            .append(":p=").append(planHash)
+        val acc =
+            StringBuilder().append("v").append(VERSION).append(":q=").append(questId).append(":s=").append(baseSeed)
+                .append(":c=").append(classType.name).append(":p=").append(planHash)
         entries.forEach { e ->
             acc.append("|").append(e.eventIdx).append(",").append(e.xpDelta).append(",").append(e.goldDelta)
         }

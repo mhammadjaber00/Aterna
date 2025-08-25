@@ -28,7 +28,7 @@ class InventoryComponentImpl(
     private val sort = MutableStateFlow(InvSort.RarityDesc)
 
     init {
-        // Clear newly acquired flags when opening the inventory screen
+
         scope.launch { questStore.process(QuestIntent.ClearNewlyAcquired) }
     }
 

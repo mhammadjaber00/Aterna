@@ -106,11 +106,11 @@ object ItemPool {
             .flatMap { getItemsByRarity(it).asSequence() }
             .firstOrNull { it.id == id }
 
-    /** Convenience for UI lists. */
+
     fun getAllByIds(ids: Set<String>): List<Item> =
         ids.mapNotNull { getById(it) }
 
-    /** Return a placeholder item if an id is unknown (for debug / UI). */
+
     fun placeholder(id: String): Item = Item(
         id = id,
         name = "Unknown Item",

@@ -116,7 +116,6 @@ fun QuestScreen(
         }
     }
 
-    // Inventory badge when loot events appear in the live feed
     LaunchedEffect(uiState.eventFeed.size) {
         when (uiState.eventFeed.lastOrNull()?.type) {
             EventType.CHEST, EventType.TRINKET -> inventoryBadge = true
@@ -124,7 +123,6 @@ fun QuestScreen(
         }
     }
 
-    // Event ticker: show the latest message briefly on new pulse (safe against stale modal)
     val modalState by rememberUpdatedState(modal)
     LaunchedEffect(uiState.eventPulseCounter) {
         if (uiState.eventPulseCounter != tickerPulseSeen) {
@@ -136,7 +134,6 @@ fun QuestScreen(
         }
     }
 
-    // AdventureLog sheet content: merge active feed and log on-the-fly
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -147,7 +144,6 @@ fun QuestScreen(
         }
     }
 
-    // Derive ticker text when visible
     val currentTicker by remember(
         uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog, tickerVisible
     ) {
@@ -166,11 +162,11 @@ fun QuestScreen(
         Box(
             Modifier
                 .fillMaxSize()
-                .onGloballyPositioned { rootSize = it.size } // for overlay placement
+                .onGloballyPositioned { rootSize = it.size } 
         ) {
             MagicalBackground()
 
-            // ----- Top stack: TopChrome + Ticker (no height measuring)
+
             val insets = WindowInsets.safeDrawing.asPaddingValues()
             val showTopChrome = !chromeHidden && !uiState.isLoading && uiState.error == null
 
@@ -210,7 +206,7 @@ fun QuestScreen(
                 EventTicker(
                     message = currentTicker,
                     visible = currentTicker != null,
-                    autoHideMillis = null, // screen controls timing via tickerVisible
+                    autoHideMillis = null, 
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -224,7 +220,7 @@ fun QuestScreen(
                 )
 
                 else -> {
-                    // CENTER
+
                     QuestPortalArea(
                         uiState = uiState,
                         onStopQuest = { modal = Modal.Retreat },
@@ -258,7 +254,7 @@ fun QuestScreen(
                             .padding(horizontal = 16.dp)
                     )
 
-                    // BOTTOM
+
                     QuestBottomChrome(
                         hasActiveQuest = uiState.hasActiveQuest,
                         chromeHidden = chromeHidden,
@@ -272,7 +268,7 @@ fun QuestScreen(
                 }
             }
 
-            // ---------------- Spotlight Tutorial Overlay ----------------
+
             val size = rootSize
             if (!tutorialSeen && size != null) {
                 when (tutorialStep) {
@@ -310,7 +306,7 @@ fun QuestScreen(
         }
     }
 
-    // -------- Modals / Sheets
+
 
     if (modal == Modal.Loot) {
         val questAtOpen = remember(modal) { uiState.activeQuest }
@@ -330,7 +326,7 @@ fun QuestScreen(
                 }
             )
         } else {
-            // Safety: close if necessary data vanished
+
             modal = Modal.None
         }
     }
@@ -380,7 +376,7 @@ fun QuestScreen(
             onSoundtrackChange = { soundtrack = it },
             hapticsOn = hapticsOn,
             onHapticsChange = { hapticsOn = it },
-            onManageExceptions = { /* TODO: open exceptions screen */ },
+            onManageExceptions = { },
             onClose = { modal = Modal.None }
         )
     }
@@ -404,7 +400,7 @@ private fun SpotlightOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            // swallow touches behind overlay
+
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) awaitPointerEvent()

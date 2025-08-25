@@ -55,7 +55,7 @@ fun HoldToRetreatButton(
         }
     }
 
-    val base = Color(0xFF2A1416).copy(alpha = 0.85f)     // dark, glassy red
+    val base = Color(0xFF2A1416).copy(alpha = 0.85f)     
     val hairline = Color(0xFFFF9BA0).copy(alpha = 0.22f)
     val fill = Brush.horizontalGradient(
         0f to Color(0xFFED6A5E),

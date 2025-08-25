@@ -18,7 +18,7 @@ fun MagicalBackground(
     topColor: Color = AternaColors.AternaNight,
     bottomColor: Color = AternaColors.AternaNightAlt
 ) {
-    // Animate colors if they change
+
     val animatedTopColor by animateColorAsState(
         targetValue = topColor,
         label = "topColor"
@@ -29,14 +29,14 @@ fun MagicalBackground(
     )
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Background gradient layer
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Brush.verticalGradient(0f to animatedTopColor, 1f to animatedBottomColor))
         )
 
-        // Star field layer
+
         StarField(
             modifier = Modifier.fillMaxSize(),
             count = starCount

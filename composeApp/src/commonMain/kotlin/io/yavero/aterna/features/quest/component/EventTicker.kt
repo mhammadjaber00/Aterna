@@ -32,7 +32,7 @@ fun EventTicker(
     modifier: Modifier = Modifier,
     autoHideMillis: Long? = 2500
 ) {
-    // ---- Visibility control
+
     var internalVisible by remember { mutableStateOf(false) }
     val targetVisible = if (autoHideMillis == null) visible && !message.isNullOrBlank() else internalVisible
     val latestMessage by rememberUpdatedState(message)
@@ -53,7 +53,7 @@ fun EventTicker(
         }
     }
 
-    // ---- Visual assets (remembered to avoid reallocation)
+
     val shape = remember { RoundedCornerShape(18.dp) }
 
     val cs = MaterialTheme.colorScheme
@@ -72,7 +72,7 @@ fun EventTicker(
         )
     }
 
-    // ---- Shimmer animation (cheap, single animated float)
+
     val shimmer by rememberInfiniteTransition(label = "ticker_shimmer")
         .animateFloat(
             initialValue = 0f,
@@ -90,7 +90,7 @@ fun EventTicker(
         exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
         modifier = modifier
             .fillMaxWidth()
-            .semantics { liveRegion = LiveRegionMode.Polite } // screen readers announce updates
+            .semantics { liveRegion = LiveRegionMode.Polite } 
     ) {
         Surface(
             tonalElevation = 6.dp,
@@ -100,7 +100,7 @@ fun EventTicker(
             modifier = Modifier
                 .widthIn(max = 720.dp)
                 .heightIn(min = 44.dp)
-                .animateContentSize() // smooth height when message wraps
+                .animateContentSize() 
         ) {
             Box(
                 Modifier

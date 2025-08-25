@@ -58,8 +58,8 @@ fun InventoryScreen(component: InventoryComponent, modifier: Modifier = Modifier
 
             else -> {
                 val contentPadding = PaddingValues(
-//                    start = 16.dp,
-//                    end = 16.dp,
+
+
                     top = pv.calculateTopPadding() + 12.dp,
                     bottom = pv.calculateBottomPadding() + 16.dp
                 )

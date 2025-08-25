@@ -16,7 +16,7 @@ object AternaStroke {
 }
 
 object AternaClassColors {
-    // Class identity colors (one place only)
+
     val Warrior = Color(0xFFFF7F50)
     val Mage = Color(0xFF9370DB)
     val Rogue = Color(0xFF32CD32)

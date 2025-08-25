@@ -10,7 +10,7 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 object QuestResolver {
 
-    /** Predicts MOB flee (used by allocator to zero gold for flees). */
+
     fun predictMobFlee(baseSeed: Long, heroLevel: Int, plan: PlannedEvent): Boolean {
         val rng = Random(baseSeed + plan.idx * SEED_STRIDE)
         val tier = plan.mobTier ?: MobTier.LIGHT
@@ -23,7 +23,7 @@ object QuestResolver {
         return tooStrong && rng.nextDouble() < FLEE_CHANCE_WHEN_TOO_STRONG
     }
 
-    /** Resolve using pre-allocated deltas from the ledger (single source of truth). */
+
     fun resolveFromLedger(ctx: Context, plan: PlannedEvent, xpDelta: Int, goldDelta: Int): QuestEvent {
         val perBeatSeed = ctx.baseSeed + plan.idx * SEED_STRIDE
         val rng = Random(perBeatSeed)

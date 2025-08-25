@@ -74,7 +74,7 @@ fun LootDisplayDialog(
                         style = AternaTypography.Default.bodyMedium
                     )
 
-                    // Rewards card
+
                     AternaCard {
                         Column(
                             modifier = Modifier.padding(AternaSpacing.Medium),
@@ -123,7 +123,7 @@ fun LootDisplayDialog(
                         }
                     }
 
-                    // Adventure log preview (includes narration)
+
                     AternaCard {
                         Column(
                             modifier = Modifier
@@ -159,7 +159,7 @@ fun LootDisplayDialog(
 
 @Composable
 fun MagicalEventRow(x0: QuestEvent) {
-    // Style + icon per event type
+
     val (icon, tint) = when (x0.type) {
         io.yavero.aterna.domain.model.quest.EventType.MOB -> Icons.Default.Star to MaterialTheme.colorScheme.tertiary
         io.yavero.aterna.domain.model.quest.EventType.CHEST -> Icons.Default.AttachMoney to MaterialTheme.colorScheme.secondary
@@ -168,7 +168,7 @@ fun MagicalEventRow(x0: QuestEvent) {
         io.yavero.aterna.domain.model.quest.EventType.NARRATION -> Icons.Default.Star to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    // Narration = subdued, italic, no stat chips
+
     if (x0.type == io.yavero.aterna.domain.model.quest.EventType.NARRATION) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -191,7 +191,7 @@ fun MagicalEventRow(x0: QuestEvent) {
         return
     }
 
-    // Non‑narration: icon + message + chips (xp/gold) + optional outcome tag
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -231,10 +231,10 @@ fun MagicalEventRow(x0: QuestEvent) {
                             }".ifEmpty { "+${x0.goldDelta} gold" })
                     }
 
-                    // Outcome badge (e.g., Win/Flee) if available
+
                     when (val o = x0.outcome) {
                         is io.yavero.aterna.domain.model.quest.EventOutcome.Win -> {
-                            // keep it subtle; you can show mob name/level if present
+
                             MetaChip(text = "Win")
                         }
                         is io.yavero.aterna.domain.model.quest.EventOutcome.Flee -> {
@@ -263,7 +263,7 @@ private fun StatChip(text: String) {
                     .padding(0.dp)
             )
     ) {
-        AternaCard { // reuse your card styling for cohesion
+        AternaCard { 
             Text(
                 text = text,
                 style = AternaTypography.Default.labelSmall,
@@ -275,10 +275,7 @@ private fun StatChip(text: String) {
     }
 }
 
-/**
- * A lighter, meta-ish chip (for outcomes etc.). If `tonal` is true,
- * it slightly emphasizes (used for Retreat/Flee).
- */
+
 @Composable
 private fun MetaChip(text: String, tonal: Boolean = false) {
     val bg = if (tonal) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant

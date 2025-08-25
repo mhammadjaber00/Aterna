@@ -6,16 +6,7 @@ import io.yavero.aterna.domain.repository.StatusEffectRepository
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Default implementation.
- *
- * Rules:
- * - Grace window: first **30s** from quest start → no curse.
- * - Late retreat: ≥80% progress → loot with 25% penalty, no curse.
- * - Normal retreat: apply/extend CURSE_EARLY_EXIT by remaining time; accumulates.
- * - Soft cap: total curse time ≤ 30m from now.
- * - While questing: active curse drains 2× (expiry pulled in by +1× per tick).
- */
+
 class DefaultCurseService(
     private val effects: StatusEffectRepository
 ) : CurseService {

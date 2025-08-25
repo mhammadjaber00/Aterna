@@ -4,10 +4,7 @@ import io.yavero.aterna.domain.model.quest.MobTier
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.services.hash.StableHash
 
-/**
- * Stable fingerprint for a quest plan.
- * Uses FNV-1a 64-bit (ULong) for cross-platform stability.
- */
+
 object PlanHash {
     fun compute(plans: List<PlannedEvent>): String {
         val sb = StringBuilder(plans.size * 16)

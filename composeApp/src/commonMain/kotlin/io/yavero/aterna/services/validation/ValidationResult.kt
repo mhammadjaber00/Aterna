@@ -7,16 +7,9 @@ import kotlin.time.Instant
 
 data class ValidationResult(val valid: Boolean, val reason: String? = null)
 
-/**
- * Centralized quest time validation with sane tolerances.
- */
+
 object QuestValidationService {
-    /**
-     * @param expectedMinutes Planned minutes.
-     * @param maxLateSeconds Absolute late cap.
-     * @param futureStartGraceSeconds Allow slight future skew for device clock drift.
-     * @param futureEndGraceSeconds   Allow end to be slightly in the future.
-     */
+
     @OptIn(ExperimentalTime::class)
     fun validateTimes(
         start: Instant,

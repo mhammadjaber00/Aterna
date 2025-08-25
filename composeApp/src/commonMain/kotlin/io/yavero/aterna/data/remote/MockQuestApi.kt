@@ -7,12 +7,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/**
- * Deterministic mock server:
- * - Uses client baseSeed EXACTLY
- * - Uses client heroLevel EXACTLY
- * - Rewards computed by LootRoller (matches client telemetry now)
- */
+
 @OptIn(ExperimentalTime::class)
 class MockQuestApi : QuestApi {
 
@@ -46,13 +41,13 @@ class MockQuestApi : QuestApi {
                 serverSeed = request.baseSeed
             )
 
-            // Simple leveling convention: 100 XP per level
+
             val startLevel = request.heroLevel
             val newXP = startLevel * 100 + loot.xp
             val newLevel = (newXP / 100) + 1
             val levelUp = newLevel > startLevel
 
-            // We don't recompute plan on the server here; echo client hash if provided
+
             return QuestCompletionResponse(
                 success = true,
                 loot = QuestLootDto(

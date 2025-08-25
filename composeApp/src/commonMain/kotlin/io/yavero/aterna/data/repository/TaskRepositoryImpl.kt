@@ -107,16 +107,13 @@ class TaskRepositoryImpl(
 
 
         if (task.dueAt != null && !task.isDone) {
-            // Reschedule reminder for updated task
             taskNotificationService.rescheduleTaskReminder(task)
         } else {
-            // Cancel reminder if task has no due date or is completed
             taskNotificationService.cancelTaskReminder(task.id)
         }
     }
 
     override suspend fun deleteTask(id: String) {
-        // Cancel any pending reminders before deleting the task
         taskNotificationService.cancelTaskReminder(id)
         database.taskQueries.deleteTask(id)
     }
@@ -140,10 +137,8 @@ class TaskRepositoryImpl(
 
 
             if (isCompleting) {
-                // Cancel reminder when task is completed
                 taskNotificationService.cancelTaskReminder(it.id)
             } else {
-                // Schedule reminder when task is uncompleted
                 it.dueAt?.let { dueDate ->
                     val taskDomain = mapEntityToDomain(it)
                     taskNotificationService.scheduleTaskReminder(taskDomain.copy(isDone = false))

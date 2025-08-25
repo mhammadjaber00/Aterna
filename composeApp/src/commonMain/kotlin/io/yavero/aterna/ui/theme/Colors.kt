@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 
 object AternaColors {
 
-    // Lavender (primary)
+
     val Primary50 = Color(0xFFF0F4FF)
     val Primary100 = Color(0xFFE0E7FF)
     val Primary200 = Color(0xFFC7D2FE)
@@ -18,19 +18,19 @@ object AternaColors {
     val Primary800 = Color(0xFF3730A3)
     val Primary900 = Color(0xFF312E81)
 
-    // Gold (brand accent)
+
     val Secondary50 = Color(0xFFFFFBEB)
     val Secondary100 = Color(0xFFFEF3C7)
     val Secondary200 = Color(0xFFFDE68A)
     val Secondary300 = Color(0xFFFCD34D)
     val Secondary400 = Color(0xFFFBBF24)
-    val Secondary500 = Color(0xFFF59E0B) // keep for light theme containers
+    val Secondary500 = Color(0xFFF59E0B) 
     val Secondary600 = Color(0xFFD97706)
     val Secondary700 = Color(0xFFB45309)
     val Secondary800 = Color(0xFF92400E)
     val Secondary900 = Color(0xFF78350F)
 
-    // Support palettes (unchanged)
+
     val Tertiary50 = Color(0xFFF0FDF4)
     val Tertiary100 = Color(0xFFDCFCE7)
     val Tertiary200 = Color(0xFFBBF7D0)
@@ -69,27 +69,27 @@ object AternaColors {
     val Neutral900 = Color(0xFF1C1917)
     val Neutral950 = Color(0xFF0C0A09)
 
-    // Aterna world
+
     val AternaNight = Color(0xFF0B0F1A)
     val AternaNightAlt = Color(0xFF141A2A)
     val AternaStroke = Color(0xFF2A3140)
 
-    // Brand accents used across onboarding + quest
+
     val GoldAccent = Color(0xFFF4D06F)
     val GoldSoft = Color(0xFFF9E6A8)
     val Ink = Color(0xFFE8ECF8)
 
-    // Loot rarity
+
     val RarityLegendary = Secondary500
     val RarityEpic = Color(0xFF8B5CF6)
     val RarityRare = Color(0xFF3B82F6)
 
-    // Status
+
     val FocusActive = Color(0xFF22C55E)
     val FocusPaused = Color(0xFFF4B400)
     val FocusComplete = Color(0xFF16A34A)
 
-    // Mood (unchanged)
+
     val MoodVeryBad = Color(0xFFB42318)
     val MoodBad = Color(0xFFC2410C)
     val MoodNeutral = Color(0xFF71717A)
@@ -98,12 +98,12 @@ object AternaColors {
 }
 
 val LightColorScheme = lightColorScheme(
-    primary = AternaColors.GoldAccent,           // ⬅ gold CTAs
+    primary = AternaColors.GoldAccent,           
     onPrimary = AternaColors.Neutral900,
     primaryContainer = AternaColors.Primary100,
     onPrimaryContainer = AternaColors.Primary900,
 
-    secondary = AternaColors.GoldAccent, // prefer gold accent in light
+    secondary = AternaColors.GoldAccent, 
     onSecondary = AternaColors.Neutral900,
     secondaryContainer = AternaColors.Secondary100,
     onSecondaryContainer = AternaColors.Secondary900,
@@ -136,7 +136,7 @@ val DarkColorScheme = darkColorScheme(
     primaryContainer = AternaColors.Primary800,
     onPrimaryContainer = AternaColors.Primary100,
 
-    secondary = AternaColors.GoldAccent, // gold highlight in dark too
+    secondary = AternaColors.GoldAccent, 
     onSecondary = AternaColors.Neutral900,
     secondaryContainer = AternaColors.Secondary800,
     onSecondaryContainer = AternaColors.Secondary100,
@@ -151,7 +151,7 @@ val DarkColorScheme = darkColorScheme(
     errorContainer = AternaColors.Error700,
     onErrorContainer = AternaColors.Error50,
 
-    // night world to match onboarding + quest hub
+
     background = AternaColors.AternaNight,
     onBackground = AternaColors.Neutral100,
     surface = AternaColors.AternaNightAlt,

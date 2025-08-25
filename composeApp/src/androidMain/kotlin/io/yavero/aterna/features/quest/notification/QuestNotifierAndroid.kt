@@ -50,9 +50,9 @@ class QuestNotifierAndroid(
     }
 
     override suspend fun clearOngoing(sessionId: String) {
-        // Stop the foreground service that owns the ongoing notification
+
         QuestForegroundService.stop(context)
-        // Also cancel by id as a safety no-op if already removed
+
         val notificationId = getNotificationId(sessionId)
         notificationManager.cancel(notificationId)
     }

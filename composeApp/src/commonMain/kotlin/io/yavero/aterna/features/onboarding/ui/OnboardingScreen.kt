@@ -57,10 +57,10 @@ fun OnboardingScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 OnboardingViewModel.Effect.NavigateToClassSelect -> component.onFinish()
-                is OnboardingViewModel.Effect.ShowError -> { /* TODO: show toast/snackbar */
+                is OnboardingViewModel.Effect.ShowError -> { 
                 }
 
-                is OnboardingViewModel.Effect.ShowMessage -> { /* optional */
+                is OnboardingViewModel.Effect.ShowMessage -> { 
                 }
             }
         }
@@ -306,10 +306,10 @@ fun LoreCaption(
     var done by remember(text) { mutableStateOf(false) }
     var skipRequested by remember(text) { mutableStateOf(false) }
 
-    // punctuation "pop"
+
     val pop = remember { Animatable(1f) }
 
-    // blinking cursor
+
     val blink by rememberInfiniteTransition(label = "caption_cursor")
         .animateFloat(
             initialValue = 0.25f,
@@ -318,7 +318,7 @@ fun LoreCaption(
             label = "blink"
         )
 
-    // expose a skipper to parent & re-use internally
+
     val doSkip: () -> Boolean = {
         if (!done) {
             skipRequested = true
@@ -332,7 +332,7 @@ fun LoreCaption(
         registerSkipHandler?.invoke { doSkip() }
     }
 
-    // typing coroutine with cancel/skip awareness
+
     LaunchedEffect(text) {
         skipRequested = false
         visibleLength = 0

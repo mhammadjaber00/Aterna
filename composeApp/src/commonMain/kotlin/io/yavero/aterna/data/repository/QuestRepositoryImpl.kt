@@ -30,7 +30,7 @@ class QuestRepositoryImpl(
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
 
-    // ── Active Quest selection (global) ─────────────────────────────────────────
+
     override suspend fun getCurrentActiveQuest(): Quest? {
         return questQueries.selectActiveQuestGlobal()
             .executeAsOneOrNull()
@@ -43,7 +43,7 @@ class QuestRepositoryImpl(
             .distinctUntilChanged()
     }
 
-    // ── Query helpers ───────────────────────────────────────────────────────────
+
     override fun getQuestsByHero(heroId: String): Flow<List<Quest>> =
         questQueries.selectQuestsByHero(heroId)
             .asFlow()
@@ -64,7 +64,7 @@ class QuestRepositoryImpl(
         startDate: Instant,
         endDate: Instant
     ): List<Quest> {
-        // (Optional) could be a dedicated SQL query; this is fine for now.
+
         return questQueries.selectQuestsByHero(heroId)
             .executeAsList()
             .filter { e ->
@@ -74,7 +74,7 @@ class QuestRepositoryImpl(
             .map(::mapEntityToDomain)
     }
 
-    // ── Mutations ───────────────────────────────────────────────────────────────
+
     override suspend fun insertQuest(quest: Quest) {
         questQueries.insertQuest(
             id = quest.id,
@@ -87,17 +87,17 @@ class QuestRepositoryImpl(
             xpGained = 0L,
             goldGained = 0L,
             serverValidated = if (quest.serverValidated) 1L else 0L,
-            ledgerVersion = null,               // not frozen yet
-            ledgerHash = null,                  // not frozen yet
-            ledgerTotalXp = null,               // not frozen yet
-            ledgerTotalGold = null,             // not frozen yet
+            ledgerVersion = null,
+            ledgerHash = null,
+            ledgerTotalXp = null,
+            ledgerTotalGold = null,             
             createdAt = quest.startTime.epochSeconds
         )
     }
 
     override suspend fun updateQuest(quest: Quest) {
-        // NOTE: This keeps xp/gold 0 unless you're explicitly writing them here.
-        // We rely on updateQuestCompletion(...) for real totals.
+
+
         questQueries.updateQuestCompletion(
             endTime = quest.endTime?.epochSeconds,
             completed = if (quest.completed) 1L else 0L,
@@ -130,7 +130,7 @@ class QuestRepositoryImpl(
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
     }
 
-    // ── Server validation / completion ──────────────────────────────────────────
+
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
         val baseSeed =
             quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
@@ -156,7 +156,7 @@ class QuestRepositoryImpl(
             throw IllegalStateException(response.message ?: "Quest validation failed")
         }
 
-        // Optional parity log
+
         val clientLoot = LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
@@ -170,7 +170,7 @@ class QuestRepositoryImpl(
                     "clientGold=${clientLoot.gold} clientXp=${clientLoot.xp} resolverMismatch=${response.resolverMismatch}"
         )
 
-        // Persist completion totals in the quest row
+
         updateQuestCompletion(
             questId = quest.id,
             endTime = questEndTime,
@@ -182,7 +182,7 @@ class QuestRepositoryImpl(
         return loot
     }
 
-    // ── Plan & events ───────────────────────────────────────────────────────────
+
     override suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>) {
         questEventsQueries.deletePlansByQuest(questId)
         plans.forEach { p ->
@@ -271,7 +271,7 @@ class QuestRepositoryImpl(
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
 
-    // ── Ledger snapshot I/O (single source of truth) ────────────────────────────
+
     override suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot) {
         questQueries.updateLedgerSnapshot(
             ledgerVersion = snapshot.version.toLong(),
@@ -291,7 +291,7 @@ class QuestRepositoryImpl(
         return LedgerSnapshot(version, hash, totalXp, totalGold)
     }
 
-    // ── Utilities ───────────────────────────────────────────────────────────────
+
     private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
         is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
         is EventOutcome.Flee -> "flee:${outcome.mobName}:${outcome.mobLevel}"
