@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import io.yavero.aterna.features.inventory.components.InventoryRow
-import io.yavero.aterna.features.quest.component.FilterChipPill
+import io.yavero.aterna.features.quest.component.sheets.FilterChipPill
 import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
 

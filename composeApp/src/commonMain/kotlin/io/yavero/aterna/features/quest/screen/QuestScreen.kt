@@ -30,9 +30,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
-import io.yavero.aterna.features.quest.component.*
+import io.yavero.aterna.features.quest.component.EventTicker
+import io.yavero.aterna.features.quest.component.RetreatConfirmDialog
 import io.yavero.aterna.features.quest.component.dialogs.AnalyticsPopupDialog
 import io.yavero.aterna.features.quest.component.dialogs.LootDisplayDialog
+import io.yavero.aterna.features.quest.component.dialogs.StatsPopupDialog
+import io.yavero.aterna.features.quest.component.sheets.AdventureLogSheet
+import io.yavero.aterna.features.quest.component.sheets.FocusOptionsSheet
+import io.yavero.aterna.features.quest.component.sheets.SettingsSheet
+import io.yavero.aterna.features.quest.component.sheets.Soundtrack
 import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
@@ -133,7 +139,6 @@ fun QuestScreen(
         }
     }
 
-    // Events shown inside log sheet (merge by idx when active)
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -296,11 +301,9 @@ fun QuestScreen(
                     else -> Unit
                 }
             }
-            // ------------------------------------------------------------
         }
     }
 
-    // Loot dialog
     if (showLoot) {
         val questAtOpen = remember(showLoot) { uiState.activeQuest }
         val heroAtOpen = remember(showLoot) { uiState.hero }
@@ -369,8 +372,6 @@ fun QuestScreen(
     }
 }
 
-/* ------- Overlay composable ------- */
-
 @Composable
 private fun SpotlightOverlay(
     root: IntSize,
@@ -382,21 +383,18 @@ private fun SpotlightOverlay(
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null
 ) {
-    // Decide whether to place the bubble above or below the target
     val placeBelow = target.center.y < root.height / 2f
     val bubbleY = if (placeBelow) target.bottom + 12f else target.top - 12f
 
-    // Consume touches so underlying UI doesn't react
     Box(
         Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 awaitPointerEventScope {
-                    while (true) awaitPointerEvent() // eat all events
+                    while (true) awaitPointerEvent()
                 }
             }
     ) {
-        // Dim scrim with a hole
         Canvas(
             Modifier
                 .matchParentSize()

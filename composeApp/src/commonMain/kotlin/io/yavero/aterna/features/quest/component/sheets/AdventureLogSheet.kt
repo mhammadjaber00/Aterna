@@ -1,4 +1,4 @@
-package io.yavero.aterna.features.quest.component
+package io.yavero.aterna.features.quest.component.sheets
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,41 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import aterna.composeapp.generated.resources.*
-import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.features.quest.component.LogFilter
+import io.yavero.aterna.features.quest.component.filterBy
 import io.yavero.aterna.ui.theme.AternaColors
 import io.yavero.aterna.ui.theme.AternaTypography
-import org.jetbrains.compose.resources.stringResource
-
-@Composable
-fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(Res.string.hero_chronicle),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                hero?.let { h ->
-                    Text(stringResource(Res.string.level_format, h.level))
-                    Text(stringResource(Res.string.xp_format, h.xp))
-                    Text(stringResource(Res.string.gold_format, h.gold))
-                    Text(stringResource(Res.string.focus_minutes_format, h.totalFocusMinutes))
-                    Text(stringResource(Res.string.daily_streak_format, h.dailyStreak))
-                    Text(stringResource(Res.string.class_format, h.classType.displayName))
-                } ?: Text(stringResource(Res.string.no_hero_data))
-            }
-        },
-        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
-        modifier = modifier
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
