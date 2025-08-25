@@ -56,7 +56,6 @@ fun QuestScreen(
     val uiState by component.uiState.collectAsState()
     val tutorialSeen by component.tutorialSeen.collectAsState()
 
-    // -------- UI state (save what should survive config change)
     var modal by rememberSaveable { mutableStateOf(Modal.None) }
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
 
@@ -67,47 +66,38 @@ fun QuestScreen(
 
     var lastLootQuestIdShown by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // Ticker: keep only pulse + visibility; derive text from state
-    var tickerPulseSeen by rememberSaveable { mutableStateOf(0) }
+    var tickerPulseSeen by rememberSaveable(uiState.activeQuest?.id) {
+        mutableStateOf(uiState.eventPulseCounter)
+    }
     var tickerVisible by rememberSaveable { mutableStateOf(false) }
 
-    // Session options (consider hoisting to SettingsRepository later)
     var deepFocusEnabled by rememberSaveable { mutableStateOf(false) }
     var hapticsOn by rememberSaveable { mutableStateOf(true) }
     var soundtrack by rememberSaveable { mutableStateOf(Soundtrack.None) }
 
-    // Tutorial
     var tutorialStep by rememberSaveable { mutableStateOf(TutorialStep.None) }
 
-    // Layout anchors (ephemeral)
     var rootSize by remember { mutableStateOf<IntSize?>(null) }
     var heroAnchor by remember { mutableStateOf<Rect?>(null) }
     var haloAnchor by remember { mutableStateOf<Rect?>(null) }
 
     val haptic = LocalHapticFeedback.current
 
-    // -------- Effects
-
-    // Start tutorial if not seen
     LaunchedEffect(tutorialSeen) {
         tutorialStep = if (!tutorialSeen) TutorialStep.Hero else TutorialStep.None
     }
 
-    // Hide top chrome during an active quest
     LaunchedEffect(uiState.hasActiveQuest) {
         chromeHidden = uiState.hasActiveQuest
     }
 
-    // Stats badge on level up
     LaunchedEffect(uiState.hero?.level) {
-        val lvl = uiState.hero?.level
-        if (lvl != null && (lastLevelSeen != null) && lvl > (lastLevelSeen ?: lvl)) {
-            statsBadge = true
+        uiState.hero?.level?.let { lvl ->
+            if (lastLevelSeen != null && lvl > lastLevelSeen!!) statsBadge = true
+            lastLevelSeen = lvl
         }
-        lastLevelSeen = lvl
     }
 
-    // Load log when opening the sheet
     LaunchedEffect(modal) {
         if (modal == Modal.AdventureLog) {
             component.onLoadAdventureLog()
@@ -115,7 +105,6 @@ fun QuestScreen(
         }
     }
 
-    // If quest finishes, refresh log once ready and show loot once per quest
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading, uiState.activeQuest?.id) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
             component.onLoadAdventureLog()
@@ -135,18 +124,19 @@ fun QuestScreen(
         }
     }
 
-    // Event ticker: show latest message for a bit on new pulse
+    // Event ticker: show the latest message briefly on new pulse (safe against stale modal)
+    val modalState by rememberUpdatedState(modal)
     LaunchedEffect(uiState.eventPulseCounter) {
         if (uiState.eventPulseCounter != tickerPulseSeen) {
             tickerPulseSeen = uiState.eventPulseCounter
-            if (modal != Modal.AdventureLog) logBadge = true
+            if (modalState != Modal.AdventureLog) logBadge = true
             tickerVisible = true
             delay(4500)
             if (tickerPulseSeen == uiState.eventPulseCounter) tickerVisible = false
         }
     }
 
-    // AdventureLog sheet content: merge active feed + log on-the-fly
+    // AdventureLog sheet content: merge active feed and log on-the-fly
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -158,13 +148,14 @@ fun QuestScreen(
     }
 
     // Derive ticker text when visible
-    val currentTicker by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog, tickerVisible) {
-        mutableStateOf(
-            if (tickerVisible) {
-                val list = if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog
-                list.lastOrNull()?.message
-            } else null
-        )
+    val currentTicker by remember(
+        uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog, tickerVisible
+    ) {
+        derivedStateOf {
+            if (!tickerVisible) null
+            else (if (uiState.hasActiveQuest) uiState.eventFeed else uiState.adventureLog)
+                .lastOrNull()?.message
+        }
     }
 
     Scaffold(
@@ -179,6 +170,51 @@ fun QuestScreen(
         ) {
             MagicalBackground()
 
+            // ----- Top stack: TopChrome + Ticker (no height measuring)
+            val insets = WindowInsets.safeDrawing.asPaddingValues()
+            val showTopChrome = !chromeHidden && !uiState.isLoading && uiState.error == null
+
+            Column(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(insets)
+                    .padding(top = 12.dp, start = 16.dp, end = 16.dp)
+                    .widthIn(max = 720.dp)
+            ) {
+                AnimatedVisibility(
+                    visible = showTopChrome,
+                    enter = fadeIn(tween(180)) + slideInVertically { -it / 3 },
+                    exit = fadeOut(tween(120)) + slideOutVertically { -it / 3 },
+                ) {
+                    QuestTopChrome(
+                        uiState = uiState,
+                        statsBadge = statsBadge,
+                        inventoryBadge = inventoryBadge,
+                        onToggleStats = { statsBadge = false; modal = Modal.Stats },
+                        onToggleInventory = {
+                            inventoryBadge = false
+                            component.onClearNewlyAcquired()
+                            component.onNavigateToInventory()
+                        },
+                        onToggleAnalytics = { modal = Modal.Analytics },
+                        onOpenSettings = { modal = Modal.Settings },
+                        avatarAnchorModifier = Modifier.onGloballyPositioned {
+                            heroAnchor = it.boundsInRoot()
+                        }
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                EventTicker(
+                    message = currentTicker,
+                    visible = currentTicker != null,
+                    autoHideMillis = null, // screen controls timing via tickerVisible
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             when {
                 uiState.isLoading -> LoadingState(Modifier.align(Alignment.Center))
                 uiState.error != null -> ErrorState(
@@ -186,35 +222,8 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
-                else -> {
-                    // TOP
-                    AnimatedVisibility(
-                        visible = !chromeHidden,
-                        enter = fadeIn(tween(180)) + slideInVertically { -it / 3 },
-                        exit = fadeOut(tween(120)) + slideOutVertically { -it / 3 },
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(WindowInsets.safeDrawing.asPaddingValues())
-                            .padding(top = 12.dp)
-                    ) {
-                        QuestTopChrome(
-                            uiState = uiState,
-                            statsBadge = statsBadge,
-                            inventoryBadge = inventoryBadge,
-                            onToggleStats = { statsBadge = false; modal = Modal.Stats },
-                            onToggleInventory = {
-                                inventoryBadge = false
-                                component.onClearNewlyAcquired()
-                                component.onNavigateToInventory()
-                            },
-                            onToggleAnalytics = { modal = Modal.Analytics },
-                            onOpenSettings = { modal = Modal.Settings },
-                            avatarAnchorModifier = Modifier.onGloballyPositioned {
-                                heroAnchor = it.boundsInRoot()
-                            }
-                        )
-                    }
 
+                else -> {
                     // CENTER
                     QuestPortalArea(
                         uiState = uiState,
@@ -263,15 +272,6 @@ fun QuestScreen(
                 }
             }
 
-            // Event ticker
-            EventTicker(
-                message = currentTicker,
-                visible = currentTicker != null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(WindowInsets.safeDrawing.asPaddingValues())
-            )
-
             // ---------------- Spotlight Tutorial Overlay ----------------
             val size = rootSize
             if (!tutorialSeen && size != null) {
@@ -291,7 +291,6 @@ fun QuestScreen(
                             }
                         )
                     }
-
                     TutorialStep.Halo -> haloAnchor?.let { target ->
                         SpotlightOverlay(
                             root = size,
@@ -331,7 +330,7 @@ fun QuestScreen(
                 }
             )
         } else {
-            // Safety: close if needed data vanished
+            // Safety: close if necessary data vanished
             modal = Modal.None
         }
     }
