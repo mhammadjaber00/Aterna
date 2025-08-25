@@ -63,6 +63,7 @@ class DefaultAppRootComponent(
                 DefaultQuestComponent(
                     componentContext = componentContext,
                     questStore = questStore,
+                    settingsRepository = settingsRepository,
                     onNavigateToTimerCallback = { initialMinutes, classType ->
                         navigateToTimer(initialMinutes, classType.name)
                     },

@@ -4,12 +4,17 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.repository.SettingsRepository
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class DefaultQuestComponent(
     componentContext: ComponentContext,
     private val questStore: QuestStore,
+    private val settingsRepository: SettingsRepository,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onNavigateToInventoryCallback: () -> Unit = {},
     private val onShowError: (String) -> Unit = {},
@@ -27,6 +32,11 @@ class DefaultQuestComponent(
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override val uiState: StateFlow<QuestState> = questStore.state
+
+    override val tutorialSeen: StateFlow<Boolean> = settingsRepository
+        .getAppSettings()
+        .map { it.tutorialSeen }
+        .stateIn(componentScope, SharingStarted.Eagerly, false)
 
     init {
         componentScope.launch {
@@ -69,6 +79,12 @@ class DefaultQuestComponent(
 
     override fun onClearNewlyAcquired() {
         questStore.process(QuestIntent.ClearNewlyAcquired)
+    }
+
+    override fun onMarkTutorialSeen() {
+        componentScope.launch {
+            settingsRepository.setTutorialSeen(true)
+        }
     }
 
     private fun handleEffect(effect: QuestEffect) {

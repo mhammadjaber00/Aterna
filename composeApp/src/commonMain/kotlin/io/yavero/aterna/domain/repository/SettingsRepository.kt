@@ -13,6 +13,9 @@ interface SettingsRepository {
     suspend fun setOnboardingDone(done: Boolean)
     suspend fun getOnboardingDone(): Boolean
 
+    suspend fun setTutorialSeen(seen: Boolean)
+    suspend fun getTutorialSeen(): Boolean
+
     suspend fun setTheme(theme: io.yavero.aterna.domain.model.Theme)
     suspend fun setNotificationsEnabled(enabled: Boolean)
     suspend fun setReduceMotion(reduce: Boolean)

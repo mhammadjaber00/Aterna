@@ -1,6 +1,6 @@
 package io.yavero.aterna.features.quest.screen
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +38,9 @@ fun QuestPortalArea(
     onShowStartQuest: () -> Unit,
     onOpenAdventureLog: () -> Unit,
     onToggleChrome: () -> Unit,
-    modifier: Modifier = Modifier
+    onLongPressHalo: () -> Unit,
+    haloAnchorModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
@@ -53,7 +55,7 @@ fun QuestPortalArea(
             val ringSize = portalSize - ringInset
 
             Box(
-                modifier = Modifier
+                modifier = haloAnchorModifier
                     .size(portalSize)
                     .drawBehind {
                         drawCircle(
@@ -74,10 +76,11 @@ fun QuestPortalArea(
                             center = center
                         )
                     }
-                    .clickable(
+                    .combinedClickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = onToggleChrome
+                        onClick = onToggleChrome,
+                        onLongClick = onLongPressHalo
                     ),
                 contentAlignment = Alignment.Center
             ) {

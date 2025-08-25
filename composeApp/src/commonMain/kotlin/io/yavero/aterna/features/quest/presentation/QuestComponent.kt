@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface QuestComponent {
     val uiState: StateFlow<QuestState>
 
+    val tutorialSeen: StateFlow<Boolean>
+    fun onMarkTutorialSeen()
+
     fun onStartQuest(durationMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
     fun onGiveUpQuest()
     fun onCompleteQuest()

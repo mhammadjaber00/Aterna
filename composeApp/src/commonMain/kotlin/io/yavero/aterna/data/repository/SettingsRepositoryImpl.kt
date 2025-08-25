@@ -8,7 +8,6 @@ import io.yavero.aterna.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class SettingsRepositoryImpl(
@@ -41,6 +40,15 @@ class SettingsRepositoryImpl(
 
     override suspend fun getOnboardingDone(): Boolean {
         return getCurrentAppSettings().onboardingDone
+    }
+
+    override suspend fun setTutorialSeen(seen: Boolean) {
+        val current = getCurrentAppSettings()
+        updateAppSettings(current.copy(tutorialSeen = seen))
+    }
+
+    override suspend fun getTutorialSeen(): Boolean {
+        return getCurrentAppSettings().tutorialSeen
     }
 
 
@@ -93,11 +101,9 @@ class SettingsRepositoryImpl(
             if (settingsJson != null) {
                 json.decodeFromString<AppSettings>(settingsJson)
             } else {
-
                 AppSettings()
             }
         } catch (e: Exception) {
-
             AppSettings()
         }
     }
@@ -107,7 +113,6 @@ class SettingsRepositoryImpl(
             val settingsJson = json.encodeToString(appSettings)
             settings[SETTINGS_KEY] = settingsJson
         } catch (e: Exception) {
-
             println("Failed to save app settings: ${e.message}")
         }
     }

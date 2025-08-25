@@ -9,7 +9,8 @@ data class AppSettings(
     val textScale: Float = 1.0f,
     val reduceMotion: Boolean = false,
     val notificationsEnabled: Boolean = true,
-    val onboardingDone: Boolean = false
+    val onboardingDone: Boolean = false,
+    val tutorialSeen: Boolean = false
 )
 
 @Serializable

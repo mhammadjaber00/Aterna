@@ -16,8 +16,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,13 +40,16 @@ import io.yavero.aterna.ui.theme.AternaColors
 @Composable
 fun HeaderCapsule(
     hero: Hero?,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     statsBadge: Boolean,
     inventoryBadge: Boolean,
     onToggleStats: () -> Unit,
     onToggleInventory: () -> Unit,
-    onToggleAnalytics: () -> Unit
+    onToggleAnalytics: () -> Unit,
+    modifier: Modifier = Modifier,
+    avatarAnchorModifier: Modifier = Modifier
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
     val glass = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
     val hairline = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)
     val gold = hero?.gold ?: 0
@@ -52,6 +57,7 @@ fun HeaderCapsule(
     val name = hero?.name ?: "Hero"
 
     Surface(
+        modifier = modifier,
         color = glass,
         border = BorderStroke(1.dp, hairline),
         shape = RoundedCornerShape(22.dp)
@@ -63,11 +69,13 @@ fun HeaderCapsule(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
+                modifier = avatarAnchorModifier
                     .size(44.dp)
                     .clip(CircleShape)
                     .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), CircleShape)
-                    .clickable { expanded = !expanded }
+                    .clickable {
+                        onExpandedChange(!expanded)
+                    }
                     .semantics { role = Role.Button; contentDescription = "Toggle profile" },
                 contentAlignment = Alignment.Center
             ) {
