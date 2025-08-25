@@ -14,12 +14,8 @@ class RewardService(
         val now = time.nowMs()
         val active = effectsRepo.observeActiveEffects().first()
         val curseActive = active.any { it.type == StatusEffectType.CURSE_EARLY_EXIT && now < it.expiresAtEpochMs }
-
         return if (curseActive) {
-            base.copy(
-                gold = (base.gold * 0.5).toInt(),
-                xp = (base.xp * 0.5).toInt()
-            )
+            base.copy(gold = (base.gold * 0.5).toInt(), xp = (base.xp * 0.5).toInt())
         } else {
             base
         }

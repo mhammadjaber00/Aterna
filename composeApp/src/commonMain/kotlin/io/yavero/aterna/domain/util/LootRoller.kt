@@ -3,50 +3,49 @@ package io.yavero.aterna.domain.util
 import io.yavero.aterna.domain.model.*
 import io.yavero.aterna.services.rng.SplitMix64
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
-/**
- * Deterministic loot calculator with portable RNG.
- * Keeps original semantics but improves rounding & clamps.
- */
 object LootRoller {
-    private const val XP_PER_MINUTE = 10.0
-    private const val GOLD_CHUNK_MINUTES = 5
-    private const val GOLD_PER_CHUNK = 5.0
-    private const val LEVEL_SCALE_PER_LEVEL = 0.10 // +10% per level
-    private const val ITEM_DROP_PER_MINUTE = 0.02
-    private const val ITEM_DROP_CAP = 0.80
+    data class LootConfig(
+        val xpPerMinute: Double = 9.5,
+        val goldPerMinute: Double = 0.9,
+        val levelScalePerLevelGold: Double = 0.035,
+        val levelScaleCapGold: Double = 2.0,
+        val longSessionKneeMin: Int = 60,
+        val longSessionFloorAt120: Double = 0.6,
+        val itemDropPerMinute: Double = 0.02,
+        val itemDropCap: Double = 0.80
+    )
 
     fun rollLoot(
         questDurationMinutes: Int,
         heroLevel: Int,
         classType: ClassType,
-        serverSeed: Long
+        serverSeed: Long,
+        cfg: LootConfig = LootConfig()
     ): QuestLoot {
+        val m = questDurationMinutes.coerceIn(1, 120)
         val rng = SplitMix64(serverSeed.toULong())
-        val xpBase = questDurationMinutes * XP_PER_MINUTE
-        val goldBase = ((questDurationMinutes / GOLD_CHUNK_MINUTES) * GOLD_PER_CHUNK)
-
-        val xpAfterClass = xpBase * classType.xpMultiplier
-        val goldAfterClass = goldBase * classType.goldMultiplier
-
-        val levelScale = 1.0 + (heroLevel * LEVEL_SCALE_PER_LEVEL)
-        var xpFinal = (xpAfterClass * levelScale)
-        var goldFinal = (goldAfterClass * levelScale)
-
-        var xp = xpFinal.roundToInt()
-        var gold = goldFinal.roundToInt()
-
-        xp = max(0, xp)
-        gold = max(0, gold)
-
-        val dropChance = kotlin.math.min(ITEM_DROP_CAP, questDurationMinutes * ITEM_DROP_PER_MINUTE)
-        val items = if (rng.nextDouble() < dropChance) {
-            listOf(rollRandomItem(rng, heroLevel))
-        } else emptyList()
-
+        val longMul = sessionRateMultiplier(m, cfg.longSessionKneeMin, cfg.longSessionFloorAt120)
+        val baseXp = m * cfg.xpPerMinute * longMul
+        val baseGold = m * cfg.goldPerMinute * longMul
+        val goldLevelMul = min(1.0 + heroLevel * cfg.levelScalePerLevelGold, cfg.levelScaleCapGold)
+        val xp = max(0, (baseXp * classType.xpMultiplier * jitter(rng)).roundToInt())
+        val gold = max(0, (baseGold * classType.goldMultiplier * goldLevelMul * jitter(rng)).roundToInt())
+        val dropChance = min(cfg.itemDropCap, m * cfg.itemDropPerMinute)
+        val items = if (rng.nextDouble() < dropChance) listOf(rollRandomItem(rng, heroLevel)) else emptyList()
         return QuestLoot(xp = xp, gold = gold, items = items)
     }
+
+    private fun sessionRateMultiplier(m: Int, knee: Int, floorAt120: Double): Double {
+        if (m <= knee) return 1.0
+        val over = (m - knee).coerceAtMost(120 - knee)
+        val slope = 1.0 - floorAt120
+        return 1.0 - slope * (over.toDouble() / (120 - knee))
+    }
+
+    private fun jitter(rng: SplitMix64): Double = 0.95 + rng.nextDouble() * 0.10
 
     private fun rollRandomItem(rng: SplitMix64, heroLevel: Int): Item {
         val p = rng.nextDouble()
@@ -61,7 +60,6 @@ object LootRoller {
 
     private fun generateItemByRarity(rng: SplitMix64, rarity: ItemRarity): Item {
         val pool = ItemPool.getItemsByRarity(rarity)
-        val idx = rng.nextInt(pool.size)
-        return pool[idx]
+        return pool[rng.nextInt(pool.size)]
     }
 }

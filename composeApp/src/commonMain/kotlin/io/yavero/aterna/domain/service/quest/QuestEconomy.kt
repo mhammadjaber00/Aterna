@@ -6,9 +6,10 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.util.LootRoller
+import kotlin.math.floor
+import kotlin.math.sqrt
 
 interface QuestEconomy {
-
     suspend fun completion(hero: Hero, quest: Quest, serverLootOverride: QuestLoot? = null): EconomyResult
     suspend fun banked(hero: Hero, quest: Quest, minutes: Int, penalty: Double? = null): EconomyResult
 }
@@ -48,14 +49,32 @@ class QuestEconomyImpl(
 
     private fun progress(hero: Hero, final: QuestLoot, base: QuestLoot): EconomyResult {
         val newXp = hero.xp + final.xp
-        val newLevel = (newXp / 100) + 1
+        val newLevel = levelForXp(newXp)
         val leveledUpTo = newLevel.takeIf { it > hero.level }
         return EconomyResult(base, final, newXp, newLevel, leveledUpTo)
     }
 
     companion object {
-        /** Use the same composed seed everywhere (client ↔ server parity). */
         fun computeBaseSeed(hero: Hero, quest: Quest): Long =
             quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
     }
+}
+
+private const val XP_L1_TO_L2 = 100.0
+private const val XP_DELTA_PER_LEVEL = 25.0
+
+private fun totalXpForLevel(level: Int): Int {
+    if (level <= 1) return 0
+    val n = (level - 1).toDouble()
+    val s = n * (2 * XP_L1_TO_L2 + (n - 1) * XP_DELTA_PER_LEVEL) / 2.0
+    return s.toInt()
+}
+
+private fun levelForXp(xp: Int): Int {
+    if (xp <= 0) return 1
+    val a = XP_DELTA_PER_LEVEL / 2.0
+    val b = (2 * XP_L1_TO_L2 - XP_DELTA_PER_LEVEL) / 2.0
+    val disc = b * b + 4 * a * xp
+    val n = floor((-b + sqrt(disc)) / (2 * a)).toInt()
+    return (n + 1).coerceAtLeast(1)
 }
