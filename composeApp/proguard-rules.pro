@@ -13,25 +13,31 @@
 # If you have any other manifest-registered receivers with “Receiver” suffix, keep them too.
 -keep class io.yavero.aterna.**Receiver { *; }
 
-############################
-# kotlinx.serialization
-############################
-# Keep generated serializers and descriptors (covers nested classes too)
+######## kotlinx.serialization — R8-compatible ########
+# Keep generated serializers for @Serializable classes (incl. nested)
 -keep,includedescriptorclasses class **$$serializer { *; }
 
-# Keep @Serializable classes’ members (safer for polymorphic/sealed)
--keepclasseswithmembers class ** {
-    @kotlinx.serialization.Serializable *;
+# Keep descriptor field to avoid old ProGuard optimizer bug
+-keepclassmembers public class **$$serializer {
+    private ** descriptor;
 }
 
-# Keep serializer() methods if you call them reflectively
--keepclasseswithmembers class ** {
+# If you call serializer() reflectively on classes/companions/objects, keep them:
+-keepclassmembers class ** {
+    static ** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclassmembers class ** {
+    public static ** INSTANCE;
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Serialization libs (avoid over-shrinking)
--keep class kotlinx.serialization.** { *; }
+# Keep runtime annotations used for polymorphic serialization
+-keepattributes *Annotation*,AnnotationDefault,RuntimeVisibleAnnotations,KotlinMetadata
+
+# Quiet harmless warnings from serialization internals
 -dontwarn kotlinx.serialization.**
+-dontwarn kotlinx.serialization.internal.ClassValueReferences
 
 ############################
 # Koin (DI)
