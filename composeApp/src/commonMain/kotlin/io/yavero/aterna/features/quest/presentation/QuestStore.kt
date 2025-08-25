@@ -134,6 +134,10 @@ class QuestStore(
 
             QuestIntent.RequestRetreatConfirm -> setPending(retreat = true, log = false)
 
+            QuestIntent.AdventureLogShown -> setPending(log = false)
+
+            QuestIntent.RetreatConfirmDismissed -> setPending(retreat = false)
+
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }

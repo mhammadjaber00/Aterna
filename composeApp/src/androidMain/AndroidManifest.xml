@@ -26,8 +26,5 @@
         <receiver
                 android:name=".notifications.NotificationReceiver"
                 android:exported="false"/>
-        <receiver
-                android:name=".features.quest.notification.QuestActionReceiver"
-                android:exported="false"/>
     </application>
 </manifest>

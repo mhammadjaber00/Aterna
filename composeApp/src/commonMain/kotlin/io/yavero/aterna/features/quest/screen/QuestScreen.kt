@@ -385,7 +385,6 @@ fun QuestScreen(
             },
             onDismiss = {
                 modal = Modal.None
-                // Ack back to store so it won't re-open
                 component.onRetreatConfirmDismissed()
             }
         )

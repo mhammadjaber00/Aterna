@@ -12,5 +12,7 @@ sealed interface QuestIntent : MviIntent {
     data object LoadAdventureLog : QuestIntent
     data object RequestRetreatConfirm : QuestIntent
     data object RequestShowAdventureLog : QuestIntent
+    data object AdventureLogShown : QuestIntent
+    data object RetreatConfirmDismissed : QuestIntent
     data object ClearNewlyAcquired : QuestIntent
 }

@@ -82,11 +82,11 @@ class DefaultQuestComponent(
     }
 
     override fun onAdventureLogShown() {
-        questStore.process(QuestIntent.RequestShowAdventureLog)
+        questStore.process(QuestIntent.AdventureLogShown)
     }
 
     override fun onRetreatConfirmDismissed() {
-        questStore.process(QuestIntent.RequestRetreatConfirm)
+        questStore.process(QuestIntent.RetreatConfirmDismissed)
     }
 
     override fun onMarkTutorialSeen() {
