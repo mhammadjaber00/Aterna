@@ -54,7 +54,6 @@ class QuestStore(
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
 
     init {
-
         scope.launch {
             refresh
                 .flatMapLatest { buildState() }
@@ -67,13 +66,11 @@ class QuestStore(
                 .collect { msg -> reduce(msg) }
         }
 
-
         scope.launch {
             runCatching { curseService.rules() }
                 .onSuccess { rules -> reduce(QuestMsg.RulesLoaded(rules)) }
-                .onFailure { }
+                .onFailure { /* ignore */ }
         }
-
 
         scope.launch {
             ticker.seconds.collect { currentTime ->
@@ -84,13 +81,11 @@ class QuestStore(
             }
         }
 
-
         scope.launch {
             events.observe(heroFlow, activeQuestFlow, ticker.seconds).collect { snap ->
                 reduce(QuestMsg.FeedUpdated(snap.preview, snap.bumpPulse))
             }
         }
-
 
         scope.launch {
             combine(activeQuestFlow, ticker.seconds) { q, now ->
@@ -101,7 +96,6 @@ class QuestStore(
                 .collect { completeQuest() }
         }
 
-
         scope.launch {
             heroFlow.collect { hero ->
                 val ids = hero?.id?.let { inventoryRepository.getOwnedItemIds(it) } ?: emptySet()
@@ -110,19 +104,36 @@ class QuestStore(
         }
     }
 
+    private fun setPending(retreat: Boolean? = null, log: Boolean? = null) {
+        _state.update { s ->
+            s.copy(
+                pendingShowRetreatConfirm = retreat ?: s.pendingShowRetreatConfirm,
+                pendingShowAdventureLog = log ?: s.pendingShowAdventureLog
+            )
+        }
+    }
+
     override fun process(intent: QuestIntent) {
         when (intent) {
             QuestIntent.Refresh -> refresh.tryEmit(Unit)
+
             is QuestIntent.StartQuest -> startQuest(intent.durationMinutes, intent.classType)
+
             QuestIntent.GiveUp -> giveUpQuest()
+
             QuestIntent.Complete -> completeQuest()
+
             QuestIntent.ClearError -> clearError()
+
             QuestIntent.LoadAdventureLog -> loadAdventureLog()
-            QuestIntent.RequestRetreatConfirm -> reduce(QuestMsg.WantRetreatConfirm)
+
             QuestIntent.RequestShowAdventureLog -> {
-                reduce(QuestMsg.WantAdventureLog)
+                setPending(log = true, retreat = false)
                 loadAdventureLog()
             }
+
+            QuestIntent.RequestRetreatConfirm -> setPending(retreat = true, log = false)
+
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
         }
     }
@@ -141,10 +152,10 @@ class QuestStore(
                 val total = a.durationMinutes.minutes
                 val elapsed = now - a.startTime
                 val remaining = total - elapsed
-                val clampedRemaining = if (remaining <= Duration.ZERO) Duration.ZERO else remaining
-                val progress = if (remaining <= Duration.ZERO) 1f else
-                    (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat()).coerceIn(0f, 1f)
-                QuestMsg.TimerTick(clampedRemaining, progress)
+                val clamped = remaining.coerceAtLeast(Duration.ZERO)
+                val progress = if (clamped == Duration.ZERO) 1f
+                else (elapsed.inWholeSeconds.toFloat() / max(1, total.inWholeSeconds).toFloat()).coerceIn(0f, 1f)
+                QuestMsg.TimerTick(clamped, progress)
             } else {
                 QuestMsg.TimerTick(Duration.ZERO, 0f)
             }
@@ -172,12 +183,16 @@ class QuestStore(
         scope.launch {
             runCatching { actions.complete() }
                 .onSuccess { r ->
+                    // reset pending flags on completion
+                    setPending(retreat = false, log = false)
+
                     reduce(QuestMsg.QuestCompleted(r.quest, r.loot))
                     reduce(QuestMsg.HeroUpdated(r.updatedHero))
-                    val heroId = r.quest.heroId
-                    val owned = inventoryRepository.getOwnedItemIds(heroId)
+
+                    val owned = inventoryRepository.getOwnedItemIds(r.quest.heroId)
                     reduce(QuestMsg.OwnedItemsLoaded(owned))
                     reduce(QuestMsg.NewlyAcquired(r.newItemIds))
+
                     r.uiEffects.forEach { _effects.tryEmit(it) }
                 }
                 .onFailure { e ->
@@ -192,6 +207,9 @@ class QuestStore(
         scope.launch {
             runCatching { actions.retreat() }
                 .onSuccess { r ->
+                    // reset pending flags after retreat
+                    setPending(retreat = false, log = false)
+
                     reduce(QuestMsg.QuestGaveUp(r.quest))
                     reduce(QuestMsg.HeroUpdated(r.updatedHero))
                     r.uiEffects.forEach { _effects.tryEmit(it) }
@@ -273,6 +291,7 @@ class QuestStore(
 
             is QuestMsg.CurseTick -> state.copy(curseTimeRemaining = msg.timeRemaining)
 
+            // Keep these if elsewhere you still dispatch them; otherwise they’re harmless.
             QuestMsg.WantRetreatConfirm -> state.copy(
                 pendingShowRetreatConfirm = true,
                 pendingShowAdventureLog = false

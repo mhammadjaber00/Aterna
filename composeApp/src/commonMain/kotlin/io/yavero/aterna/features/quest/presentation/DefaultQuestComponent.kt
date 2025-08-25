@@ -81,6 +81,14 @@ class DefaultQuestComponent(
         questStore.process(QuestIntent.ClearNewlyAcquired)
     }
 
+    override fun onAdventureLogShown() {
+        questStore.process(QuestIntent.RequestShowAdventureLog)
+    }
+
+    override fun onRetreatConfirmDismissed() {
+        questStore.process(QuestIntent.RequestRetreatConfirm)
+    }
+
     override fun onMarkTutorialSeen() {
         componentScope.launch {
             settingsRepository.setTutorialSeen(true)

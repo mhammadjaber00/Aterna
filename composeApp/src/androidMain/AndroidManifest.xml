@@ -3,9 +3,6 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <application
             android:name=".AternaApplication"
@@ -15,21 +12,22 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/Theme.Aterna">
+
         <activity
-                android:exported="true"
                 android:name=".MainActivity"
+                android:exported="true"
                 android:theme="@style/Theme.Aterna.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <service
-                android:name=".features.quest.service.QuestForegroundService"
-                android:exported="false"
-                android:foregroundServiceType="dataSync"/>
+        <receiver
+                android:name=".notifications.NotificationReceiver"
+                android:exported="false"/>
+        <receiver
+                android:name=".features.quest.notification.QuestActionReceiver"
+                android:exported="false"/>
     </application>
-
 </manifest>

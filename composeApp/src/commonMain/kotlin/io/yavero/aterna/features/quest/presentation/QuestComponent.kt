@@ -20,4 +20,6 @@ interface QuestComponent {
 
     fun onLoadAdventureLog()
     fun onClearNewlyAcquired()
+    fun onAdventureLogShown()
+    fun onRetreatConfirmDismissed()
 }

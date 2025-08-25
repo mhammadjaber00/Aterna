@@ -27,7 +27,7 @@ actual class NotificationScheduler(
             at = reminderTime,
             title = taskTitle,
             body = body,
-            channel = TASK_REMINDER_CHANNEL
+            channel = LocalNotifier.TASK_CHANNEL_ID
         )
     }
 

@@ -7,10 +7,10 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import io.yavero.aterna.features.quest.service.QuestForegroundService
 import io.yavero.aterna.notifications.LocalNotifier
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -24,13 +24,11 @@ class QuestNotifierAndroid(
     private val notificationManager = NotificationManagerCompat.from(context)
 
     override suspend fun requestPermissionIfNeeded() {
-
         localNotifier.requestPermissionIfNeeded()
-
-
         ensureNotificationChannel()
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override suspend fun showOngoing(
         sessionId: String,
         title: String,
@@ -39,37 +37,31 @@ class QuestNotifierAndroid(
     ) {
         if (!hasNotificationPermission()) return
         ensureNotificationChannel()
-        val endAtMs = endAt?.toEpochMilliseconds()
-        QuestForegroundService.start(
+        SessionNotifications.showOngoing(
             context = context,
             sessionId = sessionId,
             title = title,
             text = text,
-            endAtMs = endAtMs
+            endAtMs = endAt?.toEpochMilliseconds()
         )
     }
 
     override suspend fun clearOngoing(sessionId: String) {
-
-        QuestForegroundService.stop(context)
-
-        val notificationId = getNotificationId(sessionId)
-        notificationManager.cancel(notificationId)
+        SessionNotifications.cancel(context, sessionId)
     }
 
     override suspend fun scheduleEnd(sessionId: String, endAt: Instant) {
-
+        // Use Alerts channel (high importance) so the completion actually pops.
         localNotifier.schedule(
             id = "focus_end_$sessionId",
             at = endAt,
             title = "Quest Session Complete",
             body = "Your quest session has ended!",
-            channel = QuestActions.CHANNEL_ID
+            channel = LocalNotifier.ALERTS_CHANNEL_ID
         )
     }
 
     override suspend fun cancelScheduledEnd(sessionId: String) {
-
         localNotifier.cancel("focus_end_$sessionId")
     }
 
@@ -79,22 +71,20 @@ class QuestNotifierAndroid(
         text: String
     ) {
         if (!hasNotificationPermission()) return
+        val notificationId = SessionNotifications.ongoingNotifId(sessionId)
 
-        val notificationId = getCompletionNotificationId(sessionId)
-
-        val notification = NotificationCompat.Builder(context, QuestActions.CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, LocalNotifier.ALERTS_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) 
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setAutoCancel(true)
-            .setDefaults(NotificationCompat.DEFAULT_ALL) 
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(android.app.Notification.CATEGORY_ALARM)
             .build()
 
-        if (hasNotificationPermission()) {
-            @SuppressLint("MissingPermission")
-            notificationManager.notify(notificationId, notification)
-        }
+        @SuppressLint("MissingPermission")
+        notificationManager.notify(notificationId, notification)
     }
 
     private fun ensureNotificationChannel() {
@@ -108,10 +98,8 @@ class QuestNotifierAndroid(
                 enableVibration(false)
                 enableLights(false)
             }
-
-            val systemNotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            systemNotificationManager.createNotificationChannel(channel)
+            val sys = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            sys.createNotificationChannel(channel)
         }
     }
 
@@ -121,16 +109,6 @@ class QuestNotifierAndroid(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true 
-        }
-    }
-
-    private fun getNotificationId(sessionId: String): Int {
-        return QuestActions.NOTIF_ID_BASE + sessionId.hashCode()
-    }
-
-    private fun getCompletionNotificationId(sessionId: String): Int {
-        return QuestActions.NOTIF_ID_BASE + 1000 + sessionId.hashCode()
+        } else true
     }
 }

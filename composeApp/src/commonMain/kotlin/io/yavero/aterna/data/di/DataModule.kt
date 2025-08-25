@@ -28,13 +28,6 @@ val dataModule = module {
 
 
     singleOf(::SettingsRepositoryImpl) bind SettingsRepository::class
-
-    single<TaskRepository> {
-        TaskRepositoryImpl(
-            database = get<AternaDatabase>(),
-            taskNotificationService = get()
-        )
-    }
     singleOf(::FocusSessionRepositoryImpl) bind FocusSessionRepository::class
     singleOf(::HeroRepositoryImpl) bind HeroRepository::class
     singleOf(::QuestRepositoryImpl) bind QuestRepository::class

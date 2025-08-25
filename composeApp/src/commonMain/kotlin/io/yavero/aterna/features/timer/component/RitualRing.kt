@@ -45,7 +45,6 @@ fun RitualRing(
     centerHint: String = "",
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
     var box by remember { mutableStateOf(IntSize.Zero) }
 
     fun valueToAngle(v: Float): Float {

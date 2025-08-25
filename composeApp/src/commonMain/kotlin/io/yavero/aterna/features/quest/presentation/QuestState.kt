@@ -18,28 +18,22 @@ data class QuestState(
     val timeRemaining: Duration = Duration.ZERO,
     val questProgress: Float = 0f,
 
-
     val eventFeed: List<QuestEvent> = emptyList(),
     val eventPulseCounter: Int = 0,
-
 
     val adventureLog: List<QuestEvent> = emptyList(),
     val isAdventureLogLoading: Boolean = false,
 
-
     val lastLoot: QuestLoot? = null,
     val curseTimeRemaining: Duration = Duration.ZERO,
 
-
     val pendingShowRetreatConfirm: Boolean = false,
     val pendingShowAdventureLog: Boolean = false,
-
 
     val retreatGraceSeconds: Int = 0,
     val lateRetreatThreshold: Double = 1.0,
     val lateRetreatPenalty: Double = 0.0,
     val curseSoftCapMinutes: Int = 0,
-
 
     val ownedItemIds: Set<String> = emptySet(),
     val newlyAcquiredItemIds: Set<String> = emptySet(),

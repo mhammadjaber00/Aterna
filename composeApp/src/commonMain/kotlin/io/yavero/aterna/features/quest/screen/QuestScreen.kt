@@ -83,6 +83,19 @@ fun QuestScreen(
 
     val haptic = LocalHapticFeedback.current
 
+    // Drive UI from store flags (notification → store → UI)
+    LaunchedEffect(uiState.pendingShowAdventureLog) {
+        if (uiState.pendingShowAdventureLog) {
+            logBadge = false
+            modal = Modal.AdventureLog
+        }
+    }
+    LaunchedEffect(uiState.pendingShowRetreatConfirm) {
+        if (uiState.pendingShowRetreatConfirm) {
+            modal = Modal.Retreat
+        }
+    }
+
     LaunchedEffect(tutorialSeen) {
         tutorialStep = if (!tutorialSeen) TutorialStep.Hero else TutorialStep.None
     }
@@ -98,6 +111,7 @@ fun QuestScreen(
         }
     }
 
+    // When the log sheet is open, load entries
     LaunchedEffect(modal) {
         if (modal == Modal.AdventureLog) {
             component.onLoadAdventureLog()
@@ -105,6 +119,7 @@ fun QuestScreen(
         }
     }
 
+    // Auto-open Loot dialog after completion once per quest
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading, uiState.activeQuest?.id) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
             component.onLoadAdventureLog()
@@ -116,6 +131,7 @@ fun QuestScreen(
         }
     }
 
+    // Badge: inventory on chest/trinket
     LaunchedEffect(uiState.eventFeed.size) {
         when (uiState.eventFeed.lastOrNull()?.type) {
             EventType.CHEST, EventType.TRINKET -> inventoryBadge = true
@@ -123,6 +139,7 @@ fun QuestScreen(
         }
     }
 
+    // Ephemeral ticker visibility on new events
     val modalState by rememberUpdatedState(modal)
     LaunchedEffect(uiState.eventPulseCounter) {
         if (uiState.eventPulseCounter != tickerPulseSeen) {
@@ -134,6 +151,7 @@ fun QuestScreen(
         }
     }
 
+    // Merge feed + log for the sheet if quest is active
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -162,10 +180,9 @@ fun QuestScreen(
         Box(
             Modifier
                 .fillMaxSize()
-                .onGloballyPositioned { rootSize = it.size } 
+                .onGloballyPositioned { rootSize = it.size }
         ) {
             MagicalBackground()
-
 
             val insets = WindowInsets.safeDrawing.asPaddingValues()
             val showTopChrome = !chromeHidden && !uiState.isLoading && uiState.error == null
@@ -206,7 +223,7 @@ fun QuestScreen(
                 EventTicker(
                     message = currentTicker,
                     visible = currentTicker != null,
-                    autoHideMillis = null, 
+                    autoHideMillis = null,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -218,9 +235,7 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
-
                 else -> {
-
                     QuestPortalArea(
                         uiState = uiState,
                         onStopQuest = { modal = Modal.Retreat },
@@ -254,7 +269,6 @@ fun QuestScreen(
                             .padding(horizontal = 16.dp)
                     )
 
-
                     QuestBottomChrome(
                         hasActiveQuest = uiState.hasActiveQuest,
                         chromeHidden = chromeHidden,
@@ -267,7 +281,6 @@ fun QuestScreen(
                     )
                 }
             }
-
 
             val size = rootSize
             if (!tutorialSeen && size != null) {
@@ -306,7 +319,7 @@ fun QuestScreen(
         }
     }
 
-
+    // ----- Modals -----
 
     if (modal == Modal.Loot) {
         val questAtOpen = remember(modal) { uiState.activeQuest }
@@ -326,12 +339,15 @@ fun QuestScreen(
                 }
             )
         } else {
-
             modal = Modal.None
         }
     }
 
-    AnimatedVisibility(visible = modal == Modal.Stats, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut()) {
+    AnimatedVisibility(
+        visible = modal == Modal.Stats,
+        enter = scaleIn() + fadeIn(),
+        exit = scaleOut() + fadeOut()
+    ) {
         StatsPopupDialog(hero = uiState.hero, onDismiss = { modal = Modal.None })
     }
 
@@ -347,7 +363,11 @@ fun QuestScreen(
         AdventureLogSheet(
             events = eventsForSheet,
             loading = uiState.isAdventureLogLoading,
-            onDismiss = { modal = Modal.None }
+            onDismiss = {
+                modal = Modal.None
+                // Ack back to store (so flag is cleared if set by notification)
+                component.onAdventureLogShown()
+            }
         )
     }
 
@@ -359,8 +379,15 @@ fun QuestScreen(
             lateRetreatThreshold = uiState.lateRetreatThreshold,
             lateRetreatPenalty = uiState.lateRetreatPenalty,
             curseSoftCapMinutes = uiState.curseSoftCapMinutes,
-            onConfirm = { modal = Modal.None; component.onGiveUpQuest() },
-            onDismiss = { modal = Modal.None }
+            onConfirm = {
+                modal = Modal.None
+                component.onGiveUpQuest()
+            },
+            onDismiss = {
+                modal = Modal.None
+                // Ack back to store so it won't re-open
+                component.onRetreatConfirmDismissed()
+            }
         )
     }
 
@@ -400,7 +427,6 @@ private fun SpotlightOverlay(
     Box(
         Modifier
             .fillMaxSize()
-
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) awaitPointerEvent()

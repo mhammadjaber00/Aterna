@@ -1,40 +1,67 @@
 package io.yavero.aterna.notifications
 
 import android.Manifest
-import android.R
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.annotation.RequiresPermission
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
 class NotificationReceiver : BroadcastReceiver() {
-    
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override fun onReceive(context: Context, intent: Intent) {
-        val notificationId = intent.getIntExtra(LocalNotifier.EXTRA_NOTIFICATION_ID, 0)
+        val id = intent.getIntExtra(LocalNotifier.EXTRA_NOTIFICATION_ID, 0)
         val title = intent.getStringExtra(LocalNotifier.EXTRA_TITLE) ?: "Aterna"
-        val body = intent.getStringExtra(LocalNotifier.EXTRA_BODY) ?: ""
-        val channelId = intent.getStringExtra(LocalNotifier.EXTRA_CHANNEL_ID) ?: LocalNotifier.DEFAULT_CHANNEL_ID
+        val body = intent.getStringExtra(LocalNotifier.EXTRA_BODY) ?: "Time’s up!"
+        val channel = intent.getStringExtra(LocalNotifier.EXTRA_CHANNEL_ID) ?: LocalNotifier.ALERTS_CHANNEL_ID
 
-
-        val notification = NotificationCompat.Builder(context, channelId)
+        val notif = NotificationCompat.Builder(context, channel)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
-            .setSmallIcon(R.drawable.ic_dialog_info) 
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(android.app.Notification.CATEGORY_ALARM)
             .build()
-        
-        val notificationManager = NotificationManagerCompat.from(context)
 
+        val canNotify = Build.VERSION.SDK_INT < 33 ||
+                ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        try {
-            notificationManager.notify(notificationId, notification)
-        } catch (e: SecurityException) {
+        if (canNotify) {
+            NotificationManagerCompat.from(context).notify(id, notif)
+        }
 
-
+        // Optional precise repeat reschedule
+        val repeatMs = intent.getLongExtra(LocalNotifier.EXTRA_REPEAT_MS, -1L)
+        if (repeatMs > 0) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val nextAt = System.currentTimeMillis() + repeatMs
+            val nextPi = PendingIntent.getBroadcast(
+                context,
+                id,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
+            if (canExact) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
+                } else {
+                    am.setExact(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
+                } else {
+                    am.set(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
+                }
+            }
         }
     }
 }
