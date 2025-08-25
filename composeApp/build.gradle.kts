@@ -112,7 +112,7 @@ android {
         applicationId = "io.yavero.aterna"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
+        versionCode = 3
         versionName = "0.1.0"
     }
     packaging {
