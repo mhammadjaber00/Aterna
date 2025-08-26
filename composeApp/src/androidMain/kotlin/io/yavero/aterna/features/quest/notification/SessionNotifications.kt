@@ -25,12 +25,6 @@ object SessionNotifications {
         val nm = NotificationManagerCompat.from(context)
         val notifId = ongoingNotifId(sessionId)
 
-        val contentIntent = activityActionPI(
-            context = context,
-            sessionId = sessionId,
-            action = QuestActions.ACTION_VIEW_LOGS
-        )
-
         val builder = NotificationCompat.Builder(context, LocalNotifier.FOCUS_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
@@ -41,15 +35,9 @@ object SessionNotifications {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(android.app.Notification.CATEGORY_PROGRESS)
-            .setContentIntent(contentIntent)
-            .addAction(
-                0, "View Logs",
-                activityActionPI(context, sessionId, QuestActions.ACTION_VIEW_LOGS)
-            )
-            .addAction(
-                0, "Retreat",
-                activityActionPI(context, sessionId, QuestActions.ACTION_RETREAT)
-            )
+            .setContentIntent(activityActionPI(context, sessionId, QuestActions.ACTION_VIEW_LOGS))
+            .addAction(0, "View Logs", activityActionPI(context, sessionId, QuestActions.ACTION_VIEW_LOGS))
+            .addAction(0, "Retreat", activityActionPI(context, sessionId, QuestActions.ACTION_RETREAT))
 
         endAtMs?.let {
             builder.setUsesChronometer(true)
@@ -57,9 +45,7 @@ object SessionNotifications {
                 .setWhen(it)
         }
 
-        if (hasPostNotifications(context)) {
-            nm.notify(notifId, builder.build())
-        }
+        if (hasPostNotifications(context)) nm.notify(notifId, builder.build())
     }
 
     fun cancel(context: Context, sessionId: String) {
@@ -68,31 +54,23 @@ object SessionNotifications {
 
     fun ongoingNotifId(sessionId: String): Int = ("focus_end_$sessionId").hashCode()
 
-    private fun activityActionPI(context: Context, sessionId: String, action: String): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
+    private fun activityActionPI(ctx: Context, sessionId: String, action: String): PendingIntent {
+        val i = Intent(ctx, MainActivity::class.java).apply {
             this.action = action
             putExtra(QuestActions.EXTRA_SESSION_ID, sessionId)
             putExtra(QuestActions.EXTRA_ACTION_TYPE, action)
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
-            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         return PendingIntent.getActivity(
-            context,
+            ctx,
             (action + sessionId).hashCode(),
-            intent,
+            i,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
 
-    private fun hasPostNotifications(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        } else true
-    }
+    private fun hasPostNotifications(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < 33 ||
+                ActivityCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
 }

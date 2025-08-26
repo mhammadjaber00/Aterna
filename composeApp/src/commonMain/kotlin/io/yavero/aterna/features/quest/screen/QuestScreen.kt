@@ -34,6 +34,7 @@ import io.yavero.aterna.features.quest.component.EventTicker
 import io.yavero.aterna.features.quest.component.RetreatConfirmDialog
 import io.yavero.aterna.features.quest.component.dialogs.AnalyticsPopupDialog
 import io.yavero.aterna.features.quest.component.dialogs.LootDisplayDialog
+import io.yavero.aterna.features.quest.component.dialogs.PermissionPrepDialog
 import io.yavero.aterna.features.quest.component.dialogs.StatsPopupDialog
 import io.yavero.aterna.features.quest.component.sheets.AdventureLogSheet
 import io.yavero.aterna.features.quest.component.sheets.FocusOptionsSheet
@@ -44,9 +45,10 @@ import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
 import io.yavero.aterna.ui.components.MagicalBackground
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private enum class TutorialStep { None, Hero, Halo }
-private enum class Modal { None, Stats, Analytics, AdventureLog, Retreat, Focus, Settings, Loot }
+private enum class Modal { None, Stats, Analytics, AdventureLog, Retreat, Focus, Settings, Loot, Permissions }
 
 @Composable
 fun QuestScreen(
@@ -56,8 +58,24 @@ fun QuestScreen(
     val uiState by component.uiState.collectAsState()
     val tutorialSeen by component.tutorialSeen.collectAsState()
 
+    val permStatus = rememberTimerPermissionStatus()
+    val ensureTimerPermissions = rememberEnsureTimerPermissions()
+    val scope = rememberCoroutineScope()
+
     var modal by rememberSaveable { mutableStateOf(Modal.None) }
     var chromeHidden by rememberSaveable { mutableStateOf(false) }
+
+    var pendingStart by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var requestingPerms by remember { mutableStateOf(false) }
+
+    fun preflightThen(action: () -> Unit) {
+        if (permStatus.notificationsGranted && permStatus.exactAlarmGranted) {
+            action()
+        } else {
+            pendingStart = action
+            modal = Modal.Permissions
+        }
+    }
 
     var statsBadge by rememberSaveable { mutableStateOf(false) }
     var inventoryBadge by rememberSaveable { mutableStateOf(false) }
@@ -83,11 +101,10 @@ fun QuestScreen(
 
     val haptic = LocalHapticFeedback.current
 
-    // Drive UI from store flags (notification → store → UI)
+    // Drive UI from store flags
     LaunchedEffect(uiState.pendingShowAdventureLog) {
         if (uiState.pendingShowAdventureLog) {
-            logBadge = false
-            modal = Modal.AdventureLog
+            logBadge = false; modal = Modal.AdventureLog
         }
     }
     LaunchedEffect(uiState.pendingShowRetreatConfirm) {
@@ -99,10 +116,7 @@ fun QuestScreen(
     LaunchedEffect(tutorialSeen) {
         tutorialStep = if (!tutorialSeen) TutorialStep.Hero else TutorialStep.None
     }
-
-    LaunchedEffect(uiState.hasActiveQuest) {
-        chromeHidden = uiState.hasActiveQuest
-    }
+    LaunchedEffect(uiState.hasActiveQuest) { chromeHidden = uiState.hasActiveQuest }
 
     LaunchedEffect(uiState.hero?.level) {
         uiState.hero?.level?.let { lvl ->
@@ -139,7 +153,7 @@ fun QuestScreen(
         }
     }
 
-    // Ephemeral ticker visibility on new events
+    // Ephemeral ticker
     val modalState by rememberUpdatedState(modal)
     LaunchedEffect(uiState.eventPulseCounter) {
         if (uiState.eventPulseCounter != tickerPulseSeen) {
@@ -235,22 +249,27 @@ fun QuestScreen(
                     onRetry = { component.onRefresh() },
                     modifier = Modifier.align(Alignment.Center)
                 )
+
                 else -> {
                     QuestPortalArea(
                         uiState = uiState,
                         onStopQuest = { modal = Modal.Retreat },
                         onCompleteQuest = { component.onCompleteQuest() },
                         onQuickSelect = { minutes ->
-                            component.onNavigateToTimer(
-                                minutes,
-                                uiState.hero?.classType ?: ClassType.WARRIOR
-                            )
+                            preflightThen {
+                                component.onNavigateToTimer(
+                                    minutes,
+                                    uiState.hero?.classType ?: ClassType.WARRIOR
+                                )
+                            }
                         },
                         onShowStartQuest = {
-                            component.onNavigateToTimer(
-                                25,
-                                uiState.hero?.classType ?: ClassType.WARRIOR
-                            )
+                            preflightThen {
+                                component.onNavigateToTimer(
+                                    25,
+                                    uiState.hero?.classType ?: ClassType.WARRIOR
+                                )
+                            }
                         },
                         onOpenAdventureLog = {
                             logBadge = false
@@ -300,6 +319,7 @@ fun QuestScreen(
                             }
                         )
                     }
+
                     TutorialStep.Halo -> haloAnchor?.let { target ->
                         SpotlightOverlay(
                             root = size,
@@ -313,6 +333,7 @@ fun QuestScreen(
                             }
                         )
                     }
+
                     else -> Unit
                 }
             }
@@ -365,7 +386,6 @@ fun QuestScreen(
             loading = uiState.isAdventureLogLoading,
             onDismiss = {
                 modal = Modal.None
-                // Ack back to store (so flag is cleared if set by notification)
                 component.onAdventureLogShown()
             }
         )
@@ -379,14 +399,8 @@ fun QuestScreen(
             lateRetreatThreshold = uiState.lateRetreatThreshold,
             lateRetreatPenalty = uiState.lateRetreatPenalty,
             curseSoftCapMinutes = uiState.curseSoftCapMinutes,
-            onConfirm = {
-                modal = Modal.None
-                component.onGiveUpQuest()
-            },
-            onDismiss = {
-                modal = Modal.None
-                component.onRetreatConfirmDismissed()
-            }
+            onConfirm = { modal = Modal.None; component.onGiveUpQuest() },
+            onDismiss = { modal = Modal.None; component.onRetreatConfirmDismissed() }
         )
     }
 
@@ -404,6 +418,36 @@ fun QuestScreen(
             onHapticsChange = { hapticsOn = it },
             onManageExceptions = { },
             onClose = { modal = Modal.None }
+        )
+    }
+
+    if (modal == Modal.Permissions) {
+        PermissionPrepDialog(
+            status = permStatus,
+            requesting = requestingPerms,
+            onAllowAndStart = {
+                requestingPerms = true
+                scope.launch {
+                    val ok = ensureTimerPermissions()
+                    requestingPerms = false
+                    if (ok) {
+                        val go = pendingStart
+                        pendingStart = null
+                        modal = Modal.None
+                        go?.invoke()
+                    }
+                }
+            },
+            onStartAnyway = {
+                val go = pendingStart
+                pendingStart = null
+                modal = Modal.None
+                go?.invoke()
+            },
+            onClose = {
+                pendingStart = null
+                modal = Modal.None
+            }
         )
     }
 }
@@ -426,11 +470,7 @@ private fun SpotlightOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) awaitPointerEvent()
-                }
-            }
+            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }
     ) {
         Canvas(
             Modifier
@@ -480,3 +520,21 @@ private fun SpotlightOverlay(
         }
     }
 }
+
+
+/**
+ * Platform hook: Android will return a suspending lambda that requests
+ * POST_NOTIFICATIONS (13+) and the exact-alarm toggle (12L+) when needed.
+ * Other platforms return a lambda that always yields true.
+ */
+data class TimerPermissionStatus(
+    val notificationsGranted: Boolean,
+    val exactAlarmGranted: Boolean
+)
+
+/** Returns current grant state so the dialog can show live checks. */
+@Composable
+expect fun rememberTimerPermissionStatus(): TimerPermissionStatus
+
+@Composable
+expect fun rememberEnsureTimerPermissions(): suspend () -> Boolean

@@ -30,10 +30,9 @@ actual class LocalNotifier(private val context: Context) {
 
     actual suspend fun requestPermissionIfNeeded(): PermissionResult = withContext(Dispatchers.Main) {
         when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> PermissionResult.NOT_REQUIRED
+            Build.VERSION.SDK_INT < 33 -> PermissionResult.NOT_REQUIRED
             ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                     == PackageManager.PERMISSION_GRANTED -> PermissionResult.GRANTED
-
             else -> PermissionResult.DENIED
         }
     }
@@ -47,28 +46,23 @@ actual class LocalNotifier(private val context: Context) {
     ) = withContext(Dispatchers.IO) {
         if (requestPermissionIfNeeded() == PermissionResult.DENIED) return@withContext
 
-        val channelId = channel ?: DEFAULT_CHANNEL_ID
         val notificationId = id.hashCode()
-
-        val intent = createNotificationIntent(notificationId, title, body, channelId)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, notificationId, intent,
+        val pi = PendingIntent.getBroadcast(
+            context, notificationId,
+            createNotificationIntent(notificationId, title, body, channel ?: DEFAULT_CHANNEL_ID),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val triggerTime = at.toEpochMilliseconds()
+        val t = at.toEpochMilliseconds()
         if (canScheduleExactAlarms()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
+            else
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, t, pi)
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
+            else
+                alarmManager.set(AlarmManager.RTC_WAKEUP, t, pi)
         }
     }
 
@@ -82,41 +76,36 @@ actual class LocalNotifier(private val context: Context) {
     ) = withContext(Dispatchers.IO) {
         if (requestPermissionIfNeeded() == PermissionResult.DENIED) return@withContext
 
-        val channelId = channel ?: DEFAULT_CHANNEL_ID
         val notificationId = id.hashCode()
-
-        val intent = createNotificationIntent(notificationId, title, body, channelId).apply {
-            putExtra(EXTRA_REPEAT_MS, interval.inWholeMilliseconds)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, notificationId, intent,
+        val pi = PendingIntent.getBroadcast(
+            context, notificationId,
+            createNotificationIntent(notificationId, title, body, channel ?: DEFAULT_CHANNEL_ID).apply {
+                putExtra(EXTRA_REPEAT_MS, interval.inWholeMilliseconds)
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val triggerTime = firstAt.toEpochMilliseconds()
+        val t = firstAt.toEpochMilliseconds()
         if (canScheduleExactAlarms()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
+            else
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, t, pi)
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
+            else
+                alarmManager.set(AlarmManager.RTC_WAKEUP, t, pi)
         }
     }
 
     actual suspend fun cancel(id: String) = withContext(Dispatchers.IO) {
         val notificationId = id.hashCode()
-        val intent = createNotificationIntent(notificationId, "", "", DEFAULT_CHANNEL_ID)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, notificationId, intent,
+        val pi = PendingIntent.getBroadcast(
+            context, notificationId,
+            createNotificationIntent(notificationId, "", "", DEFAULT_CHANNEL_ID),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.cancel(pendingIntent)
+        alarmManager.cancel(pi)
         notificationManager.cancel(notificationId)
     }
 
@@ -125,45 +114,29 @@ actual class LocalNotifier(private val context: Context) {
     }
 
     // ---- helpers ----
+    private fun canScheduleExactAlarms(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) alarmManager.canScheduleExactAlarms() else true
 
-    private fun canScheduleExactAlarms(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.canScheduleExactAlarms()
-        } else true
-    }
-
-    fun buildRequestExactAlarmIntent(): Intent? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                data = android.net.Uri.parse("package:${context.packageName}")
-            }
+    fun buildRequestExactAlarmIntent(): Intent? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                .setData(android.net.Uri.parse("package:${context.packageName}"))
         } else null
-    }
 
     private fun createDefaultChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channels = listOf(
-                NotificationChannel(
-                    FOCUS_CHANNEL_ID, "Focus", NotificationManager.IMPORTANCE_LOW
-                ).apply { description = "Focus session notifications" },
-
-                NotificationChannel(
-                    ALERTS_CHANNEL_ID, "Alerts", NotificationManager.IMPORTANCE_HIGH
-                ).apply { description = "Time’s up & critical alerts"; enableVibration(true) },
-
-                NotificationChannel(
-                    DEFAULT_CHANNEL_ID, "General", NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "General notifications" },
-
-                NotificationChannel(
-                    TASK_CHANNEL_ID, "Tasks", NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Task reminders and notifications" },
-
-                NotificationChannel(
-                    ROUTINE_CHANNEL_ID, "Routines", NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Routine reminders and notifications" }
-            )
-            channels.forEach(notificationManager::createNotificationChannel)
+            listOf(
+                NotificationChannel(FOCUS_CHANNEL_ID, "Focus", NotificationManager.IMPORTANCE_LOW)
+                    .apply { description = "Focus session notifications" },
+                NotificationChannel(ALERTS_CHANNEL_ID, "Alerts", NotificationManager.IMPORTANCE_HIGH)
+                    .apply { description = "Time’s up & critical alerts"; enableVibration(true) },
+                NotificationChannel(DEFAULT_CHANNEL_ID, "General", NotificationManager.IMPORTANCE_DEFAULT)
+                    .apply { description = "General notifications" },
+                NotificationChannel(TASK_CHANNEL_ID, "Tasks", NotificationManager.IMPORTANCE_DEFAULT)
+                    .apply { description = "Task reminders and notifications" },
+                NotificationChannel(ROUTINE_CHANNEL_ID, "Routines", NotificationManager.IMPORTANCE_DEFAULT)
+                    .apply { description = "Routine reminders and notifications" },
+            ).forEach(notificationManager::createNotificationChannel)
         }
     }
 
@@ -172,28 +145,24 @@ actual class LocalNotifier(private val context: Context) {
         title: String,
         body: String,
         channelId: String
-    ): Intent {
-        return Intent(context, NotificationReceiver::class.java).apply {
-            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
-            putExtra(EXTRA_TITLE, title)
-            putExtra(EXTRA_BODY, body)
-            putExtra(EXTRA_CHANNEL_ID, channelId)
-        }
+    ): Intent = Intent(context, NotificationReceiver::class.java).apply {
+        putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+        putExtra(EXTRA_TITLE, title)
+        putExtra(EXTRA_BODY, body)
+        putExtra(EXTRA_CHANNEL_ID, channelId)
     }
 
     companion object {
         const val DEFAULT_CHANNEL_ID = "default"
         const val TASK_CHANNEL_ID = "tasks"
         const val ROUTINE_CHANNEL_ID = "routines"
-        const val FOCUS_CHANNEL_ID = "focus"     // ongoing countdown (low)
-        const val ALERTS_CHANNEL_ID = "alerts"   // end-ding (high)
+        const val FOCUS_CHANNEL_ID = "focus"
+        const val ALERTS_CHANNEL_ID = "alerts"
 
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
         const val EXTRA_CHANNEL_ID = "channel_id"
-
-        /** Used by the receiver to re-schedule precise repeats. */
         const val EXTRA_REPEAT_MS = "repeat_ms"
     }
 }
