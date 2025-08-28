@@ -3,10 +3,11 @@ package io.yavero.aterna.domain.service.curse
 import io.yavero.aterna.domain.model.StatusEffect
 import io.yavero.aterna.domain.model.StatusEffectType
 import io.yavero.aterna.domain.repository.StatusEffectRepository
+import kotlinx.datetime.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-
+@OptIn(kotlin.time.ExperimentalTime::class)
 class DefaultCurseService(
     private val effects: StatusEffectRepository
 ) : CurseService {
@@ -14,24 +15,18 @@ class DefaultCurseService(
     private var lastTickAtMs: Long? = null
 
     companion object {
-        private const val RETREAT_GRACE_SECONDS = 30
-        private const val LATE_RETREAT_THRESHOLD = 0.80
-        private const val LATE_RETREAT_LOOT_PENALTY = 0.25
-        private const val CURSE_SOFT_CAP_MIN = 30
+        private const val GRACE_SECONDS = 30
+        private const val CAP_MIN = 30
         private const val CURSE_ID = "curse-early-exit"
     }
 
-    override fun rules(): CurseService.RetreatRules = CurseService.RetreatRules(
-        graceSeconds = RETREAT_GRACE_SECONDS,
-        lateThreshold = LATE_RETREAT_THRESHOLD,
-        latePenalty = LATE_RETREAT_LOOT_PENALTY,
-        softCapMinutes = CURSE_SOFT_CAP_MIN
+    override fun rules() = CurseService.RetreatRules(
+        graceSeconds = GRACE_SECONDS,
+        capMinutes = CAP_MIN,
+        resetsAtMidnight = true
     )
 
-    override fun isInGrace(elapsedSeconds: Long): Boolean = elapsedSeconds < RETREAT_GRACE_SECONDS
-    override fun isLateRetreat(progress: Double, inGrace: Boolean): Boolean =
-        !inGrace && progress >= LATE_RETREAT_THRESHOLD
-    override fun lateRetreatPenalty(): Double = LATE_RETREAT_LOOT_PENALTY
+    override fun isInGrace(elapsedSeconds: Long) = elapsedSeconds < GRACE_SECONDS
 
     override suspend fun onTick(isQuestActive: Boolean, nowMs: Long): Duration {
         val curse = effects.getActiveBy(StatusEffectType.CURSE_EARLY_EXIT, nowMs)
@@ -44,16 +39,21 @@ class DefaultCurseService(
             }
         }
         lastTickAtMs = nowMs
-
-        val remainingMs = if (curse != null) (curse.expiresAtEpochMs - nowMs).coerceAtLeast(0) else 0
         effects.purgeExpired(nowMs)
-        return remainingMs.milliseconds
+        return remaining(nowMs)
     }
 
-    override suspend fun applyNormalRetreatCurse(nowMs: Long, remainingMs: Long): Long {
+    override suspend fun remaining(nowMs: Long): Duration {
+        val curse = effects.getActiveBy(StatusEffectType.CURSE_EARLY_EXIT, nowMs)
+        val ms = if (curse != null) (curse.expiresAtEpochMs - nowMs).coerceAtLeast(0) else 0
+        return ms.milliseconds
+    }
+
+    override suspend fun applyRetreatCurse(nowMs: Long, remainingMs: Long): Long {
         val existing = effects.getActiveBy(StatusEffectType.CURSE_EARLY_EXIT, nowMs)
-        val capMs = CURSE_SOFT_CAP_MIN * 60_000L
-        val hardCapExpiry = nowMs + capMs
+        val capMs = CAP_MIN * 60_000L
+        val hardCapExpiry = minOf(nowMs + capMs, endOfDayMs(nowMs))
+
         val targetExpiry = if (existing != null && existing.expiresAtEpochMs > nowMs) {
             (existing.expiresAtEpochMs + remainingMs).coerceAtMost(hardCapExpiry)
         } else {
@@ -71,4 +71,17 @@ class DefaultCurseService(
         )
         return targetExpiry
     }
+
+    override suspend fun clearCurse(nowMs: Long): Boolean {
+        val active = effects.getActiveBy(StatusEffectType.CURSE_EARLY_EXIT, nowMs) ?: return false
+        effects.remove(active.id)
+        return true
+    }
+}
+
+@OptIn(kotlin.time.ExperimentalTime::class)
+private fun endOfDayMs(nowMs: Long, tz: TimeZone = TimeZone.currentSystemDefault()): Long {
+    val now = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
+    val midnightNext = now.plus(DatePeriod(days = 1)).atStartOfDayIn(tz)
+    return midnightNext.toEpochMilliseconds()
 }

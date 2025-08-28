@@ -31,6 +31,7 @@ fun QuestTopChrome(
     onToggleInventory: () -> Unit,
     onToggleAnalytics: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCleanseCurse: () -> Unit,
     avatarAnchorModifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -76,7 +77,8 @@ fun QuestTopChrome(
         CurseChip(
             minutes = uiState.curseMinutes,
             seconds = uiState.curseSeconds,
-            softCapMinutes = uiState.curseSoftCapMinutes
+            capMinutes = uiState.curseSoftCapMinutes,
+            onCleanse = onCleanseCurse
         )
     }
 }

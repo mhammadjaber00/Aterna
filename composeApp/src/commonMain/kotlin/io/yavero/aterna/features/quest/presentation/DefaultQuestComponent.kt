@@ -89,6 +89,10 @@ class DefaultQuestComponent(
         questStore.process(QuestIntent.RetreatConfirmDismissed)
     }
 
+    override fun onCleanseCurse() {
+        questStore.process(QuestIntent.CleanseCurse)
+    }
+
     override fun onMarkTutorialSeen() {
         componentScope.launch {
             settingsRepository.setTutorialSeen(true)

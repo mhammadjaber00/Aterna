@@ -226,6 +226,7 @@ fun QuestScreen(
                         },
                         onToggleAnalytics = { modal = Modal.Analytics },
                         onOpenSettings = { modal = Modal.Settings },
+                        onCleanseCurse = { component.onCleanseCurse() },
                         avatarAnchorModifier = Modifier.onGloballyPositioned {
                             heroAnchor = it.boundsInRoot()
                         }
@@ -396,9 +397,7 @@ fun QuestScreen(
             totalMinutes = uiState.activeQuest?.durationMinutes ?: 0,
             timeRemaining = uiState.timeRemaining,
             retreatGraceSeconds = uiState.retreatGraceSeconds,
-            lateRetreatThreshold = uiState.lateRetreatThreshold,
-            lateRetreatPenalty = uiState.lateRetreatPenalty,
-            curseSoftCapMinutes = uiState.curseSoftCapMinutes,
+            capMinutes = uiState.curseSoftCapMinutes,
             onConfirm = { modal = Modal.None; component.onGiveUpQuest() },
             onDismiss = { modal = Modal.None; component.onRetreatConfirmDismissed() }
         )

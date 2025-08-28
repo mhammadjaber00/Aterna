@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.dp
 fun CurseChip(
     minutes: Int,
     seconds: Int,
-    softCapMinutes: Int,
+    capMinutes: Int,
+    onCleanse: () -> Unit,
+    onShowDetails: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showInfo by remember { mutableStateOf(false) }
@@ -32,7 +34,7 @@ fun CurseChip(
         shape = RoundedCornerShape(20.dp)
     ) {
         Text(
-            text = "Cursed −50% • $clock",
+            text = "−50% rewards ($clock left)",
             color = Color.White,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -45,12 +47,15 @@ fun CurseChip(
             title = { Text("Curse of Cowardice") },
             text = {
                 Text(
-                    "Rewards are halved while cursed. The curse lasts up to $softCapMinutes minutes " +
-                            "(soft cap) and drains twice as fast whenever you’re on another quest."
+                    "−50% rewards while cursed. It lasts up to $capMinutes minutes, " +
+                            "drains faster while you’re on another quest."
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showInfo = false }) { Text("Understood") }
+                TextButton(onClick = { onCleanse(); showInfo = false }) { Text("Cleanse (100 gold)") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onShowDetails(); showInfo = false }) { Text("Details") }
             },
             shape = RoundedCornerShape(16.dp)
         )

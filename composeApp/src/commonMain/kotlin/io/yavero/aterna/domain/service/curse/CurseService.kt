@@ -2,19 +2,17 @@ package io.yavero.aterna.domain.service.curse
 
 import kotlin.time.Duration
 
-
 interface CurseService {
     data class RetreatRules(
         val graceSeconds: Int,
-        val lateThreshold: Double,
-        val latePenalty: Double,
-        val softCapMinutes: Int
+        val capMinutes: Int,
+        val resetsAtMidnight: Boolean = true
     )
 
     fun rules(): RetreatRules
     fun isInGrace(elapsedSeconds: Long): Boolean
-    fun isLateRetreat(progress: Double, inGrace: Boolean): Boolean
-    fun lateRetreatPenalty(): Double
     suspend fun onTick(isQuestActive: Boolean, nowMs: Long): Duration
-    suspend fun applyNormalRetreatCurse(nowMs: Long, remainingMs: Long): Long
+    suspend fun applyRetreatCurse(nowMs: Long, remainingMs: Long): Long
+    suspend fun clearCurse(nowMs: Long): Boolean
+    suspend fun remaining(nowMs: Long): Duration
 }

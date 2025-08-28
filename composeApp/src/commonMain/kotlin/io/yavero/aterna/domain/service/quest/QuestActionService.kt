@@ -27,6 +27,7 @@ interface QuestActionService {
     suspend fun start(durationMinutes: Int, classType: ClassType): StartResult
     suspend fun complete(): CompleteResult
     suspend fun retreat(): RetreatResult
+    suspend fun cleanseCurseWithGold(cost: Int = 100): Boolean
 }
 
 @OptIn(ExperimentalTime::class)
@@ -63,6 +64,18 @@ class QuestActionServiceImpl(
     private val bankingStrategy: RewardBankingStrategy,
     private val inventory: InventoryRepository,
 ) : QuestActionService {
+
+    override suspend fun cleanseCurseWithGold(cost: Int): Boolean {
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        val hero = heroRepository.getCurrentHero() ?: return false
+        if (hero.gold < cost) return false
+
+        val cleared = curseService.clearCurse(nowMs)
+        if (!cleared) return false
+
+        heroRepository.updateHero(hero.copy(gold = hero.gold - cost))
+        return true
+    }
 
     private val completeMutex = Mutex()
     private val retreatMutex = Mutex()
@@ -200,63 +213,21 @@ class QuestActionServiceImpl(
         val now = Clock.System.now()
         val total = active.durationMinutes.minutes
         val elapsed = now - active.startTime
-        val remaining = total - elapsed
         val nowMs = now.toEpochMilliseconds()
-        val remainingMs = remaining.inWholeMilliseconds.coerceAtLeast(0)
 
-        val elapsedSecs = elapsed.inWholeSeconds
-        val totalSecs = maxOf(1, total.inWholeSeconds)
-        val progress = elapsedSecs.toDouble() / totalSecs.toDouble()
-
-        val inGrace = curseService.isInGrace(elapsedSecs)
-        val isLate = curseService.isLateRetreat(progress, inGrace)
+        val inGrace = curseService.isInGrace(elapsed.inWholeSeconds)
 
         var updatedHero = hero
-        var bankedLoot: QuestLoot? = null
         var curseApplied = false
         val uiFx = mutableListOf<QuestEffect>()
 
-        if (isLate) {
-            val elapsedMinutes = elapsed.inWholeMinutes.toInt().coerceAtLeast(0)
-            if (elapsedMinutes > 0) {
-                val penalty = curseService.lateRetreatPenalty()
-                val econ = economy.banked(hero, active, minutes = elapsedMinutes, penalty = penalty)
-                updatedHero = updatedHero.copy(
-                    xp = econ.newXp,
-                    level = econ.newLevel,
-                    gold = updatedHero.gold + econ.final.gold,
-                    totalFocusMinutes = updatedHero.totalFocusMinutes + elapsedMinutes,
-                    lastActiveDate = now
-                )
-                bankedLoot = econ.final
-                appendBankedEvents(hero, active, cutoffMinutes = elapsedMinutes, totals = econ.final)
-                uiFx += QuestEffect.ShowSuccess("Retreated late: +${econ.final.xp} XP, +${econ.final.gold} gold")
-            } else {
-                uiFx += QuestEffect.ShowSuccess("Retreated late: no time banked, no curse.")
-            }
-        } else if (!inGrace) {
-            curseService.applyNormalRetreatCurse(nowMs = nowMs, remainingMs = remainingMs)
+        if (!inGrace) {
+            val remainingMs = (total - elapsed).inWholeMilliseconds.coerceAtLeast(0)
+            curseService.applyRetreatCurse(nowMs = nowMs, remainingMs = remainingMs)
             curseApplied = true
-
-            val bankedMs = bankingStrategy.bankedElapsedMs(elapsed.inWholeMilliseconds)
-            val bankedMinutes = (bankedMs / 60_000L).toInt()
-            if (bankedMinutes > 0) {
-                val econ = economy.banked(hero, active, minutes = bankedMinutes, penalty = null)
-                updatedHero = updatedHero.copy(
-                    xp = econ.newXp,
-                    level = econ.newLevel,
-                    gold = updatedHero.gold + econ.final.gold,
-                    totalFocusMinutes = updatedHero.totalFocusMinutes + bankedMinutes,
-                    lastActiveDate = now
-                )
-                bankedLoot = econ.final
-                appendBankedEvents(hero, active, cutoffMinutes = bankedMinutes, totals = econ.final)
-                uiFx += QuestEffect.ShowSuccess("Retreated: banked +${econ.final.xp} XP, +${econ.final.gold} gold. Curse applied (max 30m).")
-            } else {
-                uiFx += QuestEffect.ShowSuccess("Retreated. No time banked. Curse applied (max 30m).")
-            }
+            uiFx += QuestEffect.ShowSuccess("Curse applied (up to 30m).")
         } else {
-            uiFx += QuestEffect.ShowSuccess("Retreated quickly: no curse.")
+            uiFx += QuestEffect.ShowSuccess("Retreated. You’re clear.")
         }
 
         val gaveUp = active.copy(endTime = now, gaveUp = true)
@@ -272,11 +243,10 @@ class QuestActionServiceImpl(
             appendNarration(active.id, it)
             uiFx += QuestEffect.ShowNarration(it)
         }
-
         uiFx += QuestEffect.ShowQuestGaveUp
         uiFx += QuestEffect.PlayQuestFailSound
 
-        return RetreatResult(gaveUp, updatedHero, bankedLoot, curseApplied, uiFx)
+        return RetreatResult(gaveUp, updatedHero, bankedLoot = null, curseApplied, uiFx)
     }
 
     private suspend fun appendNarration(questId: String, text: String) {

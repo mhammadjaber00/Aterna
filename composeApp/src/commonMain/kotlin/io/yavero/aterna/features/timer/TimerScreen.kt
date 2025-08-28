@@ -45,6 +45,7 @@ fun TimerScreen(
 
     var isSealing by remember { mutableStateOf(false) }
     var sealProgress by remember { mutableFloatStateOf(0f) }
+    val phrases = rememberTimerPhrasePair()
 
     LaunchedEffect(isSealing) {
         if (isSealing) {
@@ -171,7 +172,7 @@ fun TimerScreen(
                         .background(questBrush, btnShape)
                 ) {
                     Text(
-                        stringResource(if (isSealing) Res.string.sealing else Res.string.begin_quest),
+                        stringResource(if (isSealing) Res.string.sealing else phrases.start),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -186,7 +187,7 @@ fun TimerScreen(
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
                     border = ButtonDefaults.outlinedButtonBorder(false)
-                ) { Text(stringResource(Res.string.retreat)) }
+                ) { Text(stringResource(phrases.dismiss)) }
             }
         }
 

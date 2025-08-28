@@ -139,6 +139,17 @@ class QuestStore(
             QuestIntent.RetreatConfirmDismissed -> setPending(retreat = false)
 
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
+
+            QuestIntent.CleanseCurse -> {
+                scope.launch {
+                    val ok = actions.cleanseCurseWithGold()
+                    if (ok) {
+                        _effects.tryEmit(QuestEffect.ShowSuccess("The curse lifts. Back to full strength."))
+                    } else {
+                        _effects.tryEmit(QuestEffect.ShowError("Need 100 gold to cleanse."))
+                    }
+                }
+            }
         }
     }
 
@@ -308,9 +319,9 @@ class QuestStore(
 
             is QuestMsg.RulesLoaded -> state.copy(
                 retreatGraceSeconds = msg.rules.graceSeconds,
-                lateRetreatThreshold = msg.rules.lateThreshold,
-                lateRetreatPenalty = msg.rules.latePenalty,
-                curseSoftCapMinutes = msg.rules.softCapMinutes,
+                lateRetreatThreshold = 1.0,
+                lateRetreatPenalty = 0.0,
+                curseSoftCapMinutes = msg.rules.capMinutes,
             )
 
             is QuestMsg.OwnedItemsLoaded -> state.copy(ownedItemIds = msg.ids)

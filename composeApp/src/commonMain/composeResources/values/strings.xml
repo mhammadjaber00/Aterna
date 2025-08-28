@@ -169,4 +169,82 @@
     <string name="encrypted_key_pref">encrypted_db_key</string>
     <string name="iv_pref">db_key_iv</string>
     <string name="library_sqlcipher">sqlcipher</string>
+
+    <!-- ==================== Starts (Confirm) ==================== -->
+    <!-- Doctor Who -->
+    <string name="start_allons_y">Allons-y!</string>
+    <string name="start_geronimo">Geronimo!</string>
+
+    <!-- Lord of the Rings -->
+    <string name="start_for_frodo">For Frodo!</string>
+    <string name="start_fly_you_fools">Fly, you fools!</string>
+    <string name="start_to_mordor">To Mordor!</string>
+    <string name="start_one_quest_rule">One quest to rule them all</string>
+
+    <!-- Game of Thrones -->
+    <string name="start_dracarys">Dracarys!</string>
+    <string name="start_winter_is_coming">Winter is coming</string>
+    <string name="start_i_choose_violence">I choose violence</string>
+    <string name="start_what_is_dead">What is dead may never die</string>
+
+    <!-- General RPG / Adventure -->
+    <string name="start_adventure_time">Adventure time</string>
+    <string name="start_begin_run">Begin run</string>
+    <string name="start_begin_the_quest">Begin the quest</string>
+    <string name="start_engage">Engage</string>
+    <string name="start_enter_the_dungeon">Enter the dungeon</string>
+    <string name="start_focus_mode">Focus mode: ON</string>
+    <string name="start_forge_ahead">Forge ahead</string>
+    <string name="start_light_the_torch">Light the torch</string>
+    <string name="start_lock_in">Lock in</string>
+    <string name="start_lets_roll">Let’s roll</string>
+    <string name="start_onward">Onward!</string>
+    <string name="start_push_forward">Push forward</string>
+    <string name="start_raise_the_banner">Raise the banner</string>
+    <string name="start_saddle_up">Saddle up</string>
+    <string name="start_seal_the_ritual">Seal the ritual</string>
+    <string name="start_take_the_quest">Take the quest</string>
+    <string name="start_to_glory">To glory</string>
+    <string name="start_to_the_grindstone">To the grindstone</string>
+
+    <!-- Dismiss Text -->
+
+    <!-- Doctor Who -->
+    <string name="dismiss_not_today_daleks">Not today, Daleks.</string>
+    <string name="dismiss_timey_wimey">Timey-wimey break</string>
+
+    <!-- Lord of the Rings -->
+    <string name="dismiss_second_breakfast">Second breakfast first</string>
+    <string name="dismiss_shire_wait">The Shire can wait</string>
+    <string name="dismiss_not_all_wander">Not all who wander start quests</string>
+    <string name="dismiss_with_the_hobbits">I’ll stay with the hobbits</string>
+
+    <!-- Game of Thrones -->
+    <string name="dismiss_night_is_dark">The night is dark… I’ll pass</string>
+    <string name="dismiss_i_drink_cancel">I drink and I cancel things</string>
+    <string name="dismiss_not_today">Not today</string>
+    <string name="dismiss_hold_the_door">Hold the door</string>
+
+    <!-- General RPG / Silly excuses -->
+    <string name="dismiss_another_time">Another time</string>
+    <string name="dismiss_back_to_bed">Back to bed</string>
+    <string name="dismiss_cancel_for_now">Cancel for now</string>
+    <string name="dismiss_duty_elsewhere">Duty calls… elsewhere</string>
+    <string name="dismiss_forgot_my_sword">I forgot my sword</string>
+    <string name="dismiss_goblins_can_wait">The goblins can wait</string>
+    <string name="dismiss_i_choose_later">I’ll choose later</string>
+    <string name="dismiss_im_out">Nope, not today</string>
+    <string name="dismiss_left_oven_on">I left the oven on</string>
+    <string name="dismiss_low_on_mana">I’m low on mana</string>
+    <string name="dismiss_maybe_later">Maybe later</string>
+    <string name="dismiss_must_meditate">I must meditate</string>
+    <string name="dismiss_my_cat_needs_me">My cat needs me</string>
+    <string name="dismiss_need_snacks">I choose snacks instead</string>
+    <string name="dismiss_not_now">Not now</string>
+    <string name="dismiss_on_second_thought">On second thought…</string>
+    <string name="dismiss_rain_check">Rain check</string>
+    <string name="dismiss_stay_in_town">I’ll stay in town</string>
+    <string name="dismiss_tavern_calls">The tavern calls</string>
+    <string name="dismiss_too_risky">Too risky, I’m out</string>
+    <string name="dismiss_upside_down_map">The map is upside down</string>
 </resources>
