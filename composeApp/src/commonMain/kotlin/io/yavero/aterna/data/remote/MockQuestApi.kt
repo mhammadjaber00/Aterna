@@ -3,7 +3,6 @@ package io.yavero.aterna.data.remote
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.services.validation.QuestValidationService
-import kotlinx.coroutines.delay
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -13,8 +12,6 @@ class MockQuestApi : QuestApi {
 
 
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {
-        delay(300L + (request.durationMinutes % 200))
-
         return try {
             val start = Instant.parse(request.questStartTime)
             val end = Instant.parse(request.questEndTime)
@@ -82,7 +79,6 @@ class MockQuestApi : QuestApi {
     }
 
     override suspend fun validateQuest(request: QuestValidationRequest): QuestValidationResponse {
-        delay(120L)
         return try {
             val start = Instant.parse(request.startTime)
             val end = Instant.parse(request.endTime)
