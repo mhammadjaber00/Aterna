@@ -17,6 +17,7 @@ class DefaultQuestComponent(
     private val settingsRepository: SettingsRepository,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onNavigateToInventoryCallback: () -> Unit = {},
+    private val onNavigateToStatsCallback: () -> Unit = {},
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
@@ -71,6 +72,10 @@ class DefaultQuestComponent(
 
     override fun onNavigateToInventory() {
         onNavigateToInventoryCallback()
+    }
+
+    override fun onNavigateToStats() {
+        onNavigateToStatsCallback()
     }
 
     override fun onLoadAdventureLog() {

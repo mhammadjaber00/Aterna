@@ -9,7 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.designsystem.effects.StarField
+import io.yavero.aterna.designsystem.theme.AternaColors
 
 @Composable
 fun MagicalBackground(

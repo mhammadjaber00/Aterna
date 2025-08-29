@@ -1,7 +1,7 @@
 package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.domain.mvi.MviIntent
+import io.yavero.aterna.features.common.presentation.MviIntent
 
 sealed interface QuestIntent : MviIntent {
     data object Refresh : QuestIntent

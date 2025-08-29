@@ -23,9 +23,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.ui.components.PixelHeroAvatar
-import io.yavero.aterna.ui.theme.AternaTypography
 import kotlin.math.cos
 import kotlin.math.sin
 

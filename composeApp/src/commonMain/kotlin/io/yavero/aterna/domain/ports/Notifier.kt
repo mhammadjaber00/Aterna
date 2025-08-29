@@ -1,10 +1,10 @@
-package io.yavero.aterna.features.quest.notification
+package io.yavero.aterna.domain.ports
 
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
-interface QuestNotifier {
+interface Notifier {
 
     suspend fun requestPermissionIfNeeded()
 

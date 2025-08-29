@@ -6,7 +6,8 @@ import kotlin.time.ExperimentalTime
 
 class InventoryRepositoryImpl(db: AternaDatabase) : InventoryRepository {
     private val query = db.heroItemQueries
-    override suspend fun getOwnedItemIds(heroId: String) =
+
+    override suspend fun getOwnedItemIds(heroId: String): Set<String> =
         query.selectItemsByHero(heroId).executeAsList().map { it.itemId }.toSet()
 
     override suspend fun hasItem(heroId: String, itemId: String): Boolean =
@@ -17,4 +18,7 @@ class InventoryRepositoryImpl(db: AternaDatabase) : InventoryRepository {
         val nowSeconds = kotlin.time.Clock.System.now().toEpochMilliseconds() / 1000
         query.insertHeroItem(heroId, itemId, nowSeconds)
     }
+
+    override suspend fun getOwnedCount(heroId: String): Int =
+        query.countItemsByHero(heroId).executeAsOne().toInt()
 }

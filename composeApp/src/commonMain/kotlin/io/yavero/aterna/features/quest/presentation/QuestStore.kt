@@ -7,8 +7,6 @@ import io.yavero.aterna.domain.error.toAppError
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
-import io.yavero.aterna.domain.mvi.MviStore
-import io.yavero.aterna.domain.mvi.createEffectsFlow
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
@@ -16,6 +14,8 @@ import io.yavero.aterna.domain.service.curse.CurseService
 import io.yavero.aterna.domain.service.quest.QuestActionService
 import io.yavero.aterna.domain.service.quest.QuestEventsCoordinator
 import io.yavero.aterna.domain.service.ticker.Ticker
+import io.yavero.aterna.features.common.presentation.MviStore
+import io.yavero.aterna.features.common.presentation.createEffectsFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*

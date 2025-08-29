@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.features.quest.component.OrbIcon
+import io.yavero.aterna.designsystem.component.IconOrb
 
 @Composable
 fun FocusOptionsSheet(
@@ -72,7 +72,7 @@ fun FocusOptionsSheet(
                     title = "Deep Focus",
                     subtitle = "Temporarily block distracting apps during this quest.",
                     trailing = { Switch(checked = deepFocusOn, onCheckedChange = onDeepFocusChange) },
-                    leading = { OrbIcon { Icon(Icons.Outlined.Security, contentDescription = null) } }
+                    leading = { IconOrb { Icon(Icons.Outlined.Security, contentDescription = null) } }
                 ) {
                     FilledTonalButton(
                         onClick = onManageExceptions,
@@ -89,7 +89,7 @@ fun FocusOptionsSheet(
                 SectionCard(
                     title = "Soundtrack",
                     subtitle = "Pick a vibe for this quest.",
-                    leading = { OrbIcon { Icon(Icons.Outlined.MusicNote, contentDescription = null) } }
+                    leading = { IconOrb { Icon(Icons.Outlined.MusicNote, contentDescription = null) } }
                 ) {
                     SegmentedChips(
                         options = listOf(
@@ -108,7 +108,7 @@ fun FocusOptionsSheet(
                     title = "Haptics",
                     subtitle = "Subtle vibrations on key quest events.",
                     trailing = { Switch(checked = hapticsOn, onCheckedChange = onHapticsChange) },
-                    leading = { OrbIcon { Icon(Icons.Outlined.Vibration, contentDescription = null) } }
+                    leading = { IconOrb { Icon(Icons.Outlined.Vibration, contentDescription = null) } }
                 )
 
                 Spacer(Modifier.height(16.dp))

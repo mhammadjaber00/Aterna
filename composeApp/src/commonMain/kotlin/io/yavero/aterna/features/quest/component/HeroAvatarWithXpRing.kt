@@ -26,11 +26,11 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.util.LevelCurve
 import io.yavero.aterna.ui.components.PixelHeroAvatar
-import io.yavero.aterna.ui.theme.AternaColors
 
 @Composable
 fun HeroAvatarWithXpRing(

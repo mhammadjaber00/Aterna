@@ -20,7 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.features.quest.component.OrbIcon
+import io.yavero.aterna.designsystem.component.IconOrb
 import io.yavero.aterna.features.quest.screen.TimerPermissionStatus
 
 @Composable
@@ -36,7 +36,7 @@ fun PermissionPrepDialog(
     AlertDialog(
         onDismissRequest = onClose,
         icon = {
-            OrbIcon {
+            IconOrb {
                 Icon(
                     imageVector = Icons.Outlined.Security,
                     contentDescription = null
@@ -73,7 +73,7 @@ fun PermissionPrepDialog(
                             title = "Notifications",
                             subtitle = "We’ll alert you when a quest completes and show progress updates.",
                             leading = {
-                                OrbIcon {
+                                IconOrb {
                                     Icon(
                                         imageVector = Icons.Outlined.Notifications,
                                         contentDescription = null
@@ -86,7 +86,7 @@ fun PermissionPrepDialog(
                             title = "Exact timer",
                             subtitle = "Fires precisely at the end of your focus session, even if the app is closed.",
                             leading = {
-                                OrbIcon {
+                                IconOrb {
                                     Icon(
                                         imageVector = Icons.Outlined.Alarm,
                                         contentDescription = null

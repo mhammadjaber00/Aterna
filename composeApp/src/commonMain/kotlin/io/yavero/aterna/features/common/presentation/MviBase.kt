@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.mvi
+package io.yavero.aterna.features.common.presentation
 
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.SharedFlow

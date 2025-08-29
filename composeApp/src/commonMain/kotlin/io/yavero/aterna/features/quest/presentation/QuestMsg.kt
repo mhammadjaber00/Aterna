@@ -4,8 +4,8 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
-import io.yavero.aterna.domain.mvi.MviMsg
-import io.yavero.aterna.domain.service.curse.CurseService
+import io.yavero.aterna.domain.service.curse.RetreatRules
+import io.yavero.aterna.features.common.presentation.MviMsg
 import kotlin.time.Duration
 
 sealed interface QuestMsg : MviMsg {
@@ -35,5 +35,5 @@ sealed interface QuestMsg : MviMsg {
     data object WantRetreatConfirm : QuestMsg
     data object WantAdventureLog : QuestMsg
 
-    data class RulesLoaded(val rules: CurseService.RetreatRules) : QuestMsg
+    data class RulesLoaded(val rules: RetreatRules) : QuestMsg
 }

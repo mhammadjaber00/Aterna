@@ -24,4 +24,6 @@ interface QuestComponent {
     fun onRetreatConfirmDismissed()
 
     fun onCleanseCurse()
+
+    fun onNavigateToStats()
 }

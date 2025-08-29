@@ -1,55 +1,85 @@
+-- io.yavero.aterna.data.database.QuestEvents.sq
+
 CREATE TABLE QuestPlanEntity (
-    questId TEXT NOT NULL,
-    idx INTEGER NOT NULL,
-    dueAt INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    isMajor INTEGER NOT NULL DEFAULT 0,
-    mobTier TEXT,
-    PRIMARY KEY (questId, idx),
-    FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
+  questId TEXT NOT NULL,
+  idx INTEGER NOT NULL,
+  dueAt INTEGER NOT NULL,    -- epoch seconds
+  type TEXT NOT NULL,
+  isMajor INTEGER NOT NULL DEFAULT 0,
+  mobTier TEXT,
+  PRIMARY KEY (questId, idx),
+  FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
 );
 
 CREATE TABLE QuestEventEntity (
-    questId TEXT NOT NULL,
-    idx INTEGER NOT NULL,
-    at INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    message TEXT NOT NULL,
-    xpDelta INTEGER NOT NULL DEFAULT 0,
-    goldDelta INTEGER NOT NULL DEFAULT 0,
-    outcome TEXT,
-    PRIMARY KEY (questId, idx),
-    FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
+  questId TEXT NOT NULL,
+  idx INTEGER NOT NULL,
+  at INTEGER NOT NULL,       -- epoch seconds
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  xpDelta INTEGER NOT NULL DEFAULT 0,
+  goldDelta INTEGER NOT NULL DEFAULT 0,
+  outcome TEXT,
+  PRIMARY KEY (questId, idx),
+  FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
 );
 
+-- Helpful indexes for feeds
+CREATE INDEX IF NOT EXISTS idx_event_quest_idx ON QuestEventEntity(questId, idx);
+CREATE INDEX IF NOT EXISTS idx_event_at        ON QuestEventEntity(at);
+
+-- ---------------------------------------------------------------------
 -- Plan queries
+-- ---------------------------------------------------------------------
+
 selectPlansByQuest:
-SELECT * FROM QuestPlanEntity WHERE questId = ? ORDER BY idx ASC;
+SELECT * FROM QuestPlanEntity
+WHERE questId = ?
+ORDER BY idx ASC;
 
 insertPlan:
 INSERT INTO QuestPlanEntity (questId, idx, dueAt, type, isMajor, mobTier)
 VALUES (?, ?, ?, ?, ?, ?);
 
 deletePlansByQuest:
-DELETE FROM QuestPlanEntity WHERE questId = ?;
+DELETE FROM QuestPlanEntity
+WHERE questId = ?;
 
+-- ---------------------------------------------------------------------
 -- Event queries
+-- ---------------------------------------------------------------------
+
 selectEventsByQuest:
-SELECT * FROM QuestEventEntity WHERE questId = ? ORDER BY at ASC, idx ASC;
+SELECT * FROM QuestEventEntity
+WHERE questId = ?
+ORDER BY at ASC, idx ASC;
 
 selectRecentEvents:
-SELECT * FROM QuestEventEntity WHERE questId = ? ORDER BY at DESC, idx DESC LIMIT ?;
+SELECT * FROM QuestEventEntity
+WHERE questId = ?
+ORDER BY at DESC, idx DESC
+LIMIT ?;
 
 insertEvent:
 INSERT INTO QuestEventEntity (questId, idx, at, type, message, xpDelta, goldDelta, outcome)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 selectLastResolvedIdx:
-SELECT COALESCE(MAX(idx), -1) AS last_idx FROM QuestEventEntity WHERE questId = ?;
+SELECT COALESCE(MAX(idx), -1) AS last_idx
+FROM QuestEventEntity
+WHERE questId = ?;
 
+-- Count narration entries (your contract uses idx < 0 to mark planned narration)
 countNarrationsByQuest:
-SELECT COUNT(*) FROM QuestEventEntity WHERE questId = ? AND idx < 0;
+SELECT COUNT(*) FROM QuestEventEntity
+WHERE questId = ?
+  AND idx < 0;
 
--- Helpful indexes
-CREATE INDEX IF NOT EXISTS idx_event_quest_idx ON QuestEventEntity(questId, idx);
-CREATE INDEX IF NOT EXISTS idx_plan_quest_idx  ON QuestPlanEntity(questId, idx);
+-- Global "recent events" for a hero (used by Hero Stats recent log)
+selectRecentEventsByHero:
+SELECT e.questId, e.idx, e.at, e.type, e.message, e.xpDelta, e.goldDelta, e.outcome
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = ?
+ORDER BY e.at DESC, e.idx DESC
+LIMIT ?;

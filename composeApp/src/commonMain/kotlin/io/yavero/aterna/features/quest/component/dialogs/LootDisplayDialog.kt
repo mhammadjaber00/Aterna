@@ -19,14 +19,14 @@ import androidx.compose.ui.unit.dp
 import aterna.composeapp.generated.resources.*
 import io.yavero.aterna.designsystem.component.AternaCard
 import io.yavero.aterna.designsystem.component.AternaPrimaryButton
+import io.yavero.aterna.designsystem.theme.AternaSpacing
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.features.inventory.components.InventoryRow
-import io.yavero.aterna.ui.theme.AternaSpacing
-import io.yavero.aterna.ui.theme.AternaTypography
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.ExperimentalTime
 

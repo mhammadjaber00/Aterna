@@ -6,7 +6,9 @@ import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
+import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.features.hero_stats.DefaultHeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponentImpl
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
@@ -23,6 +25,9 @@ class DefaultAppRootComponent(
 
     private val navigation = StackNavigation<Config>()
     private val questStore: QuestStore by inject()
+
+    private val questRepository: QuestRepository by inject()
+
     private val heroRepository: HeroRepository by inject()
     private val inventoryRepository: InventoryRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
@@ -69,6 +74,9 @@ class DefaultAppRootComponent(
                     },
                     onNavigateToInventoryCallback = {
                         navigateToInventory()
+                    },
+                    onNavigateToStatsCallback = {
+                        navigateToStats()
                     }
                 )
             )
@@ -87,6 +95,22 @@ class DefaultAppRootComponent(
                 initialMinutes = config.initialMinutes,
                 classType = config.classType
             )
+
+            is Config.Stats -> AppRootComponent.Child.HeroStats(
+                DefaultHeroStatsComponent(
+                    componentContext,
+                    heroRepository,
+                    questRepository,
+                    inventoryRepository,
+                    onBackNav = { navigation.pop() },
+                    onOpenInventoryNav = { navigation.bringToFront(Config.Inventory) },
+                    onOpenLogbookNav = {
+//                        navigation.bringToFront(
+//                        Config.Logbook
+//                        )
+                    },
+                )
+            )
         }
 
     override fun navigateToClassSelect() {
@@ -103,6 +127,10 @@ class DefaultAppRootComponent(
 
     override fun navigateToInventory() {
         navigation.bringToFront(Config.Inventory)
+    }
+
+    override fun navigateToStats() {
+        navigation.bringToFront(Config.Stats)
     }
 
     override fun startQuest(durationMinutes: Int, classType: String) {

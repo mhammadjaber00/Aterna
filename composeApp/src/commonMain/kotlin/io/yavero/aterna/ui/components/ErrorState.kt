@@ -13,8 +13,8 @@ import androidx.compose.ui.text.style.TextAlign
 import aterna.composeapp.generated.resources.Res
 import aterna.composeapp.generated.resources.loading_quest_data
 import io.yavero.aterna.designsystem.component.AternaPrimaryButton
-import io.yavero.aterna.ui.theme.AternaSpacing
-import io.yavero.aterna.ui.theme.AternaTypography
+import io.yavero.aterna.designsystem.theme.AternaSpacing
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import org.jetbrains.compose.resources.stringResource
 
 @Composable

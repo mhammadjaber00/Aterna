@@ -31,10 +31,11 @@ import aterna.composeapp.generated.resources.skip
 import aterna.composeapp.generated.resources.tap_anywhere_to_continue
 import io.yavero.aterna.domain.repository.SettingsRepository
 import io.yavero.aterna.features.onboarding.presentation.OnboardingViewModel
+import io.yavero.aterna.designsystem.effects.StarField
 import io.yavero.aterna.features.onboarding.ui.components.*
 import io.yavero.aterna.fx.CometSky
 import io.yavero.aterna.fx.CometStyle
-import io.yavero.aterna.ui.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.AternaColors
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.min

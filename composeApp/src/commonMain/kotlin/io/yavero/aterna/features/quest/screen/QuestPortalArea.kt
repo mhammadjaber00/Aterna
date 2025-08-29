@@ -20,12 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import io.yavero.aterna.designsystem.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.AternaRadii
 import io.yavero.aterna.features.quest.component.PortalIdle
 import io.yavero.aterna.features.quest.component.QuestAstrolabe
 import io.yavero.aterna.features.quest.component.QuickStartRow
 import io.yavero.aterna.features.quest.presentation.QuestState
-import io.yavero.aterna.ui.theme.AternaColors
-import io.yavero.aterna.ui.theme.AternaRadii
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)

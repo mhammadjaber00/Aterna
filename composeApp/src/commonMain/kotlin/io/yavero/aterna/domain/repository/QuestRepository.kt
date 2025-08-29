@@ -47,4 +47,15 @@ interface QuestRepository {
 
     suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot)
     suspend fun getLedgerSnapshot(questId: String): LedgerSnapshot?
+
+    suspend fun getLifetimeMinutes(): Int
+    suspend fun getTotalQuests(): Int
+    suspend fun getLongestSessionMinutes(): Int
+    suspend fun getBestStreakDays(): Int
+
+    /** Optional metric; returns 0 if your game doesn’t emit such events yet. */
+    suspend fun getCursesCleansed(): Int
+
+    // --- NEW: stream a global, most-recent adventure log for the CURRENT hero ---
+    fun observeAdventureLog(limit: Int = 50): Flow<List<QuestEvent>>
 }

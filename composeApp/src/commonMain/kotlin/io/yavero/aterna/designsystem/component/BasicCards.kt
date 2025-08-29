@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import io.yavero.aterna.ui.theme.AternaSpacing
+import io.yavero.aterna.designsystem.theme.AternaSpacing
 
 @Composable
 fun AternaCard(

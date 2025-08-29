@@ -22,10 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import aterna.composeapp.generated.resources.*
+import io.yavero.aterna.designsystem.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.ringPaletteFor
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.timer.component.RitualRing
-import io.yavero.aterna.ui.components.ringPaletteFor
-import io.yavero.aterna.ui.theme.AternaColors
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)

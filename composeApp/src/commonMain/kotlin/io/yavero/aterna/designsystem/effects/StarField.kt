@@ -1,4 +1,4 @@
-package io.yavero.aterna.ui.components
+package io.yavero.aterna.designsystem.effects
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas

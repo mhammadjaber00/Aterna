@@ -1,10 +1,9 @@
-package io.yavero.aterna.ui.components
+package io.yavero.aterna.designsystem.theme
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.ui.theme.AternaClassColors
 
 data class RingPalette(
     val track: Color,

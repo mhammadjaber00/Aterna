@@ -20,7 +20,7 @@ class DefaultCurseService(
         private const val CURSE_ID = "curse-early-exit"
     }
 
-    override fun rules() = CurseService.RetreatRules(
+    override fun rules() = RetreatRules(
         graceSeconds = GRACE_SECONDS,
         capMinutes = CAP_MIN,
         resetsAtMidnight = true

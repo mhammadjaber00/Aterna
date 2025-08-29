@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.features.quest.component.OrbIcon
+import io.yavero.aterna.designsystem.component.IconOrb
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,13 +46,13 @@ fun SettingsSheet(
             SettingsTile(
                 title = "Soundtracks",
                 subtitle = "Pick a vibe for quests",
-                icon = { OrbIcon { Icon(Icons.Outlined.MusicNote, contentDescription = null) } },
+                icon = { IconOrb { Icon(Icons.Outlined.MusicNote, contentDescription = null) } },
                 onClick = { }
             )
             SettingsTile(
                 title = "Notifications",
                 subtitle = "Reminders and session complete",
-                icon = { OrbIcon { Icon(Icons.Outlined.Notifications, contentDescription = null) } },
+                icon = { IconOrb { Icon(Icons.Outlined.Notifications, contentDescription = null) } },
                 onClick = { }
             )
 
@@ -61,12 +61,12 @@ fun SettingsSheet(
 
             SettingsTile(
                 title = "Privacy Policy",
-                icon = { OrbIcon { Icon(Icons.Outlined.Policy, contentDescription = null) } },
+                icon = { IconOrb { Icon(Icons.Outlined.Policy, contentDescription = null) } },
                 onClick = { }
             )
             SettingsTile(
                 title = "Restore Purchases",
-                icon = { OrbIcon { Icon(Icons.Outlined.Restore, contentDescription = null) } },
+                icon = { IconOrb { Icon(Icons.Outlined.Restore, contentDescription = null) } },
                 onClick = { }
             )
 

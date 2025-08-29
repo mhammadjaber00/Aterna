@@ -4,8 +4,8 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
-import io.yavero.aterna.domain.mvi.LoadingState
-import io.yavero.aterna.domain.mvi.MviState
+import io.yavero.aterna.features.common.presentation.LoadingState
+import io.yavero.aterna.features.common.presentation.MviState
 import kotlin.time.Duration
 
 data class QuestState(

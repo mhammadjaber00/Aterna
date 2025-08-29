@@ -1,4 +1,4 @@
-package io.yavero.aterna.ui.theme
+package io.yavero.aterna.designsystem.theme
 
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -24,7 +24,7 @@ object AternaColors {
     val Secondary200 = Color(0xFFFDE68A)
     val Secondary300 = Color(0xFFFCD34D)
     val Secondary400 = Color(0xFFFBBF24)
-    val Secondary500 = Color(0xFFF59E0B) 
+    val Secondary500 = Color(0xFFF59E0B)
     val Secondary600 = Color(0xFFD97706)
     val Secondary700 = Color(0xFFB45309)
     val Secondary800 = Color(0xFF92400E)
@@ -98,12 +98,12 @@ object AternaColors {
 }
 
 val LightColorScheme = lightColorScheme(
-    primary = AternaColors.GoldAccent,           
+    primary = AternaColors.GoldAccent,
     onPrimary = AternaColors.Neutral900,
     primaryContainer = AternaColors.Primary100,
     onPrimaryContainer = AternaColors.Primary900,
 
-    secondary = AternaColors.GoldAccent, 
+    secondary = AternaColors.GoldAccent,
     onSecondary = AternaColors.Neutral900,
     secondaryContainer = AternaColors.Secondary100,
     onSecondaryContainer = AternaColors.Secondary900,
@@ -136,7 +136,7 @@ val DarkColorScheme = darkColorScheme(
     primaryContainer = AternaColors.Primary800,
     onPrimaryContainer = AternaColors.Primary100,
 
-    secondary = AternaColors.GoldAccent, 
+    secondary = AternaColors.GoldAccent,
     onSecondary = AternaColors.Neutral900,
     secondaryContainer = AternaColors.Secondary800,
     onSecondaryContainer = AternaColors.Secondary100,

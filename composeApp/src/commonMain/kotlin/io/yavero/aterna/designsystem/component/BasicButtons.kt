@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.ui.theme.AternaSpacing
-import io.yavero.aterna.ui.theme.AternaTypography
+import io.yavero.aterna.designsystem.theme.AternaSpacing
+import io.yavero.aterna.designsystem.theme.AternaTypography
 
 @Composable
 fun AternaPrimaryButton(

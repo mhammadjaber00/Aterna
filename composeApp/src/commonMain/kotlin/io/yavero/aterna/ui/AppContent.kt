@@ -14,6 +14,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.features.classselection.ClassSelectionScreen
+import io.yavero.aterna.features.hero_stats.HeroStatsScreen
 import io.yavero.aterna.features.inventory.InventoryScreen
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
@@ -56,6 +57,7 @@ fun AppContent(
                         classType = instance.classType,
                         component = component
                     )
+                    is AppRootComponent.Child.HeroStats -> HeroStatsScreen(component = instance.component)
                 }
             }
         }

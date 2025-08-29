@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.yavero.aterna.ui.theme.AternaSpacing
+import io.yavero.aterna.designsystem.theme.AternaSpacing
 
 @Composable
 fun ButtonContent(

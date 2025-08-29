@@ -1,12 +1,10 @@
 package io.yavero.aterna.services.validation
 
+import io.yavero.aterna.domain.model.ValidationResult
 import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-
-data class ValidationResult(val valid: Boolean, val reason: String? = null)
-
 
 object QuestValidationService {
 

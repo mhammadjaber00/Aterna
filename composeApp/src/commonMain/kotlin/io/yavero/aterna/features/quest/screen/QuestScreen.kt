@@ -218,7 +218,10 @@ fun QuestScreen(
                         uiState = uiState,
                         statsBadge = statsBadge,
                         inventoryBadge = inventoryBadge,
-                        onToggleStats = { statsBadge = false; modal = Modal.Stats },
+                        onToggleStats = {
+                            statsBadge = false
+                            component.onNavigateToStats()
+                        },
                         onToggleInventory = {
                             inventoryBadge = false
                             component.onClearNewlyAcquired()
