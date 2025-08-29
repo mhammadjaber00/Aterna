@@ -1,7 +1,6 @@
 package io.yavero.aterna.domain.util
 
 import io.yavero.aterna.domain.model.*
-import io.yavero.aterna.services.rng.SplitMix64
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt

@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.service.quest
+package io.yavero.aterna.domain.quest.economy
 
 data class RewardLedger(
     val questId: String,

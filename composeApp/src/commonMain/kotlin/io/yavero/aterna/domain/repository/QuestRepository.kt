@@ -7,7 +7,7 @@ import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
-import io.yavero.aterna.domain.service.quest.LedgerSnapshot
+import io.yavero.aterna.domain.quest.engine.LedgerSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant

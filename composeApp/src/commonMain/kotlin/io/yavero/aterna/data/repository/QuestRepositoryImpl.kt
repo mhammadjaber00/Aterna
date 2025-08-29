@@ -12,9 +12,9 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.*
+import io.yavero.aterna.domain.quest.engine.LedgerSnapshot
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
-import io.yavero.aterna.domain.service.quest.LedgerSnapshot
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*

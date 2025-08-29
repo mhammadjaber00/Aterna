@@ -1,4 +1,4 @@
-package io.yavero.aterna.services.rng
+package io.yavero.aterna.domain.util
 
 import kotlin.math.abs
 

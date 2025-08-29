@@ -4,15 +4,18 @@ package io.yavero.aterna.domain.service.quest
 
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
-import io.yavero.aterna.domain.quest.engine.FeedSnapshot
+import io.yavero.aterna.domain.quest.engine.QuestEngine
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
-interface QuestEventsCoordinator {
+/** Bridges existing QuestEventsCoordinator.observe to the new QuestEngine.feed */
+class QuestEventsCoordinatorAdapter(
+    private val engine: QuestEngine
+) : QuestEventsCoordinator {
 
-    fun observe(
+    override fun observe(
         heroFlow: Flow<Hero?>,
         activeQuestFlow: Flow<Quest?>,
         ticker: Flow<Instant>
-    ): Flow<FeedSnapshot>
+    ) = engine.feed(heroFlow, activeQuestFlow, ticker)
 }

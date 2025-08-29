@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.service.quest
+package io.yavero.aterna.domain.quest.engine
 
 import io.yavero.aterna.domain.model.quest.QuestEvent
 

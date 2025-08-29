@@ -1,12 +1,14 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class)
 
-package io.yavero.aterna.domain.service.quest
+package io.yavero.aterna.domain.quest.economy
 
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.service.quest.EconomyResult
 import io.yavero.aterna.domain.util.LevelCurve
 import io.yavero.aterna.domain.util.LootRoller
+import kotlin.time.ExperimentalTime
 
 class QuestEconomyImpl(
     private val rewards: RewardService

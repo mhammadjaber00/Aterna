@@ -1,8 +1,9 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class)
 
-package io.yavero.aterna.domain.service.ticker
+package io.yavero.aterna.domain.quest.ticker
 
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 interface Ticker {

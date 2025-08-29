@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.service.curse
+package io.yavero.aterna.domain.quest.curse
 
 data class RetreatRules(
     val graceSeconds: Int,

@@ -1,4 +1,4 @@
-package io.yavero.aterna.services.hash
+package io.yavero.aterna.domain.util
 
 object StableHash {
     private const val OFFSET_BASIS = 0xcbf29ce484222325UL

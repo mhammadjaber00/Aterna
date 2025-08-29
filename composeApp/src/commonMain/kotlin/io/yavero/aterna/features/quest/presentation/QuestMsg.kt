@@ -4,7 +4,7 @@ import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
-import io.yavero.aterna.domain.service.curse.RetreatRules
+import io.yavero.aterna.domain.quest.curse.RetreatRules
 import io.yavero.aterna.features.common.presentation.MviMsg
 import kotlin.time.Duration
 

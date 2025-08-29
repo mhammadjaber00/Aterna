@@ -1,4 +1,4 @@
-package io.yavero.aterna.domain.service.curse
+package io.yavero.aterna.domain.quest.curse
 
 import io.yavero.aterna.domain.model.StatusEffect
 import io.yavero.aterna.domain.model.StatusEffectType
@@ -6,8 +6,9 @@ import io.yavero.aterna.domain.repository.StatusEffectRepository
 import kotlinx.datetime.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
-@OptIn(kotlin.time.ExperimentalTime::class)
+@OptIn(ExperimentalTime::class)
 class DefaultCurseService(
     private val effects: StatusEffectRepository
 ) : CurseService {
@@ -79,7 +80,7 @@ class DefaultCurseService(
     }
 }
 
-@OptIn(kotlin.time.ExperimentalTime::class)
+@OptIn(ExperimentalTime::class)
 private fun endOfDayMs(nowMs: Long, tz: TimeZone = TimeZone.currentSystemDefault()): Long {
     val now = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
     val midnightNext = now.plus(DatePeriod(days = 1)).atStartOfDayIn(tz)
