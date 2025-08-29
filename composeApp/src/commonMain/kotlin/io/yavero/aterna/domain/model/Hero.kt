@@ -18,6 +18,4 @@ data class Hero(
     val dailyStreak: Int = 0,
     val lastActiveDate: Instant,
     val createdAt: Instant = Clock.System.now()
-) {
-    val xpToNextLevel: Int get() = (level * 100) - xp
-}
+)

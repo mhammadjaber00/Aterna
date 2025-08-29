@@ -102,7 +102,7 @@ object ItemPool {
     }
 
     fun getById(id: String): Item? =
-        ItemRarity.values().asSequence()
+        ItemRarity.entries.asSequence()
             .flatMap { getItemsByRarity(it).asSequence() }
             .firstOrNull { it.id == id }
 

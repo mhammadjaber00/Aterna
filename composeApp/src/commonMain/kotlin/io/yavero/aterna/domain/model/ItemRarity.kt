@@ -4,12 +4,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class ItemRarity(
-    val displayName: String,
-    val color: String,
-    val dropChance: Double
+    val color: String
 ) {
-    COMMON("Common", "#9CA3AF", 0.6),
-    RARE("Rare", "#3B82F6", 0.25),
-    EPIC("Epic", "#8B5CF6", 0.12),
-    LEGENDARY("Legendary", "#F59E0B", 0.03)
+    COMMON("#9CA3AF"),
+    RARE("#3B82F6"),
+    EPIC("#8B5CF6"),
+    LEGENDARY("#F59E0B")
 }

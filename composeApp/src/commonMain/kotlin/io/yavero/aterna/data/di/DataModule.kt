@@ -28,7 +28,6 @@ val dataModule = module {
 
 
     singleOf(::SettingsRepositoryImpl) bind SettingsRepository::class
-    singleOf(::FocusSessionRepositoryImpl) bind FocusSessionRepository::class
     singleOf(::HeroRepositoryImpl) bind HeroRepository::class
     singleOf(::QuestRepositoryImpl) bind QuestRepository::class
     singleOf(::InventoryRepositoryImpl) bind InventoryRepository::class

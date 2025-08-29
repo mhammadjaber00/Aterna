@@ -52,11 +52,11 @@ fun CurseChip(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onCleanse(); showInfo = false }) { Text("Cleanse (100 gold)") }
+                TextButton(onClick = { onCleanse(); showInfo = false }) { Text("Gotcha") }
             },
-            dismissButton = {
-                TextButton(onClick = { onShowDetails(); showInfo = false }) { Text("Details") }
-            },
+//            dismissButton = {
+//                TextButton(onClick = { onShowDetails(); showInfo = false }) { Text("Details") }
+//            },
             shape = RoundedCornerShape(16.dp)
         )
     }

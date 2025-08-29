@@ -17,8 +17,4 @@ data class Quest(
     val serverValidated: Boolean = false
 ) {
     val isActive: Boolean get() = endTime == null && !gaveUp
-    val actualDurationMinutes: Int
-        get() = endTime?.let { end ->
-            ((end - startTime).inWholeMinutes).toInt()
-        } ?: 0
 }
