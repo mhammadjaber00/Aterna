@@ -408,4 +408,23 @@ class QuestRepositoryImpl(
             gaveUp = entity.gaveUp == 1L,
             serverValidated = entity.serverValidated == 1L
         )
+
+    override suspend fun getRecentAdventureLogCompleted(limit: Int): List<QuestEvent> {
+        val heroId = heroRepository.getCurrentHero()?.id ?: return emptyList()
+        return questEventsQueries
+            .selectRecentEventsByHeroCompleted(heroId, limit.toLong())
+            .executeAsList()
+            .map { e ->
+                QuestEvent(
+                    questId = e.questId,
+                    idx = e.idx.toInt(),
+                    at = Instant.fromEpochSeconds(e.at),
+                    type = EventType.valueOf(e.type),
+                    message = e.message,
+                    xpDelta = e.xpDelta.toInt(),
+                    goldDelta = e.goldDelta.toInt(),
+                    outcome = decodeOutcome(e.outcome)
+                )
+            }
+    }
 }

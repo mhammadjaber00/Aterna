@@ -47,7 +47,7 @@ WHERE heroId = ?
 ORDER BY createdAt DESC
 LIMIT ?;
 
--- (Optional) direct date-range query by startTime
+-- Direct date-range query by startTime
 selectQuestsByHeroAndStartBetween:
 SELECT * FROM QuestLogEntity
 WHERE heroId = ?
@@ -96,29 +96,33 @@ FROM QuestLogEntity
 WHERE id = ?;
 
 -- ---------------------------------------------------------------------
--- Lifetime aggregates (for the Hero Stats screen)
+-- Lifetime aggregates (HERO KPIs): COMPLETED QUESTS ONLY
 -- ---------------------------------------------------------------------
 
 sumMinutesByHero:
 SELECT COALESCE(SUM(durationMinutes), 0) AS total_minutes
 FROM QuestLogEntity
-WHERE heroId = ?;
+WHERE heroId = ?
+  AND completed = 1;
 
 countQuestsByHero:
 SELECT COUNT(*) AS total_quests
 FROM QuestLogEntity
-WHERE heroId = ?;
+WHERE heroId = ?
+  AND completed = 1;
 
 maxSessionByHero:
 SELECT COALESCE(MAX(durationMinutes), 0) AS longest_session
 FROM QuestLogEntity
-WHERE heroId = ?;
+WHERE heroId = ?
+  AND completed = 1;
 
--- Distinct days with at least one quest (epoch-day = startTime / 86400)
+-- Distinct days with at least one COMPLETED quest (for best streak)
 selectEventDaysEpochByHero:
 SELECT DISTINCT (startTime / 86400) AS epoch_day
 FROM QuestLogEntity
 WHERE heroId = ?
+  AND completed = 1
 ORDER BY epoch_day ASC;
 
 -- Optional metric: >0 only if such events exist

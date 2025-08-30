@@ -9,7 +9,6 @@ import io.yavero.aterna.domain.repository.QuestRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 
 /**
  * Lifetime "Hero" profile. Keep analytics/trends on a separate screen.
@@ -45,22 +44,22 @@ class DefaultHeroStatsComponent(
                 val hero = heroRepository.getCurrentHero()
                 val heroId = hero?.id
 
-                // ---- Lifetime aggregates ----
+                // ---- Lifetime aggregates (now completed-only via SQL) ----
                 val totals = withContext(Dispatchers.Default) {
                     val lifetimeMinutes = runCatching { questRepository?.getLifetimeMinutes() ?: 0 }.getOrDefault(0)
                     val totalQuests = runCatching { questRepository?.getTotalQuests() ?: 0 }.getOrDefault(0)
                     val longestSession =
                         runCatching { questRepository?.getLongestSessionMinutes() ?: 0 }.getOrDefault(0)
                     val bestStreak = runCatching { questRepository?.getBestStreakDays() ?: 0 }.getOrDefault(0)
-                    val itemsFound = runCatching {
-                        heroId?.let { id -> inventoryRepository?.getOwnedCount(id) } ?: 0
-                    }.getOrDefault(0)
+                    val itemsFound =
+                        runCatching { heroId?.let { inventoryRepository?.getOwnedCount(it) } ?: 0 }.getOrDefault(0)
                     val cleansed = runCatching { questRepository?.getCursesCleansed() ?: 0 }.getOrDefault(0)
                     Sextuple(lifetimeMinutes, totalQuests, longestSession, bestStreak, itemsFound, cleansed)
                 }
 
+                // ---- Completed-only recent adventure log for Hero screen ----
                 val recent: List<QuestEvent> = runCatching {
-                    questRepository?.observeAdventureLog(limit = 6)?.first() ?: emptyList()
+                    questRepository?.getRecentAdventureLogCompleted(limit = 6) ?: emptyList()
                 }.getOrDefault(emptyList())
 
                 _ui.value = _ui.value.copy(

@@ -69,17 +69,27 @@ SELECT COALESCE(MAX(idx), -1) AS last_idx
 FROM QuestEventEntity
 WHERE questId = ?;
 
--- Count narration entries (your contract uses idx < 0 to mark planned narration)
+-- Count narration entries (idx < 0 means narration)
 countNarrationsByQuest:
 SELECT COUNT(*) FROM QuestEventEntity
 WHERE questId = ?
   AND idx < 0;
 
--- Global "recent events" for a hero (used by Hero Stats recent log)
+-- Global "recent events" for a hero (used elsewhere; includes active quests)
 selectRecentEventsByHero:
 SELECT e.questId, e.idx, e.at, e.type, e.message, e.xpDelta, e.goldDelta, e.outcome
 FROM QuestEventEntity e
 JOIN QuestLogEntity q ON e.questId = q.id
 WHERE q.heroId = ?
+ORDER BY e.at DESC, e.idx DESC
+LIMIT ?;
+
+-- Global "recent events" for a hero BUT ONLY FOR COMPLETED QUESTS (Hero screen)
+selectRecentEventsByHeroCompleted:
+SELECT e.questId, e.idx, e.at, e.type, e.message, e.xpDelta, e.goldDelta, e.outcome
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = ?
+  AND q.completed = 1
 ORDER BY e.at DESC, e.idx DESC
 LIMIT ?;

@@ -2,20 +2,29 @@
 
 package io.yavero.aterna.features.hero_stats
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.yavero.aterna.designsystem.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
@@ -36,7 +45,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
             .nestedScroll(scroll.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text("Hero", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Hero", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = component::onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -56,11 +65,10 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                     onRetry = component::onRetry,
                     modifier = Modifier.padding(pv)
                 )
-
                 else -> {
                     val pad = PaddingValues(
                         top = pv.calculateTopPadding() + 12.dp,
-                        bottom = pv.calculateBottomPadding() + 24.dp
+                        bottom = pv.calculateBottomPadding() + 28.dp
                     )
 
                     LazyColumn(
@@ -73,6 +81,10 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 hero = state.hero,
                                 onInventory = component::onOpenInventory
                             )
+                        }
+
+                        item("kpi-title") {
+                            SectionHeader("Overview")
                         }
 
                         item("kpis-1") {
@@ -114,11 +126,14 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 )
                             }
                         } else {
-                            items(state.recentEvents.take(6), key = { ev -> "${ev.questId}:${ev.idx}" }) { e ->
-                                LogRowCompact(
+                            items(
+                                state.recentEvents.take(6),
+                                key = { ev -> "${ev.questId}:${ev.idx}" }
+                            ) { e ->
+                                LogRowGleam(
                                     event = e,
                                     modifier = Modifier
-                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                        .padding(horizontal = 16.dp)
                                         .fillMaxWidth()
                                 )
                             }
@@ -135,14 +150,26 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
 @Composable
 private fun HeroHeaderCard(hero: Hero?, onInventory: () -> Unit) {
     if (hero == null) return
+    val tint = AternaColors.GoldAccent
+
     Surface(
-        tonalElevation = 2.dp,
+        tonalElevation = 3.dp,
         shape = MaterialTheme.shapes.extraLarge,
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .background(
+                    brush = Brush.horizontalGradient(
+                        listOf(tint.copy(alpha = 0.06f), Color.Transparent)
+                    ),
+                    shape = MaterialTheme.shapes.extraLarge
+                )
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             HeroAvatarWithXpRing(
                 hero = hero,
                 onExpandedChange = {},
@@ -150,19 +177,24 @@ private fun HeroHeaderCard(hero: Hero?, onInventory: () -> Unit) {
             )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(hero.name ?: "Hero", fontWeight = FontWeight.SemiBold)
+                Text(
+                    hero.name ?: "Hero",
+                    style = AternaTypography.Default.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Text("Level ${hero.level}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // Optional: show XP → next level if available
             }
-            TextButton(onClick = onInventory) { Text("Inventory") }
+            FilledTonalButton(onClick = onInventory, contentPadding = PaddingValues(horizontal = 14.dp)) {
+                Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Inventory")
+            }
         }
     }
 }
 
 @Composable
-private fun KPIRow(
-    vararg pairs: Pair<String, String>?
-) {
+private fun KPIRow(vararg pairs: Pair<String, String>?) {
     Row(
         Modifier
             .padding(horizontal = 16.dp)
@@ -170,24 +202,38 @@ private fun KPIRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         pairs.filterNotNull().forEach {
-            Surface(
-                tonalElevation = 1.dp,
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier.weight(1f)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(
-                        it.first,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        it.second,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            StatTile(label = it.first, value = it.second, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier
+    ) {
+        Column(
+            Modifier
+                .background(
+                    brush = Brush.verticalGradient(
+                        listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.04f), Color.Transparent)
+                    ),
+                    shape = MaterialTheme.shapes.large
+                )
+                .padding(12.dp)
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -204,7 +250,7 @@ private fun SectionHeader(
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
         Spacer(Modifier.weight(1f))
         if (actionLabel != null && onAction != null) {
             TextButton(onClick = onAction) { Text(actionLabel) }
@@ -214,7 +260,6 @@ private fun SectionHeader(
 
 @Composable
 private fun AchievementsStrip() {
-    // Placeholder tiles – swap with your real achievement model
     Row(
         Modifier
             .fillMaxWidth()
@@ -223,12 +268,12 @@ private fun AchievementsStrip() {
     ) {
         repeat(3) {
             Surface(
-                tonalElevation = 1.dp,
+                tonalElevation = 2.dp,
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.weight(1f)
             ) {
                 Box(Modifier.height(72.dp), contentAlignment = Alignment.Center) {
-                    Text(listOf("🏅", "🗡️", "🛡️")[it % 3])
+                    Text(listOf("🏅", "🗡️", "🛡️")[it % 3], style = MaterialTheme.typography.titleLarge)
                 }
             }
         }
@@ -237,18 +282,54 @@ private fun AchievementsStrip() {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun LogRowCompact(event: QuestEvent, modifier: Modifier = Modifier) {
-    Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.large, modifier = modifier) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            val emoji = when (event.type) {
-                EventType.MOB -> "⚔️"
-                EventType.CHEST, EventType.TRINKET -> "🧰"
-                EventType.NARRATION -> "📝"
-                EventType.QUIRKY -> "✨"
+private fun LogRowGleam(event: QuestEvent, modifier: Modifier = Modifier) {
+    val tint = when (event.type) {
+        EventType.CHEST -> AternaColors.GoldAccent
+        EventType.TRINKET -> MaterialTheme.colorScheme.tertiary
+        EventType.QUIRKY -> AternaColors.Ink
+        EventType.MOB -> MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+        EventType.NARRATION -> MaterialTheme.colorScheme.primary
+    }
+    val icon = when (event.type) {
+        EventType.CHEST -> Icons.Filled.Inventory
+        EventType.TRINKET -> Icons.Filled.EmojiObjects
+        EventType.QUIRKY -> Icons.Filled.Star
+        EventType.MOB -> Icons.Filled.Bolt
+        EventType.NARRATION -> Icons.Filled.Edit
+    }
+
+    val gradient = Brush.horizontalGradient(listOf(tint.copy(alpha = 0.10f), Color.Transparent))
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(14.dp),
+        tonalElevation = 2.dp,
+        modifier = modifier.padding(vertical = 6.dp)
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(brush = gradient, shape = RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
             }
-            Text(emoji)
             Spacer(Modifier.width(10.dp))
-            Text(event.message, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Text(
+                text = event.message,
+                style = AternaTypography.Default.bodyMedium,
+                modifier = Modifier.weight(1f),
+                maxLines = 3
+            )
+            Text("✧", color = tint.copy(alpha = 0.9f), modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

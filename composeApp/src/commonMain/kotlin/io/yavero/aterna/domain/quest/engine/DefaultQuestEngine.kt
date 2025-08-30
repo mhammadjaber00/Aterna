@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
 
 package io.yavero.aterna.domain.quest.engine
 
@@ -6,14 +6,16 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
-import io.yavero.aterna.domain.model.quest.*
-import io.yavero.aterna.domain.narrative.Narrative
+import io.yavero.aterna.domain.model.quest.EventOutcome
+import io.yavero.aterna.domain.model.quest.EventType
+import io.yavero.aterna.domain.model.quest.PlannerSpec
+import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.ports.Notifier
 import io.yavero.aterna.domain.quest.curse.CurseService
 import io.yavero.aterna.domain.quest.economy.QuestEconomy
 import io.yavero.aterna.domain.quest.economy.QuestEconomyImpl
 import io.yavero.aterna.domain.quest.economy.RewardAllocator
-import io.yavero.aterna.domain.quest.economy.RewardLedger
+import io.yavero.aterna.domain.quest.narrative.Narrator
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
@@ -23,6 +25,7 @@ import io.yavero.aterna.domain.util.QuestResolver
 import io.yavero.aterna.features.quest.presentation.QuestEffect
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,33 +37,23 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * Single owner of quest lifecycle + feed:
- * - Always renders from a ledger:
- *   - If committed ledger snapshot exists -> replay due events and stream DB events
- *   - Else -> build a provisional ledger from estimated totals and render preview
+ * Unified quest engine: start, complete, retreat, and live feed generation.
+ * Uses Narrator for both flavor lines and event messages.
  */
 class DefaultQuestEngine(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
-    private val notifier: Notifier,
+    private val questNotifier: Notifier,
     private val curseService: CurseService,
     private val economy: QuestEconomy,
     private val inventory: InventoryRepository,
 ) : QuestEngine {
 
+    // ------------------------ lifecycle: start / complete / retreat ------------------------
+
     private val completeMutex = Mutex()
     private val retreatMutex = Mutex()
 
-    // cache for preview smoothness (optional)
-    private var lastPlannedQuestId: String? = null
-    private var lastFeedQuestId: String? = null
-    private var cachedPreview: List<QuestEvent> = emptyList()
-
-    // -----------------------------
-    // Commands
-    // -----------------------------
-
-    @OptIn(ExperimentalUuidApi::class)
     override suspend fun start(durationMinutes: Int, classType: ClassType): StartResult {
         val hero = heroRepository.getCurrentHero() ?: createDefaultHero(classType)
         val quest = Quest(
@@ -69,26 +62,24 @@ class DefaultQuestEngine(
             durationMinutes = durationMinutes,
             startTime = Clock.System.now()
         )
-
         questRepository.insertQuest(quest)
 
-        notifier.requestPermissionIfNeeded()
         val endTime = quest.startTime.plus(durationMinutes.minutes)
-        notifier.showOngoing(
+        questNotifier.requestPermissionIfNeeded()
+        questNotifier.showOngoing(
             sessionId = quest.id,
             title = "Quest Active",
             text = "${durationMinutes} minute ${classType.displayName} quest",
             endAt = endTime
         )
-        notifier.scheduleEnd(sessionId = quest.id, endAt = endTime)
+        questNotifier.scheduleEnd(sessionId = quest.id, endAt = endTime)
 
-        Narrative.pickWeighted(Narrative.startCategoryFor(classType), mapOf("HERO_NAME" to hero.name))
-            ?.let { appendNarration(quest.id, it) }
+        val startLine = Narrator.startLine(classType, hero.name)
+        if (startLine != null) appendNarration(quest.id, startLine)
 
         val fx = buildList {
             add(QuestEffect.ShowQuestStarted)
-            Narrative.pickWeighted(Narrative.startCategoryFor(classType), mapOf("HERO_NAME" to hero.name))
-                ?.let { add(QuestEffect.ShowNarration(it)) }
+            startLine?.let { add(QuestEffect.ShowNarration(it)) }
         }
 
         return StartResult(quest, endTime, fx)
@@ -101,14 +92,13 @@ class DefaultQuestEngine(
 
         val completed = active.copy(endTime = Clock.System.now(), completed = true)
 
-        // Server handshake via repository (reuse your existing implementation)
+        // Remote validation + server loot
         val serverLoot = questRepository.completeQuestRemote(hero, active, completed.endTime!!)
         val econ = economy.completion(hero, active, serverLootOverride = serverLoot)
 
-        // Build final ledger against the *full* plan and commit snapshot
-        val plan = ensurePlan(hero, active)
-        val baseSeed = QuestEconomyImpl.Companion.computeBaseSeed(hero, active)
-
+        // Ledger the final allocation and persist events still due
+        val plan = questRepository.getQuestPlan(active.id)
+        val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, active)
         val ledger = RewardAllocator.allocate(
             questId = active.id,
             baseSeed = baseSeed,
@@ -127,10 +117,19 @@ class DefaultQuestEngine(
             )
         )
 
-        // Append any missing events by resolving from ledger
-        appendMissingFromLedger(active.id, baseSeed, hero.level, hero.classType, plan, ledger)
+        // Append any unresolved events deterministically from the ledger
+        val byIdx = ledger.entries.associateBy { it.eventIdx }
+        val lastIdx = questRepository.getLastResolvedEventIdx(active.id)
+        val ctx = QuestResolver.Context(active.id, baseSeed, hero.level, hero.classType)
+        plan.filter { it.idx > lastIdx }.sortedBy { it.idx }.forEach { p ->
+            val e = byIdx[p.idx]
+            val ev = QuestResolver.resolveFromLedger(
+                ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
+            )
+            questRepository.appendQuestEvent(ev)
+        }
 
-        // Update hero + items
+        // Update hero progression & wallet
         val updatedHero = hero.copy(
             xp = econ.newXp,
             level = econ.newLevel,
@@ -140,25 +139,26 @@ class DefaultQuestEngine(
         )
         heroRepository.updateHero(updatedHero)
 
+        // Inventory updates (new items only)
         val ownedBefore = inventory.getOwnedItemIds(hero.id)
         val newItems = econ.final.items.filter { it.id !in ownedBefore }
         newItems.forEach { inventory.addItemOnce(hero.id, it.id) }
         val newItemIds = newItems.map { it.id }.toSet()
 
         // Notifications
-        notifier.cancelScheduledEnd(active.id)
-        notifier.clearOngoing(active.id)
-        notifier.showCompleted(
+        questNotifier.cancelScheduledEnd(active.id)
+        questNotifier.clearOngoing(active.id)
+        questNotifier.showCompleted(
             sessionId = active.id,
             title = "Quest Complete",
             text = "+${econ.final.xp} XP, +${econ.final.gold} gold"
         )
 
-        // Flavor lines
+        // Closing flavor
         val lootLine = if (newItems.isNotEmpty())
-            Narrative.pickWeighted(Narrative.Category.LootGain, mapOf("ITEMS" to newItems.joinToString { it.name }))
+            Narrator.lootGainLine(newItems.joinToString { it.name })
         else null
-        val closer = Narrative.pickWeighted(Narrative.Category.Closer)
+        val closer = Narrator.closerLine()
 
         lootLine?.let { appendNarration(active.id, it) }
         closer?.let { appendNarration(active.id, it) }
@@ -189,16 +189,13 @@ class DefaultQuestEngine(
         val total = active.durationMinutes.minutes
         val elapsed = now - active.startTime
         val nowMs = now.toEpochMilliseconds()
+
         val inGrace = curseService.isInGrace(elapsed.inWholeSeconds)
 
-        var updatedHero = hero
-        var curseApplied = false
         val uiFx = mutableListOf<QuestEffect>()
-
         if (!inGrace) {
             val remainingMs = (total - elapsed).inWholeMilliseconds.coerceAtLeast(0)
             curseService.applyRetreatCurse(nowMs = nowMs, remainingMs = remainingMs)
-            curseApplied = true
             uiFx += QuestEffect.ShowSuccess("Curse applied (up to 30m).")
         } else {
             uiFx += QuestEffect.ShowSuccess("Retreated. You’re clear.")
@@ -207,20 +204,20 @@ class DefaultQuestEngine(
         val gaveUp = active.copy(endTime = now, gaveUp = true)
         questRepository.markQuestGaveUp(active.id, gaveUp.endTime!!)
 
-        updatedHero = updatedHero.copy(lastActiveDate = now)
+        val updatedHero = hero.copy(lastActiveDate = now)
         heroRepository.updateHero(updatedHero)
 
-        notifier.cancelScheduledEnd(active.id)
-        notifier.clearOngoing(active.id)
+        questNotifier.cancelScheduledEnd(active.id)
+        questNotifier.clearOngoing(active.id)
 
-        Narrative.pickWeighted(Narrative.Category.Closer)?.let {
+        Narrator.closerLine()?.let {
             appendNarration(active.id, it)
             uiFx += QuestEffect.ShowNarration(it)
         }
         uiFx += QuestEffect.ShowQuestGaveUp
         uiFx += QuestEffect.PlayQuestFailSound
 
-        RetreatResult(gaveUp, updatedHero, bankedLoot = null, curseApplied, uiFx)
+        RetreatResult(gaveUp, updatedHero, bankedLoot = null, curseApplied = !inGrace, uiEffects = uiFx)
     }
 
     override suspend fun cleanseCurseWithGold(cost: Int): Boolean {
@@ -233,9 +230,11 @@ class DefaultQuestEngine(
         return true
     }
 
-    // -----------------------------
-    // Feed (preview or committed)
-    // -----------------------------
+    // ----------------------------------- live feed -----------------------------------
+
+    private var lastPlannedQuestId: String? = null
+    private var lastPreviewQuestId: String? = null
+    private var cachedPreview: List<QuestEvent> = emptyList()
 
     override fun feed(
         heroFlow: Flow<Hero?>,
@@ -243,65 +242,62 @@ class DefaultQuestEngine(
         ticker: Flow<Instant>
     ): Flow<FeedSnapshot> {
         val nonNullHero = heroFlow.filterNotNull()
-
         return combine(nonNullHero, activeQuestFlow, ticker) { hero, active, now ->
             if (active == null || active.endTime != null || active.gaveUp) {
-                lastFeedQuestId = null
+                lastPreviewQuestId = null
                 cachedPreview = emptyList()
                 return@combine FeedSnapshot(emptyList(), null, bumpPulse = false)
             }
 
-            ensurePlan(hero, active)
+            ensurePlanIfMissing(hero, active)
 
-            // If we have a committed snapshot, replay the due events and stream from DB
             val snap = questRepository.getLedgerSnapshot(active.id)
-            if (snap != null) {
-                val newCount = replayDueEventsWithLedger(hero, active, now, snap)
-                val needRefresh = (lastFeedQuestId != active.id) || (newCount > 0)
-                if (needRefresh) {
-                    cachedPreview = questRepository.getQuestEvents(active.id)
-                    lastFeedQuestId = active.id
-                }
-
-                if (newCount > 0) {
-                    val lastText = cachedPreview.lastOrNull()?.message ?: "Adventuring..."
+            if (snap == null) {
+                val (preview, bump) = buildLivePreview(hero, active, now)
+                if (bump) {
                     val endTime = active.startTime.plus(active.durationMinutes.minutes)
                     runCatching {
-                        notifier.showOngoing(
+                        questNotifier.showOngoing(
                             sessionId = active.id,
                             title = "Quest Active",
-                            text = lastText,
+                            text = preview.lastOrNull()?.message ?: "Adventuring...",
                             endAt = endTime
                         )
                     }
-                    return@combine FeedSnapshot(cachedPreview, lastText, bumpPulse = true)
                 }
-
-                return@combine FeedSnapshot(cachedPreview, null, bumpPulse = false)
+                return@combine FeedSnapshot(
+                    preview = preview,
+                    latestText = preview.lastOrNull()?.message,
+                    bumpPulse = bump
+                )
             }
 
-            // Otherwise, build a provisional ledger + preview (no DB writes)
-            val (preview, bump) = buildProvisionalPreview(hero, active, now)
-            if (bump) {
+            val newCount = replayDueEventsWithLedger(hero, active, now, snap)
+            val needRefresh = (lastPreviewQuestId != active.id) || (newCount > 0)
+            if (needRefresh) {
+                cachedPreview = questRepository.getQuestEvents(active.id)
+                lastPreviewQuestId = active.id
+            }
+
+            if (newCount > 0) {
+                val lastText = cachedPreview.lastOrNull()?.message ?: "Adventuring..."
                 val endTime = active.startTime.plus(active.durationMinutes.minutes)
                 runCatching {
-                    notifier.showOngoing(
+                    questNotifier.showOngoing(
                         sessionId = active.id,
                         title = "Quest Active",
-                        text = preview.lastOrNull()?.message ?: "Adventuring...",
+                        text = lastText,
                         endAt = endTime
                     )
                 }
+                return@combine FeedSnapshot(cachedPreview, lastText, bumpPulse = true)
             }
-            FeedSnapshot(preview, preview.lastOrNull()?.message, bump)
-        }
+
+            FeedSnapshot(cachedPreview, null, bumpPulse = false)
+        }.distinctUntilChanged()
     }
 
-    // -----------------------------
-    // Internals
-    // -----------------------------
-
-    private suspend fun buildProvisionalPreview(
+    private suspend fun buildLivePreview(
         hero: Hero,
         quest: Quest,
         now: Instant
@@ -311,9 +307,9 @@ class DefaultQuestEngine(
 
         val due = plan.filter { it.dueAt <= now }.sortedBy { it.idx }
 
-        val baseSeed = QuestEconomyImpl.Companion.computeBaseSeed(hero, quest)
+        val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
+        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
 
-        // Estimate totals deterministically using LootRoller + baseSeed
         val estBase = LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
@@ -321,7 +317,6 @@ class DefaultQuestEngine(
             serverSeed = baseSeed
         )
 
-        // Build a provisional ledger (no DB writes)
         val provisional = RewardAllocator.allocate(
             questId = quest.id,
             baseSeed = baseSeed,
@@ -331,7 +326,6 @@ class DefaultQuestEngine(
             finalTotals = QuestLoot(estBase.xp, estBase.gold)
         )
         val byIdx = provisional.entries.associateBy { it.eventIdx }
-        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
 
         val preview = due.map { p ->
             val e = byIdx[p.idx]
@@ -343,40 +337,16 @@ class DefaultQuestEngine(
             )
         }
 
-        // If a narration already got appended (e.g., start line), include it at the end
         val appended = questRepository.getQuestEventsPreview(quest.id, 1).firstOrNull()
-        val effective = if (appended != null && appended.idx > (preview.lastOrNull()?.idx ?: -1))
-            preview + appended else preview
+        val lastAt = preview.lastOrNull()?.at
+        val effectivePreview =
+            if (appended != null && (lastAt == null || appended.at > lastAt)) preview + appended
+            else preview
 
-        val bump = (lastFeedQuestId != quest.id) || (effective.size > cachedPreview.size)
-        lastFeedQuestId = quest.id
-        cachedPreview = effective
-        return effective to bump
-    }
-
-    private suspend fun ensurePlan(hero: Hero, quest: Quest): List<PlannedEvent> {
-        if (lastPlannedQuestId == quest.id) {
-            return questRepository.getQuestPlan(quest.id)
-        }
-
-        val currentPlan = questRepository.getQuestPlan(quest.id)
-        if (currentPlan.isNotEmpty()) {
-            lastPlannedQuestId = quest.id
-            return currentPlan
-        }
-
-        val seed = QuestEconomyImpl.Companion.computeBaseSeed(hero, quest)
-        val spec = PlannerSpec(
-            durationMinutes = quest.durationMinutes,
-            seed = seed,
-            startAt = quest.startTime,
-            heroLevel = hero.level,
-            classType = hero.classType
-        )
-        val planned = QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
-        questRepository.saveQuestPlan(quest.id, planned)
-        lastPlannedQuestId = quest.id
-        return planned
+        val bump = (lastPreviewQuestId != quest.id) || (effectivePreview.size > cachedPreview.size)
+        lastPreviewQuestId = quest.id
+        cachedPreview = effectivePreview
+        return effectivePreview to bump
     }
 
     private suspend fun replayDueEventsWithLedger(
@@ -389,7 +359,7 @@ class DefaultQuestEngine(
         if (plan.isEmpty()) return 0
         val lastIdx = questRepository.getLastResolvedEventIdx(quest.id)
 
-        val baseSeed = QuestEconomyImpl.Companion.computeBaseSeed(hero, quest)
+        val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
         val ledger = RewardAllocator.allocate(
             questId = quest.id,
             baseSeed = baseSeed,
@@ -415,24 +385,26 @@ class DefaultQuestEngine(
         return newCount
     }
 
-    private suspend fun appendMissingFromLedger(
-        questId: String,
-        baseSeed: Long,
-        heroLevel: Int,
-        classType: ClassType,
-        plan: List<PlannedEvent>,
-        ledger: RewardLedger
-    ) {
-        val byIdx = ledger.entries.associateBy { it.eventIdx }
-        val lastIdx = questRepository.getLastResolvedEventIdx(questId)
-        val ctx = QuestResolver.Context(questId, baseSeed, heroLevel, classType)
-        plan.filter { it.idx > lastIdx }.sortedBy { it.idx }.forEach { p ->
-            val e = byIdx[p.idx]
-            val ev = QuestResolver.resolveFromLedger(
-                ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
-            )
-            questRepository.appendQuestEvent(ev)
+    private suspend fun ensurePlanIfMissing(hero: Hero, quest: Quest) {
+        if (lastPlannedQuestId == quest.id) return
+
+        val currentPlan = questRepository.getQuestPlan(quest.id)
+        if (currentPlan.isNotEmpty()) {
+            lastPlannedQuestId = quest.id
+            return
         }
+
+        val seed = QuestEconomyImpl.computeBaseSeed(hero, quest)
+        val spec = PlannerSpec(
+            durationMinutes = quest.durationMinutes,
+            seed = seed,
+            startAt = quest.startTime,
+            heroLevel = hero.level,
+            classType = hero.classType
+        )
+        val planned = QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
+        questRepository.saveQuestPlan(quest.id, planned)
+        lastPlannedQuestId = quest.id
     }
 
     private suspend fun appendNarration(questId: String, text: String) {
@@ -451,7 +423,6 @@ class DefaultQuestEngine(
         questRepository.appendQuestEvent(ev)
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     private suspend fun createDefaultHero(classType: ClassType): Hero {
         val hero = Hero(
             id = Uuid.random().toString(),
