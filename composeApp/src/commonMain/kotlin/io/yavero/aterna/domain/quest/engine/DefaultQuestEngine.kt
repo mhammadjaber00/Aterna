@@ -6,10 +6,7 @@ import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
-import io.yavero.aterna.domain.model.quest.EventOutcome
-import io.yavero.aterna.domain.model.quest.EventType
-import io.yavero.aterna.domain.model.quest.PlannerSpec
-import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.domain.model.quest.*
 import io.yavero.aterna.domain.ports.Notifier
 import io.yavero.aterna.domain.quest.curse.CurseService
 import io.yavero.aterna.domain.quest.economy.QuestEconomy
@@ -54,13 +51,14 @@ class DefaultQuestEngine(
     private val completeMutex = Mutex()
     private val retreatMutex = Mutex()
 
-    override suspend fun start(durationMinutes: Int, classType: ClassType): StartResult {
+    override suspend fun start(durationMinutes: Int, classType: ClassType, questType: QuestType): StartResult {
         val hero = heroRepository.getCurrentHero() ?: createDefaultHero(classType)
         val quest = Quest(
             id = Uuid.random().toString(),
             heroId = hero.id,
             durationMinutes = durationMinutes,
-            startTime = Clock.System.now()
+            startTime = Clock.System.now(),
+            questType = questType,
         )
         questRepository.insertQuest(quest)
 

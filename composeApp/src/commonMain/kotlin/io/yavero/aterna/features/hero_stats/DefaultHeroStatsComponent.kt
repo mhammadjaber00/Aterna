@@ -19,8 +19,7 @@ class DefaultHeroStatsComponent(
     private val questRepository: QuestRepository?,
     private val inventoryRepository: InventoryRepository?,
     private val onBackNav: () -> Unit,
-    private val onOpenInventoryNav: () -> Unit,
-    private val onOpenLogbookNav: () -> Unit
+    private val onOpenLogbookNav: () -> Unit,   // <- only this stays
 ) : HeroStatsComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -33,7 +32,6 @@ class DefaultHeroStatsComponent(
     }
 
     override fun onBack() = onBackNav()
-    override fun onOpenInventory() = onOpenInventoryNav()
     override fun onOpenLogbook() = onOpenLogbookNav()
     override fun onRetry() = refresh()
 

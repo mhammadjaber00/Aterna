@@ -24,7 +24,6 @@ data class HeroStatsUiState(
 interface HeroStatsComponent {
     val uiState: StateFlow<HeroStatsUiState>
     fun onBack()
-    fun onOpenInventory()
     fun onOpenLogbook()
     fun onRetry()
 }

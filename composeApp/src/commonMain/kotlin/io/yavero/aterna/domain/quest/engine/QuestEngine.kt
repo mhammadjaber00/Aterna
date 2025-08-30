@@ -3,6 +3,7 @@ package io.yavero.aterna.domain.quest.engine
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
+import io.yavero.aterna.domain.model.quest.QuestType
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -14,7 +15,7 @@ import kotlin.time.Instant
  */
 interface QuestEngine {
     // Commands
-    suspend fun start(durationMinutes: Int, classType: ClassType): StartResult
+    suspend fun start(durationMinutes: Int, classType: ClassType, questType: QuestType = QuestType.OTHER): StartResult
     suspend fun complete(): CompleteResult
     suspend fun retreat(): RetreatResult
     suspend fun cleanseCurseWithGold(cost: Int = 100): Boolean

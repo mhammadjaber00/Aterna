@@ -1,0 +1,72 @@
+-- Indexes helpful for analytics
+CREATE INDEX IF NOT EXISTS idx_quest_endtime_by_hero   ON QuestLogEntity(heroId, endTime);
+CREATE INDEX IF NOT EXISTS idx_quest_completed         ON QuestLogEntity(completed);
+CREATE INDEX IF NOT EXISTS idx_quest_gaveup            ON QuestLogEntity(gaveUp);
+CREATE INDEX IF NOT EXISTS idx_questlog_hero_type      ON QuestLogEntity(heroId, questType);
+
+-- Minutes per day (completed only; end time defines the day)
+analytics_minutesPerDay:
+SELECT
+  (endTime / 86400) AS day,
+  SUM(durationMinutes) AS minutes
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND completed = 1
+  AND endTime BETWEEN ? AND ?
+GROUP BY day
+ORDER BY day ASC;
+
+-- Minutes by quest type (completed only)
+analytics_minutesByType:
+SELECT
+  questType,
+  SUM(durationMinutes) AS minutes
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND completed = 1
+  AND endTime BETWEEN ? AND ?
+GROUP BY questType
+ORDER BY minutes DESC;
+
+-- Heatmap: minutes by weekday/hour (completed only; localtime)
+analytics_heatmapByHour:
+SELECT
+  CAST(strftime('%w', endTime, 'unixepoch','localtime') AS INTEGER) AS dow,
+  CAST(strftime('%H', endTime, 'unixepoch','localtime') AS INTEGER) AS hour,
+  SUM(durationMinutes) AS minutes
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND completed = 1
+  AND endTime BETWEEN ? AND ?
+GROUP BY dow, hour
+ORDER BY dow, hour;
+
+-- Started / Finished / Gave up (range)
+analytics_startedCount:
+SELECT COUNT(*) AS c
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND startTime BETWEEN ? AND ?;
+
+analytics_finishedCount:
+SELECT COUNT(*) AS c
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND completed = 1
+  AND endTime BETWEEN ? AND ?;
+
+analytics_gaveUpCount:
+SELECT COUNT(*) AS c
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND gaveUp = 1
+  AND endTime BETWEEN ? AND ?;
+
+-- Distinct days with at least one completed quest
+analytics_distinctDaysCompleted:
+SELECT DISTINCT (endTime / 86400) AS day
+FROM QuestLogEntity
+WHERE heroId = ?
+  AND completed = 1
+  AND endTime BETWEEN ? AND ?
+ORDER BY day ASC;

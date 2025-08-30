@@ -2,6 +2,7 @@ package io.yavero.aterna.di
 
 import io.yavero.aterna.data.di.dataModule
 import io.yavero.aterna.domain.util.TimeProvider
+import io.yavero.aterna.features.analytics.di.analyticsModule
 import io.yavero.aterna.features.onboarding.di.onboardingModule
 import io.yavero.aterna.features.quest.di.focusModule
 import io.yavero.aterna.notifications.di.notificationsModule
@@ -19,4 +20,5 @@ fun getCommonKoinModules(): List<Module> = listOf(
     notificationsModule,
     focusModule,
     onboardingModule,
+    analyticsModule,
 )

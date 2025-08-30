@@ -1,0 +1,5 @@
+ALTER TABLE QuestLogEntity
+ADD COLUMN questType TEXT NOT NULL DEFAULT 'OTHER';
+
+CREATE INDEX IF NOT EXISTS idx_questlog_hero_type
+ON QuestLogEntity(heroId, questType);

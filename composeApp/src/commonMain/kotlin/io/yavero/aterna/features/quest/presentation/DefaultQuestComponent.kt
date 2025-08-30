@@ -27,7 +27,8 @@ class DefaultQuestComponent(
     private val onShowQuestGaveUp: () -> Unit = {},
     private val onShowLevelUp: (Int) -> Unit = {},
     private val onShowLootReward: (QuestLoot) -> Unit = {},
-    private val onShowNarration: (String) -> Unit = {}
+    private val onShowNarration: (String) -> Unit = {},
+    private val onOpenAnalyticsNav: () -> Unit
 ) : QuestComponent, ComponentContext by componentContext {
 
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -77,6 +78,8 @@ class DefaultQuestComponent(
     override fun onNavigateToStats() {
         onNavigateToStatsCallback()
     }
+
+    override fun onOpenAnalytics() = onOpenAnalyticsNav()
 
     override fun onLoadAdventureLog() {
         questStore.process(QuestIntent.LoadAdventureLog)

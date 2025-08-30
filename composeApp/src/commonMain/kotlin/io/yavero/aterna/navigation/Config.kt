@@ -20,6 +20,9 @@ sealed interface Config {
     data object Stats : Config
 
     @Serializable
+    data object Analytics : Config
+
+    @Serializable
     data class Timer(
         val initialMinutes: Int = 25,
         val classType: String = "WARRIOR"

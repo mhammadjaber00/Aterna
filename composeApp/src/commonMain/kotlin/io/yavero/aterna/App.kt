@@ -23,7 +23,8 @@ private fun AternaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
+    // TODO fix light colors
+    val colorScheme = if (true) {
         DarkColorScheme
     } else {
         LightColorScheme

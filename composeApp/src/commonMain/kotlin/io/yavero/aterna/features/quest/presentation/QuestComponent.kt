@@ -26,4 +26,6 @@ interface QuestComponent {
     fun onCleanseCurse()
 
     fun onNavigateToStats()
+
+    fun onOpenAnalytics()
 }

@@ -8,6 +8,8 @@ import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.domain.util.TimeProvider
+import io.yavero.aterna.features.analytics.presentation.DefaultAnalyticsComponent
 import io.yavero.aterna.features.hero_stats.DefaultHeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponentImpl
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
@@ -31,6 +33,7 @@ class DefaultAppRootComponent(
     private val heroRepository: HeroRepository by inject()
     private val inventoryRepository: InventoryRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
+    private val timeProvider: TimeProvider by inject()
 
     private fun resolveInitialConfig(): Config = runBlocking {
         val hero = heroRepository.getCurrentHero()
@@ -77,7 +80,8 @@ class DefaultAppRootComponent(
                     },
                     onNavigateToStatsCallback = {
                         navigateToStats()
-                    }
+                    },
+                    onOpenAnalyticsNav = { navigation.bringToFront(Config.Analytics) },
                 )
             )
 
@@ -103,12 +107,21 @@ class DefaultAppRootComponent(
                     questRepository,
                     inventoryRepository,
                     onBackNav = { navigation.pop() },
-                    onOpenInventoryNav = { navigation.bringToFront(Config.Inventory) },
                     onOpenLogbookNav = {
 //                        navigation.bringToFront(
 //                        Config.Logbook
 //                        )
                     },
+                )
+            )
+
+            is Config.Analytics -> AppRootComponent.Child.Analytics(
+                DefaultAnalyticsComponent(
+                    componentContext,
+                    heroRepository = heroRepository,
+                    questRepository = questRepository,
+                    timeProvider = timeProvider,
+                    onBackNav = { navigation.pop() }
                 )
             )
         }
@@ -131,6 +144,10 @@ class DefaultAppRootComponent(
 
     override fun navigateToStats() {
         navigation.bringToFront(Config.Stats)
+    }
+
+    override fun navigateToAnalytics() {
+        navigation.bringToFront(Config.Analytics)
     }
 
     override fun startQuest(durationMinutes: Int, classType: String) {

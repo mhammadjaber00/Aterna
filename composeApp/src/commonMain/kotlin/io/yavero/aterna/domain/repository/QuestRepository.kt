@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.yavero.aterna.domain.repository
 
 import io.yavero.aterna.domain.model.Hero
@@ -7,10 +9,8 @@ import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.quest.engine.LedgerSnapshot
 import kotlinx.coroutines.flow.Flow
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 interface QuestRepository {
     // Active quest
     suspend fun getCurrentActiveQuest(): Quest?
@@ -61,7 +61,23 @@ interface QuestRepository {
 
     // Feeds
     fun observeAdventureLog(limit: Int): Flow<List<QuestEvent>>
-
-    // NEW: completed-only recent log for Hero screen
     suspend fun getRecentAdventureLogCompleted(limit: Int): List<QuestEvent>
+
+    // -----------------------------
+    // Analytics API (productivity-focused)
+    // -----------------------------
+    data class DayValue(val dayEpoch: Long, val minutes: Int)
+    data class TypeMinutes(val type: String, val minutes: Int)
+    data class HeatCell(val dow: Int, val hour: Int, val minutes: Int)
+
+    suspend fun analyticsMinutesPerDay(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<DayValue>
+    suspend fun analyticsMinutesByType(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<TypeMinutes>
+    suspend fun analyticsHeatmapByHour(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<HeatCell>
+
+    suspend fun analyticsStartedCount(heroId: String, fromEpochSec: Long, toEpochSec: Long): Int
+    suspend fun analyticsFinishedCount(heroId: String, fromEpochSec: Long, toEpochSec: Long): Int
+    suspend fun analyticsGaveUpCount(heroId: String, fromEpochSec: Long, toEpochSec: Long): Int
+
+    // For streak calculations
+    suspend fun analyticsDistinctDaysCompleted(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<Long>
 }

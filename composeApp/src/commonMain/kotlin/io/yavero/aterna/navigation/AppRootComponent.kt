@@ -2,6 +2,7 @@ package io.yavero.aterna.navigation
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import io.yavero.aterna.features.analytics.presentation.AnalyticsComponent
 import io.yavero.aterna.features.hero_stats.HeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponent
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
@@ -15,6 +16,7 @@ interface AppRootComponent {
     fun navigateToTimer(initialMinutes: Int = 25, classType: String = "WARRIOR")
     fun navigateToInventory()
     fun navigateToStats()
+    fun navigateToAnalytics()
     fun startQuest(durationMinutes: Int, classType: String)
 
     sealed class Child {
@@ -24,6 +26,7 @@ interface AppRootComponent {
         data class Inventory(val component: InventoryComponent) : Child()
         data class Timer(val initialMinutes: Int, val classType: String) : Child()
         data class HeroStats(val component: HeroStatsComponent) : Child()
+        data class Analytics(val component: AnalyticsComponent) : Child()
     }
 }
 

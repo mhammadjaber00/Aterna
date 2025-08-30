@@ -227,7 +227,7 @@ fun QuestScreen(
                             component.onClearNewlyAcquired()
                             component.onNavigateToInventory()
                         },
-                        onToggleAnalytics = { modal = Modal.Analytics },
+                        onToggleAnalytics = { component.onOpenAnalytics() },
                         onOpenSettings = { modal = Modal.Settings },
                         onCleanseCurse = { component.onCleanseCurse() },
                         avatarAnchorModifier = Modifier.onGloballyPositioned {
