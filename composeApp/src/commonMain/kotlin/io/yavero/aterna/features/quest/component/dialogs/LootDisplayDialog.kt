@@ -1,32 +1,35 @@
 package io.yavero.aterna.features.quest.component.dialogs
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import aterna.composeapp.generated.resources.*
+import androidx.compose.ui.window.Dialog
+import aterna.composeapp.generated.resources.Res
+import aterna.composeapp.generated.resources.gold_reward_format
+import aterna.composeapp.generated.resources.no_entries_recorded
 import io.yavero.aterna.designsystem.component.AternaCard
 import io.yavero.aterna.designsystem.component.AternaPrimaryButton
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.features.inventory.components.InventoryRow
-import io.yavero.aterna.ui.theme.AternaSpacing
-import io.yavero.aterna.ui.theme.AternaTypography
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.ExperimentalTime
 
@@ -36,124 +39,120 @@ fun LootDisplayDialog(
     quest: Quest,
     hero: Hero?,
     loot: QuestLoot? = null,
-    events: List<QuestEvent> = emptyList(),
     onDismiss: () -> Unit,
+    onShowLogbook: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    loot ?: remember(quest, hero) {
-        if (hero != null) {
-            LootRoller.rollLoot(
-                questDurationMinutes = quest.durationMinutes,
-                heroLevel = hero.level,
-                classType = hero.classType,
-                serverSeed = quest.startTime.toEpochMilliseconds()
-            )
-        } else null
-    }
+    val effectiveLoot = loot ?: remember(quest, hero) {
+        if (hero != null) LootRoller.rollLoot(
+            questDurationMinutes = quest.durationMinutes,
+            heroLevel = hero.level,
+            classType = hero.classType,
+            serverSeed = quest.startTime.toEpochMilliseconds()
+        ) else null
+    } ?: return
 
-    if (loot != null) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+        ) {
+            Column(
+                Modifier.padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                1f to MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text(
-                        text = stringResource(Res.string.quest_completed_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                    Icon(
+                        Icons.Default.Star,
+                        null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(AternaSpacing.Medium)) {
-                    Text(
-                        stringResource(Res.string.quest_completed_message, quest.durationMinutes),
-                        style = AternaTypography.Default.bodyMedium
-                    )
 
+                Text(
+                    "Quest Complete!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    "${quest.durationMinutes} minutes well spent.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                    AternaCard {
-                        Column(
-                            modifier = Modifier.padding(AternaSpacing.Medium),
-                            verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
-                        ) {
-                            Text(
-                                stringResource(Res.string.rewards_earned),
-                                style = AternaTypography.Default.titleSmall,
-                                color = MaterialTheme.colorScheme.primary
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f))
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "Rewards",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Star,
+                                null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Star,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    stringResource(Res.string.xp_reward_format, loot.xp),
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.AttachMoney,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    stringResource(Res.string.gold_reward_format, loot.gold),
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                            if (loot.hasItems) {
-                                loot.items.forEach { item ->
-                                    InventoryRow(item = item, isNew = true)
-                                }
-                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "+${effectiveLoot.xp} XP",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
-                    }
-
-
-                    AternaCard {
-                        Column(
-                            modifier = Modifier
-                                .padding(AternaSpacing.Medium)
-                                .heightIn(max = 260.dp)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(AternaSpacing.Small)
-                        ) {
-                            Text(
-                                stringResource(Res.string.adventure_log),
-                                style = AternaTypography.Default.titleSmall,
-                                color = MaterialTheme.colorScheme.primary
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.AttachMoney,
+                                null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
                             )
-
-                            if (events.isEmpty()) {
-                                Text(
-                                    stringResource(Res.string.no_entries_recorded),
-                                    style = AternaTypography.Default.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                events.forEach { e -> MagicalEventRow(e) }
-                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "+${effectiveLoot.gold} Gold",
+                                color = MaterialTheme.colorScheme.secondary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        if (effectiveLoot.hasItems) {
+                            Spacer(Modifier.height(4.dp))
+                            effectiveLoot.items.forEach { item -> InventoryRow(item = item, isNew = true) }
                         }
                     }
                 }
-            },
-            confirmButton = { AternaPrimaryButton(text = stringResource(Res.string.collect), onClick = onDismiss) },
-            modifier = modifier
-        )
+
+                AternaPrimaryButton(
+                    text = "Collect",
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                TextButton(onClick = onShowLogbook) {
+                    Text("Adventure recap", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
     }
 }
 

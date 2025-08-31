@@ -1,7 +1,7 @@
 package io.yavero.aterna.features.quest.presentation
 
 import io.yavero.aterna.domain.model.QuestLoot
-import io.yavero.aterna.domain.mvi.MviEffect
+import io.yavero.aterna.features.common.presentation.MviEffect
 
 sealed interface QuestEffect : MviEffect {
     data class ShowQuestCompleted(val loot: QuestLoot) : QuestEffect

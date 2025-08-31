@@ -13,8 +13,12 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.domain.model.quest.QuestType
+import io.yavero.aterna.features.analytics.screen.AnalyticsScreen
 import io.yavero.aterna.features.classselection.ClassSelectionScreen
+import io.yavero.aterna.features.hero_stats.HeroStatsScreen
 import io.yavero.aterna.features.inventory.InventoryScreen
+import io.yavero.aterna.features.logbook.LogbookScreen
 import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
 import io.yavero.aterna.features.quest.presentation.QuestComponent
@@ -56,6 +60,9 @@ fun AppContent(
                         classType = instance.classType,
                         component = component
                     )
+                    is AppRootComponent.Child.HeroStats -> HeroStatsScreen(component = instance.component)
+                    is AppRootComponent.Child.Analytics -> AnalyticsScreen(component = instance.component)
+                    is AppRootComponent.Child.Logbook -> LogbookScreen(component = instance.component)
                 }
             }
         }
@@ -95,8 +102,8 @@ private fun TimerScreenWrapper(
     TimerScreen(
         initialMinutes = initialMinutes,
         classType = classTypeEnum,
-        onConfirm = { duration: Int ->
-            component.startQuest(duration, classType)
+        onConfirm = { duration: Int, questType: QuestType ->
+            component.startQuest(duration, classType, questType)
         },
         onDismiss = {
             component.navigateToQuestHub()

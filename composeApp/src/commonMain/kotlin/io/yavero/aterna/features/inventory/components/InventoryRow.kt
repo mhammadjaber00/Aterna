@@ -17,11 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.yavero.aterna.designsystem.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Item
 import io.yavero.aterna.domain.model.ItemRarity
 import io.yavero.aterna.domain.model.ItemType
-import io.yavero.aterna.ui.theme.AternaColors
-import io.yavero.aterna.ui.theme.AternaTypography
 
 @Composable
 fun InventoryRow(item: Item, isNew: Boolean) {

@@ -6,8 +6,14 @@ import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
+import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.domain.util.TimeProvider
+import io.yavero.aterna.features.analytics.presentation.DefaultAnalyticsComponent
+import io.yavero.aterna.features.hero_stats.DefaultHeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponentImpl
+import io.yavero.aterna.features.logbook.DefaultLogbookComponent
+import io.yavero.aterna.features.logbook.QuestLogbookDataSource
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.aterna.features.quest.presentation.DefaultQuestComponent
@@ -23,9 +29,13 @@ class DefaultAppRootComponent(
 
     private val navigation = StackNavigation<Config>()
     private val questStore: QuestStore by inject()
+
+    private val questRepository: QuestRepository by inject()
+
     private val heroRepository: HeroRepository by inject()
     private val inventoryRepository: InventoryRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
+    private val timeProvider: TimeProvider by inject()
 
     private fun resolveInitialConfig(): Config = runBlocking {
         val hero = heroRepository.getCurrentHero()
@@ -69,7 +79,14 @@ class DefaultAppRootComponent(
                     },
                     onNavigateToInventoryCallback = {
                         navigateToInventory()
-                    }
+                    },
+                    onNavigateToLogbookCallback = {
+                        navigation.bringToFront(Config.Logbook)
+                    },
+                    onNavigateToStatsCallback = {
+                        navigateToStats()
+                    },
+                    onOpenAnalyticsNav = { navigation.bringToFront(Config.Analytics) },
                 )
             )
 
@@ -86,6 +103,39 @@ class DefaultAppRootComponent(
             is Config.Timer -> AppRootComponent.Child.Timer(
                 initialMinutes = config.initialMinutes,
                 classType = config.classType
+            )
+
+            is Config.Stats -> AppRootComponent.Child.HeroStats(
+                DefaultHeroStatsComponent(
+                    componentContext,
+                    heroRepository,
+                    questRepository,
+                    inventoryRepository,
+                    onBackNav = { navigation.pop() },
+                    onOpenLogbookNav = {
+                        navigation.bringToFront(Config.Logbook)
+                    },
+                )
+            )
+
+            is Config.Analytics -> AppRootComponent.Child.Analytics(
+                DefaultAnalyticsComponent(
+                    componentContext,
+                    heroRepository = heroRepository,
+                    questRepository = questRepository,
+                    timeProvider = timeProvider,
+                    onBackNav = { navigation.pop() }
+                )
+            )
+
+            is Config.Logbook -> AppRootComponent.Child.Logbook(
+                DefaultLogbookComponent(
+                    dataSource = QuestLogbookDataSource(
+                        questRepository = questRepository,
+                        heroRepository = heroRepository
+                    ),
+                    onBackRequest = { navigation.pop() }
+                )
             )
         }
 
@@ -105,13 +155,25 @@ class DefaultAppRootComponent(
         navigation.bringToFront(Config.Inventory)
     }
 
-    override fun startQuest(durationMinutes: Int, classType: String) {
+    override fun navigateToStats() {
+        navigation.bringToFront(Config.Stats)
+    }
+
+    override fun navigateToAnalytics() {
+        navigation.bringToFront(Config.Analytics)
+    }
+
+    override fun startQuest(
+        durationMinutes: Int,
+        classType: String,
+        questType: io.yavero.aterna.domain.model.quest.QuestType
+    ) {
         val classTypeEnum = try {
             ClassType.valueOf(classType)
         } catch (e: IllegalArgumentException) {
             ClassType.WARRIOR
         }
-        questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum))
+        questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum, questType))
         navigateToQuestHub()
     }
 }

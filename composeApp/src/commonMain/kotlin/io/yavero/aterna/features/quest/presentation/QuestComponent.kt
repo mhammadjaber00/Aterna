@@ -22,4 +22,12 @@ interface QuestComponent {
     fun onClearNewlyAcquired()
     fun onAdventureLogShown()
     fun onRetreatConfirmDismissed()
+
+    fun onCleanseCurse()
+
+    fun onNavigateToStats()
+
+    fun onNavigateToLogbook()
+
+    fun onOpenAnalytics()
 }

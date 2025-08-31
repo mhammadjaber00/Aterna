@@ -14,3 +14,6 @@ INSERT OR IGNORE INTO HeroItemEntity (heroId, itemId, acquiredAt) VALUES (?, ?, 
 
 hasHeroItem:
 SELECT EXISTS(SELECT 1 FROM HeroItemEntity WHERE heroId = ? AND itemId = ?) AS owned;
+
+countItemsByHero:
+SELECT COUNT(*) FROM HeroItemEntity WHERE heroId = ?;

@@ -13,8 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ItemRarity
-import io.yavero.aterna.ui.theme.AternaColors
 
 @Composable
 fun RarityPill(rarity: ItemRarity) {

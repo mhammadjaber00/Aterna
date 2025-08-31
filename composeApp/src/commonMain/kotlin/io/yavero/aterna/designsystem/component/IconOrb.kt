@@ -4,10 +4,14 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,4 +42,27 @@ fun IconOrb(
         shadowElevation = 6.dp,
         border = BorderStroke(1.dp, border.copy(alpha = .25f))
     ) { Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { content() } }
+}
+
+@Composable
+fun IconOrb(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val ring = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    val fill = MaterialTheme.colorScheme.surface.copy(alpha = 0.22f)
+
+    Surface(
+        shape = CircleShape,
+        color = fill,
+        border = BorderStroke(1.dp, ring),
+        tonalElevation = 2.dp,
+        modifier = modifier.size(36.dp)
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                content()
+            }
+        }
+    }
 }

@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.model.quest.QuestType
 import io.yavero.aterna.domain.repository.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,8 @@ class DefaultQuestComponent(
     private val settingsRepository: SettingsRepository,
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onNavigateToInventoryCallback: () -> Unit = {},
+    private val onNavigateToStatsCallback: () -> Unit = {},
+    private val onNavigateToLogbookCallback: () -> Unit = {},
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
@@ -26,7 +29,8 @@ class DefaultQuestComponent(
     private val onShowQuestGaveUp: () -> Unit = {},
     private val onShowLevelUp: (Int) -> Unit = {},
     private val onShowLootReward: (QuestLoot) -> Unit = {},
-    private val onShowNarration: (String) -> Unit = {}
+    private val onShowNarration: (String) -> Unit = {},
+    private val onOpenAnalyticsNav: () -> Unit
 ) : QuestComponent, ComponentContext by componentContext {
 
     private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -46,7 +50,7 @@ class DefaultQuestComponent(
     }
 
     override fun onStartQuest(durationMinutes: Int, classType: ClassType) {
-        questStore.process(QuestIntent.StartQuest(durationMinutes, classType))
+        questStore.process(QuestIntent.StartQuest(durationMinutes, classType, QuestType.OTHER))
     }
 
     override fun onGiveUpQuest() {
@@ -73,6 +77,16 @@ class DefaultQuestComponent(
         onNavigateToInventoryCallback()
     }
 
+    override fun onNavigateToStats() {
+        onNavigateToStatsCallback()
+    }
+
+    override fun onNavigateToLogbook() {
+        onNavigateToLogbookCallback()
+    }
+
+    override fun onOpenAnalytics() = onOpenAnalyticsNav()
+
     override fun onLoadAdventureLog() {
         questStore.process(QuestIntent.LoadAdventureLog)
     }
@@ -87,6 +101,10 @@ class DefaultQuestComponent(
 
     override fun onRetreatConfirmDismissed() {
         questStore.process(QuestIntent.RetreatConfirmDismissed)
+    }
+
+    override fun onCleanseCurse() {
+        questStore.process(QuestIntent.CleanseCurse)
     }
 
     override fun onMarkTutorialSeen() {

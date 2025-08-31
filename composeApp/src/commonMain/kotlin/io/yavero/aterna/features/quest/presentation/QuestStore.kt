@@ -7,15 +7,16 @@ import io.yavero.aterna.domain.error.toAppError
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
-import io.yavero.aterna.domain.mvi.MviStore
-import io.yavero.aterna.domain.mvi.createEffectsFlow
+import io.yavero.aterna.domain.model.quest.QuestType
+import io.yavero.aterna.domain.quest.curse.CurseService
+import io.yavero.aterna.domain.quest.ticker.Ticker
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
-import io.yavero.aterna.domain.service.curse.CurseService
 import io.yavero.aterna.domain.service.quest.QuestActionService
 import io.yavero.aterna.domain.service.quest.QuestEventsCoordinator
-import io.yavero.aterna.domain.service.ticker.Ticker
+import io.yavero.aterna.features.common.presentation.MviStore
+import io.yavero.aterna.features.common.presentation.createEffectsFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -117,7 +118,7 @@ class QuestStore(
         when (intent) {
             QuestIntent.Refresh -> refresh.tryEmit(Unit)
 
-            is QuestIntent.StartQuest -> startQuest(intent.durationMinutes, intent.classType)
+            is QuestIntent.StartQuest -> startQuest(intent.durationMinutes, intent.classType, intent.questType)
 
             QuestIntent.GiveUp -> giveUpQuest()
 
@@ -139,6 +140,17 @@ class QuestStore(
             QuestIntent.RetreatConfirmDismissed -> setPending(retreat = false)
 
             QuestIntent.ClearNewlyAcquired -> reduce(QuestMsg.NewlyAcquired(emptySet()))
+
+            QuestIntent.CleanseCurse -> {
+                scope.launch {
+                    val ok = actions.cleanseCurseWithGold()
+                    if (ok) {
+                        _effects.tryEmit(QuestEffect.ShowSuccess("The curse lifts. Back to full strength."))
+                    } else {
+                        _effects.tryEmit(QuestEffect.ShowError("Need 100 gold to cleanse."))
+                    }
+                }
+            }
         }
     }
 
@@ -168,9 +180,9 @@ class QuestStore(
         return merge(dataFlow, tickFlow)
     }
 
-    private fun startQuest(durationMinutes: Int, classType: ClassType) {
+    private fun startQuest(durationMinutes: Int, classType: ClassType, questType: QuestType) {
         scope.launch {
-            runCatching { actions.start(durationMinutes, classType) }
+            runCatching { actions.start(durationMinutes, classType, questType) }
                 .onSuccess { r ->
                     reduce(QuestMsg.QuestStarted(r.quest))
                     r.uiEffects.forEach { _effects.tryEmit(it) }
@@ -308,9 +320,9 @@ class QuestStore(
 
             is QuestMsg.RulesLoaded -> state.copy(
                 retreatGraceSeconds = msg.rules.graceSeconds,
-                lateRetreatThreshold = msg.rules.lateThreshold,
-                lateRetreatPenalty = msg.rules.latePenalty,
-                curseSoftCapMinutes = msg.rules.softCapMinutes,
+                lateRetreatThreshold = 1.0,
+                lateRetreatPenalty = 0.0,
+                curseSoftCapMinutes = msg.rules.capMinutes,
             )
 
             is QuestMsg.OwnedItemsLoaded -> state.copy(ownedItemIds = msg.ids)

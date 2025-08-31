@@ -12,6 +12,4 @@ data class Item(
     val value: Int,
     val stackable: Boolean = false,
     val maxStack: Int = 1
-) {
-    val sellValue: Int get() = (value * 0.6).toInt()
-}
+)

@@ -4,4 +4,6 @@ interface InventoryRepository {
     suspend fun getOwnedItemIds(heroId: String): Set<String>
     suspend fun hasItem(heroId: String, itemId: String): Boolean
     suspend fun addItemOnce(heroId: String, itemId: String)
+
+    suspend fun getOwnedCount(heroId: String): Int
 }

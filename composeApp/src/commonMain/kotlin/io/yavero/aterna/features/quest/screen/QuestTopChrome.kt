@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import io.yavero.aterna.features.quest.component.HeaderCapsule
 import io.yavero.aterna.features.quest.presentation.QuestState
 import kotlinx.coroutines.launch
@@ -31,53 +32,60 @@ fun QuestTopChrome(
     onToggleInventory: () -> Unit,
     onToggleAnalytics: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCleanseCurse: () -> Unit,
     avatarAnchorModifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
+    // Animation: 0 -> 72.dp
     val gearOffset by animateDpAsState(
         targetValue = if (expanded) 72.dp else 0.dp,
         label = "gear-offset",
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 250f)
-
     )
 
-    Box(
-        Modifier
-            .fillMaxWidth()
-    ) {
-        HeaderCapsule(
-            hero = uiState.hero,
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            statsBadge = statsBadge,
-            inventoryBadge = inventoryBadge,
-            onToggleStats = onToggleStats,
-            onToggleInventory = onToggleInventory,
-            onToggleAnalytics = onToggleAnalytics,
-            modifier = Modifier.align(Alignment.Center),
-            avatarAnchorModifier = avatarAnchorModifier
-        )
+    Column(Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+        ) {
+            HeaderCapsule(
+                hero = uiState.hero,
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                statsBadge = statsBadge,
+                inventoryBadge = inventoryBadge,
+                onToggleStats = onToggleStats,
+                onToggleInventory = onToggleInventory,
+                onToggleAnalytics = onToggleAnalytics,
+                modifier = Modifier.align(Alignment.Center),
+                avatarAnchorModifier = avatarAnchorModifier
+            )
 
-        OrbSettingsButton(
-            onClick = onOpenSettings,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .offset(y = gearOffset)
-                .padding(end = 12.dp)
-        )
-    }
+            OrbSettingsButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .offset(y = gearOffset)
+                    .padding(end = 12.dp)
+                    .zIndex(1f)
+            )
+        }
 
-    AnimatedVisibility(
-        visible = uiState.isCursed,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically()
-    ) {
-        CurseChip(
-            minutes = uiState.curseMinutes,
-            seconds = uiState.curseSeconds,
-            softCapMinutes = uiState.curseSoftCapMinutes
-        )
+        // Chip stays put (no push on orb drop)
+        AnimatedVisibility(
+            visible = uiState.isCursed,
+            enter = fadeIn() + slideInVertically(),
+            exit = fadeOut() + slideOutVertically(),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            CurseChip(
+                minutes = uiState.curseMinutes,
+                seconds = uiState.curseSeconds,
+                capMinutes = uiState.curseSoftCapMinutes,
+                onCleanse = onCleanseCurse
+            )
+        }
     }
 }
 
@@ -90,7 +98,7 @@ private fun OrbSettingsButton(
     val pressed by interaction.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
         targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessHigh),
         label = "gear-press-scale"
     )
 
@@ -103,7 +111,7 @@ private fun OrbSettingsButton(
                 rotation.snapTo(0f)
                 rotation.animateTo(
                     targetValue = 360f,
-                    animationSpec = tween(durationMillis = 420, easing = FastOutSlowInEasing)
+                    animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
                 )
                 rotation.snapTo(0f)
             }

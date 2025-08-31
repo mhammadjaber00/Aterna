@@ -22,12 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.yavero.aterna.designsystem.theme.AternaColors
+import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.features.quest.component.LogFilter
 import io.yavero.aterna.features.quest.component.filterBy
-import io.yavero.aterna.ui.theme.AternaColors
-import io.yavero.aterna.ui.theme.AternaTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

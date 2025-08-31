@@ -1,50 +1,81 @@
 CREATE TABLE QuestLogEntity (
-    id TEXT NOT NULL PRIMARY KEY,
-    heroId TEXT NOT NULL,
-    durationMinutes INTEGER NOT NULL,
-    startTime INTEGER NOT NULL,
-    endTime INTEGER,
-    completed INTEGER NOT NULL DEFAULT 0,
-    gaveUp INTEGER NOT NULL DEFAULT 0,
-    xpGained INTEGER NOT NULL DEFAULT 0,
-    goldGained INTEGER NOT NULL DEFAULT 0,
-    serverValidated INTEGER NOT NULL DEFAULT 0,
+  id TEXT NOT NULL PRIMARY KEY,
+  heroId TEXT NOT NULL,
+  durationMinutes INTEGER NOT NULL,
+  startTime INTEGER NOT NULL,      -- epoch seconds
+  endTime INTEGER,                 -- epoch seconds or NULL while active
+  completed INTEGER NOT NULL DEFAULT 0,
+  gaveUp INTEGER NOT NULL DEFAULT 0,
+  xpGained INTEGER NOT NULL DEFAULT 0,
+  goldGained INTEGER NOT NULL DEFAULT 0,
+  serverValidated INTEGER NOT NULL DEFAULT 0,
 
-    -- Reward ledger snapshot (frozen allocation totals + metadata)
-    ledgerVersion INTEGER,           -- null until frozen; set to 1 currently
-    ledgerHash TEXT,                 -- stable hash of (version, plan, allocations)
-    ledgerTotalXp INTEGER,           -- final XP used to build the ledger
-    ledgerTotalGold INTEGER,         -- final Gold used to build the ledger
+  -- Reward ledger snapshot
+  ledgerVersion INTEGER,
+  ledgerHash TEXT,
+  ledgerTotalXp INTEGER,
+  ledgerTotalGold INTEGER,
 
-    createdAt INTEGER NOT NULL,
-    FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
+  createdAt INTEGER NOT NULL,
+  questType TEXT NOT NULL DEFAULT 'OTHER',
+
+  FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
 );
 
--- Queries
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_questlog_hero       ON QuestLogEntity(heroId);
+CREATE INDEX IF NOT EXISTS idx_questlog_hero_start ON QuestLogEntity(heroId, startTime);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_quest
+ON QuestLogEntity ((CASE WHEN endTime IS NULL AND gaveUp = 0 THEN 1 END))
+WHERE endTime IS NULL AND gaveUp = 0;
+
+-- Core queries
 selectQuestsByHero:
-SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC;
+SELECT * FROM QuestLogEntity
+WHERE heroId = ?
+ORDER BY createdAt DESC;
 
 selectRecentQuests:
-SELECT * FROM QuestLogEntity WHERE heroId = ? ORDER BY createdAt DESC LIMIT ?;
+SELECT * FROM QuestLogEntity
+WHERE heroId = ?
+ORDER BY createdAt DESC
+LIMIT ?;
 
--- Global helpers
+selectQuestsByHeroAndStartBetween:
+SELECT * FROM QuestLogEntity
+WHERE heroId = ?
+  AND startTime BETWEEN ? AND ?
+ORDER BY startTime DESC;
+
 selectActiveQuestGlobal:
-SELECT * FROM QuestLogEntity WHERE endTime IS NULL AND gaveUp = 0 ORDER BY startTime DESC LIMIT 1;
+SELECT * FROM QuestLogEntity
+WHERE endTime IS NULL AND gaveUp = 0
+ORDER BY startTime DESC
+LIMIT 1;
 
 selectActiveQuestsGlobal:
-SELECT * FROM QuestLogEntity WHERE endTime IS NULL AND gaveUp = 0 ORDER BY startTime DESC;
+SELECT * FROM QuestLogEntity
+WHERE endTime IS NULL AND gaveUp = 0
+ORDER BY startTime DESC;
 
 insertQuest:
-INSERT INTO QuestLogEntity
-(id, heroId, durationMinutes, startTime, endTime, completed, gaveUp, xpGained, goldGained, serverValidated, ledgerVersion, ledgerHash, ledgerTotalXp, ledgerTotalGold, createdAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO QuestLogEntity (
+  id, heroId, durationMinutes, startTime, endTime, completed, gaveUp,
+  xpGained, goldGained, serverValidated,
+  ledgerVersion, ledgerHash, ledgerTotalXp, ledgerTotalGold,
+  createdAt, questType
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateQuestCompletion:
 UPDATE QuestLogEntity
 SET endTime = ?, completed = ?, xpGained = ?, goldGained = ?, serverValidated = ?
 WHERE id = ?;
 
--- Ledger snapshot helpers (used by QuestRepositoryImpl.save/getLedgerSnapshot)
+updateQuestGaveUp:
+UPDATE QuestLogEntity
+SET endTime = ?, completed = 0, gaveUp = 1, xpGained = 0, goldGained = 0, serverValidated = 0
+WHERE id = ?;
+
 updateLedgerSnapshot:
 UPDATE QuestLogEntity
 SET ledgerVersion = ?, ledgerHash = ?, ledgerTotalXp = ?, ledgerTotalGold = ?
@@ -55,12 +86,30 @@ SELECT ledgerVersion, ledgerHash, ledgerTotalXp, ledgerTotalGold
 FROM QuestLogEntity
 WHERE id = ?;
 
-updateQuestGaveUp:
-UPDATE QuestLogEntity
-SET endTime = ?, completed = 0, gaveUp = 1, xpGained = 0, goldGained = 0, serverValidated = 0
-WHERE id = ?;
+-- Lifetime aggregates (completed only)
+sumMinutesByHero:
+SELECT COALESCE(SUM(durationMinutes), 0) AS total_minutes
+FROM QuestLogEntity
+WHERE heroId = ? AND completed = 1;
 
--- Enforce at most one active quest globally
-CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_quest
-ON QuestLogEntity ((CASE WHEN endTime IS NULL AND gaveUp = 0 THEN 1 END))
-WHERE endTime IS NULL AND gaveUp = 0;
+countQuestsByHero:
+SELECT COUNT(*) AS total_quests
+FROM QuestLogEntity
+WHERE heroId = ? AND completed = 1;
+
+maxSessionByHero:
+SELECT COALESCE(MAX(durationMinutes), 0) AS longest_session
+FROM QuestLogEntity
+WHERE heroId = ? AND completed = 1;
+
+selectEventDaysEpochByHero:
+SELECT DISTINCT (startTime / 86400) AS epoch_day
+FROM QuestLogEntity
+WHERE heroId = ? AND completed = 1
+ORDER BY epoch_day ASC;
+
+countCleansesByHero:
+SELECT COUNT(*) AS cleansed
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = ? AND e.type = 'CURSE_CLEANSED';

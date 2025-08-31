@@ -1,22 +1,11 @@
 package io.yavero.aterna.domain.util
 
 import io.yavero.aterna.domain.model.*
-import io.yavero.aterna.services.rng.SplitMix64
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 object LootRoller {
-    data class LootConfig(
-        val xpPerMinute: Double = 9.5,
-        val goldPerMinute: Double = 0.9,
-        val levelScalePerLevelGold: Double = 0.035,
-        val levelScaleCapGold: Double = 2.0,
-        val longSessionKneeMin: Int = 60,
-        val longSessionFloorAt120: Double = 0.6,
-        val itemDropPerMinute: Double = 0.02,
-        val itemDropCap: Double = 0.80
-    )
 
     fun rollLoot(
         questDurationMinutes: Int,

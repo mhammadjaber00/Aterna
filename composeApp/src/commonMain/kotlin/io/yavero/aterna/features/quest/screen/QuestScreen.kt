@@ -218,14 +218,18 @@ fun QuestScreen(
                         uiState = uiState,
                         statsBadge = statsBadge,
                         inventoryBadge = inventoryBadge,
-                        onToggleStats = { statsBadge = false; modal = Modal.Stats },
+                        onToggleStats = {
+                            statsBadge = false
+                            component.onNavigateToStats()
+                        },
                         onToggleInventory = {
                             inventoryBadge = false
                             component.onClearNewlyAcquired()
                             component.onNavigateToInventory()
                         },
-                        onToggleAnalytics = { modal = Modal.Analytics },
+                        onToggleAnalytics = { component.onOpenAnalytics() },
                         onOpenSettings = { modal = Modal.Settings },
+                        onCleanseCurse = { component.onCleanseCurse() },
                         avatarAnchorModifier = Modifier.onGloballyPositioned {
                             heroAnchor = it.boundsInRoot()
                         }
@@ -346,14 +350,16 @@ fun QuestScreen(
         val questAtOpen = remember(modal) { uiState.activeQuest }
         val heroAtOpen = remember(modal) { uiState.hero }
         val lootAtOpen = remember(modal) { uiState.lastLoot }
-        val eventsAtOpen = remember(modal) { uiState.adventureLog.toList() }
 
         if (questAtOpen != null && lootAtOpen != null) {
             LootDisplayDialog(
                 quest = questAtOpen,
                 hero = heroAtOpen,
                 loot = lootAtOpen,
-                events = eventsAtOpen,
+                onShowLogbook = {
+                    modal = Modal.None
+                    component.onNavigateToLogbook()
+                },
                 onDismiss = {
                     modal = Modal.None
                     component.onRefresh()
@@ -396,9 +402,7 @@ fun QuestScreen(
             totalMinutes = uiState.activeQuest?.durationMinutes ?: 0,
             timeRemaining = uiState.timeRemaining,
             retreatGraceSeconds = uiState.retreatGraceSeconds,
-            lateRetreatThreshold = uiState.lateRetreatThreshold,
-            lateRetreatPenalty = uiState.lateRetreatPenalty,
-            curseSoftCapMinutes = uiState.curseSoftCapMinutes,
+            capMinutes = uiState.curseSoftCapMinutes,
             onConfirm = { modal = Modal.None; component.onGiveUpQuest() },
             onDismiss = { modal = Modal.None; component.onRetreatConfirmDismissed() }
         )

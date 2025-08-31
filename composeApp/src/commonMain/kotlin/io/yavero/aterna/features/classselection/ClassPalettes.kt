@@ -1,8 +1,8 @@
 package io.yavero.aterna.features.classselection
 
 import androidx.compose.ui.graphics.Brush
+import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.ui.theme.AternaColors
 
 val ClassPalettes = mapOf(
     ClassType.WARRIOR to ClassPalette(

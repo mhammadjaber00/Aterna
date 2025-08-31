@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.ui.theme.AternaColors
 import kotlin.math.*
 
 @Composable

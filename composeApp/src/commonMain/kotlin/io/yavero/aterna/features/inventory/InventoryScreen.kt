@@ -20,6 +20,7 @@ import io.yavero.aterna.features.inventory.components.InventoryRow
 import io.yavero.aterna.features.quest.component.sheets.FilterChipPill
 import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
+import io.yavero.aterna.ui.components.MagicalBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +33,7 @@ fun InventoryScreen(component: InventoryComponent, modifier: Modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = { Text("Inventory") },
                 navigationIcon = {
                     IconButton(onClick = component::onBack) {
@@ -43,81 +44,84 @@ fun InventoryScreen(component: InventoryComponent, modifier: Modifier = Modifier
             )
         }
     ) { pv ->
-        when {
-            state.loading -> LoadingState(
-                Modifier
-                    .fillMaxSize()
-                    .padding(pv)
-            )
-
-            state.error != null -> ErrorState(
-                state.error!!,
-                onRetry = { },
-                modifier = Modifier.padding(pv)
-            )
-
-            else -> {
-                val contentPadding = PaddingValues(
-
-
-                    top = pv.calculateTopPadding() + 12.dp,
-                    bottom = pv.calculateBottomPadding() + 16.dp
+        Box(Modifier.fillMaxSize()) {
+            MagicalBackground()
+            when {
+                state.loading -> LoadingState(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(pv)
                 )
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentPadding = contentPadding,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    stickyHeader(key = "filters") {
-                        Surface(
-                            tonalElevation = 2.dp,
-                            shadowElevation = 2.dp
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(vertical = 10.dp)
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                state.error != null -> ErrorState(
+                    state.error!!,
+                    onRetry = { },
+                    modifier = Modifier.padding(pv)
+                )
+
+                else -> {
+                    val contentPadding = PaddingValues(
+
+
+                        top = pv.calculateTopPadding() + 12.dp,
+                        bottom = pv.calculateBottomPadding() + 16.dp
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentPadding = contentPadding,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        stickyHeader(key = "filters") {
+                            Surface(
+                                tonalElevation = 2.dp,
+                                shadowElevation = 2.dp
                             ) {
-                                FilterChipPill("All", state.filter == InvFilter.All) {
-                                    component.onFilterChange(InvFilter.All)
-                                }
-                                FilterChipPill("Weapons", state.filter == InvFilter.Weapons) {
-                                    component.onFilterChange(InvFilter.Weapons)
-                                }
-                                FilterChipPill("Armor", state.filter == InvFilter.Armor) {
-                                    component.onFilterChange(InvFilter.Armor)
-                                }
-                                FilterChipPill("Consumables", state.filter == InvFilter.Consumables) {
-                                    component.onFilterChange(InvFilter.Consumables)
-                                }
-                                FilterChipPill("Trinkets", state.filter == InvFilter.Trinkets) {
-                                    component.onFilterChange(InvFilter.Trinkets)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(vertical = 10.dp)
+                                        .horizontalScroll(rememberScrollState())
+                                        .padding(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChipPill("All", state.filter == InvFilter.All) {
+                                        component.onFilterChange(InvFilter.All)
+                                    }
+                                    FilterChipPill("Weapons", state.filter == InvFilter.Weapons) {
+                                        component.onFilterChange(InvFilter.Weapons)
+                                    }
+                                    FilterChipPill("Armor", state.filter == InvFilter.Armor) {
+                                        component.onFilterChange(InvFilter.Armor)
+                                    }
+                                    FilterChipPill("Consumables", state.filter == InvFilter.Consumables) {
+                                        component.onFilterChange(InvFilter.Consumables)
+                                    }
+                                    FilterChipPill("Trinkets", state.filter == InvFilter.Trinkets) {
+                                        component.onFilterChange(InvFilter.Trinkets)
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    if (state.items.isEmpty()) {
-                        item(key = "empty") {
-                            EmptyInventoryState(
-                                hasItems = state.items.isNotEmpty()
-                            )
-                        }
-                    } else {
-                        items(
-                            items = state.items,
-                            key = { it.id }
-                        ) { item ->
-                            InventoryRow(
-                                item = item,
-                                isNew = item.id in state.newlyAcquiredIds
-                            )
+                        if (state.items.isEmpty()) {
+                            item(key = "empty") {
+                                EmptyInventoryState(
+                                    hasItems = state.items.isNotEmpty()
+                                )
+                            }
+                        } else {
+                            items(
+                                items = state.items,
+                                key = { it.id }
+                            ) { item ->
+                                InventoryRow(
+                                    item = item,
+                                    isNew = item.id in state.newlyAcquiredIds
+                                )
+                            }
                         }
                     }
                 }

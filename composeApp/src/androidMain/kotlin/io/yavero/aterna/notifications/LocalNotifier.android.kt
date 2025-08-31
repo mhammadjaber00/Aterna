@@ -12,6 +12,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration
@@ -54,15 +55,9 @@ actual class LocalNotifier(private val context: Context) {
         )
         val t = at.toEpochMilliseconds()
         if (canScheduleExactAlarms()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-            else
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, t, pi)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-            else
-                alarmManager.set(AlarmManager.RTC_WAKEUP, t, pi)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
         }
     }
 
@@ -86,15 +81,9 @@ actual class LocalNotifier(private val context: Context) {
         )
         val t = firstAt.toEpochMilliseconds()
         if (canScheduleExactAlarms()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-            else
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, t, pi)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-            else
-                alarmManager.set(AlarmManager.RTC_WAKEUP, t, pi)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
         }
     }
 
@@ -120,7 +109,7 @@ actual class LocalNotifier(private val context: Context) {
     fun buildRequestExactAlarmIntent(): Intent? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                .setData(android.net.Uri.parse("package:${context.packageName}"))
+                .setData("package:${context.packageName}".toUri())
         } else null
 
     private fun createDefaultChannels() {

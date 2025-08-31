@@ -1,5 +1,6 @@
 package io.yavero.aterna.features.quest.notification
 
+import io.yavero.aterna.domain.ports.Notifier
 import io.yavero.aterna.notifications.LocalNotifier
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -7,7 +8,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 class QuestNotifierIos(
     private val localNotifier: LocalNotifier
-) : QuestNotifier {
+) : Notifier {
 
     override suspend fun requestPermissionIfNeeded() {
 

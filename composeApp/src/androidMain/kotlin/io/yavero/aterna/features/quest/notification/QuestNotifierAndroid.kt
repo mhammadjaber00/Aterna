@@ -11,6 +11,7 @@ import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.yavero.aterna.domain.ports.Notifier
 import io.yavero.aterna.notifications.LocalNotifier
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -19,7 +20,7 @@ import kotlin.time.Instant
 class QuestNotifierAndroid(
     private val context: Context,
     private val localNotifier: LocalNotifier
-) : QuestNotifier {
+) : Notifier {
 
     private val notificationManager = NotificationManagerCompat.from(context)
 

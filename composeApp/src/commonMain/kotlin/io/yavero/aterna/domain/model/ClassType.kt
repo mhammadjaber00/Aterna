@@ -8,23 +8,20 @@ enum class ClassType(
     val description: String,
     val flavor: String,
     val xpMultiplier: Double,
-    val goldMultiplier: Double,
-    val cooldownReduction: Double
+    val goldMultiplier: Double
 ) {
     WARRIOR(
         "Warrior",
         "+20% Gold",
         "Turns effort into Gold.",
         xpMultiplier = 1.0,
-        goldMultiplier = 1.2,
-        cooldownReduction = 0.0
+        goldMultiplier = 1.2
     ),
     MAGE(
         "Mage",
         "+30% XP",
         "Turns insight into XP.",
         xpMultiplier = 1.3,
-        goldMultiplier = 1.0,
-        cooldownReduction = 0.0
+        goldMultiplier = 1.0
     ),
 }
