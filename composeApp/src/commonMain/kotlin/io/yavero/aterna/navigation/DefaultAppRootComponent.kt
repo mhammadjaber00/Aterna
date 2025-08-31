@@ -12,6 +12,8 @@ import io.yavero.aterna.domain.util.TimeProvider
 import io.yavero.aterna.features.analytics.presentation.DefaultAnalyticsComponent
 import io.yavero.aterna.features.hero_stats.DefaultHeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponentImpl
+import io.yavero.aterna.features.logbook.DefaultLogbookComponent
+import io.yavero.aterna.features.logbook.QuestLogbookDataSource
 import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.aterna.features.quest.presentation.DefaultQuestComponent
@@ -78,6 +80,9 @@ class DefaultAppRootComponent(
                     onNavigateToInventoryCallback = {
                         navigateToInventory()
                     },
+                    onNavigateToLogbookCallback = {
+                        navigation.bringToFront(Config.Logbook)
+                    },
                     onNavigateToStatsCallback = {
                         navigateToStats()
                     },
@@ -108,9 +113,7 @@ class DefaultAppRootComponent(
                     inventoryRepository,
                     onBackNav = { navigation.pop() },
                     onOpenLogbookNav = {
-//                        navigation.bringToFront(
-//                        Config.Logbook
-//                        )
+                        navigation.bringToFront(Config.Logbook)
                     },
                 )
             )
@@ -122,6 +125,16 @@ class DefaultAppRootComponent(
                     questRepository = questRepository,
                     timeProvider = timeProvider,
                     onBackNav = { navigation.pop() }
+                )
+            )
+
+            is Config.Logbook -> AppRootComponent.Child.Logbook(
+                DefaultLogbookComponent(
+                    dataSource = QuestLogbookDataSource(
+                        questRepository = questRepository,
+                        heroRepository = heroRepository
+                    ),
+                    onBackRequest = { navigation.pop() }
                 )
             )
         }
@@ -150,13 +163,17 @@ class DefaultAppRootComponent(
         navigation.bringToFront(Config.Analytics)
     }
 
-    override fun startQuest(durationMinutes: Int, classType: String) {
+    override fun startQuest(
+        durationMinutes: Int,
+        classType: String,
+        questType: io.yavero.aterna.domain.model.quest.QuestType
+    ) {
         val classTypeEnum = try {
             ClassType.valueOf(classType)
         } catch (e: IllegalArgumentException) {
             ClassType.WARRIOR
         }
-        questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum))
+        questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum, questType))
         navigateToQuestHub()
     }
 }

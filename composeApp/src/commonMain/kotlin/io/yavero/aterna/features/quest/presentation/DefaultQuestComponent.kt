@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.QuestLoot
+import io.yavero.aterna.domain.model.quest.QuestType
 import io.yavero.aterna.domain.repository.SettingsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +19,7 @@ class DefaultQuestComponent(
     private val onNavigateToTimerCallback: (Int, ClassType) -> Unit = { _, _ -> },
     private val onNavigateToInventoryCallback: () -> Unit = {},
     private val onNavigateToStatsCallback: () -> Unit = {},
+    private val onNavigateToLogbookCallback: () -> Unit = {},
     private val onShowError: (String) -> Unit = {},
     private val onShowSuccess: (String) -> Unit = {},
     private val onPlayQuestCompleteSound: () -> Unit = {},
@@ -48,7 +50,7 @@ class DefaultQuestComponent(
     }
 
     override fun onStartQuest(durationMinutes: Int, classType: ClassType) {
-        questStore.process(QuestIntent.StartQuest(durationMinutes, classType))
+        questStore.process(QuestIntent.StartQuest(durationMinutes, classType, QuestType.OTHER))
     }
 
     override fun onGiveUpQuest() {
@@ -77,6 +79,10 @@ class DefaultQuestComponent(
 
     override fun onNavigateToStats() {
         onNavigateToStatsCallback()
+    }
+
+    override fun onNavigateToLogbook() {
+        onNavigateToLogbookCallback()
     }
 
     override fun onOpenAnalytics() = onOpenAnalyticsNav()

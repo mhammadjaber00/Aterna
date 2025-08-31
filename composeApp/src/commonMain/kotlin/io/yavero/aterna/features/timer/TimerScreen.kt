@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+
 package io.yavero.aterna.features.timer
 
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -5,8 +7,12 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +22,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,10 +34,14 @@ import aterna.composeapp.generated.resources.*
 import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.designsystem.theme.ringPaletteFor
 import io.yavero.aterna.domain.model.ClassType
+import io.yavero.aterna.domain.model.quest.QuestType
 import io.yavero.aterna.features.timer.component.RitualRing
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalComposeUiApi::class)
+/* ---------------------------------------------------------- */
+/* Begin Quest (Dropdown Type Picker)                         */
+/* ---------------------------------------------------------- */
+
 @Composable
 fun TimerScreen(
     initialMinutes: Int = 25,
@@ -36,16 +49,19 @@ fun TimerScreen(
     maxMinutes: Int = 120,
     stepMinutes: Int = 5,
     classType: ClassType = ClassType.WARRIOR,
-    onConfirm: (Int) -> Unit,
+    initialType: QuestType = QuestType.OTHER,
+    onConfirm: (minutes: Int, type: QuestType) -> Unit,
     onDismiss: () -> Unit
 ) {
     var minutes by remember { mutableIntStateOf(initialMinutes.coerceIn(minMinutes, maxMinutes)) }
+    var selectedType by remember { mutableStateOf(initialType) }
+
     val progress = ((minutes - minMinutes) / (maxMinutes - minMinutes).toFloat()).coerceIn(0f, 1f)
     val haptic = LocalHapticFeedback.current
 
     var isSealing by remember { mutableStateOf(false) }
     var sealProgress by remember { mutableFloatStateOf(0f) }
-    val phrases = rememberTimerPhrasePair()
+    val phrases = rememberTimerPhrasePair() // your existing strings helper
 
     LaunchedEffect(isSealing) {
         if (isSealing) {
@@ -54,7 +70,7 @@ fun TimerScreen(
                 sealProgress = value
             }
             kotlinx.coroutines.delay(200)
-            onConfirm(minutes)
+            onConfirm(minutes, selectedType)
         }
     }
 
@@ -76,6 +92,7 @@ fun TimerScreen(
 
         Box(Modifier.fillMaxSize().padding(20.dp)) {
 
+            // Title
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -90,6 +107,7 @@ fun TimerScreen(
                 )
             }
 
+            // Main content
             Column(
                 Modifier
                     .fillMaxSize()
@@ -97,6 +115,8 @@ fun TimerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+
+                // Ritual ring
                 RitualRing(
                     value = minutes,
                     onValueChange = { minutes = it },
@@ -112,8 +132,23 @@ fun TimerScreen(
                     classType = classType
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(20.dp))
 
+                // --- Compact dropdown selector (good UX, one-thumb) ---
+                QuestTypeDropdown(
+                    selected = selectedType,
+                    onSelected = {
+                        selectedType = it
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    },
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // +/- controls
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = { minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes) },
@@ -127,8 +162,9 @@ fun TimerScreen(
                     ) { Text(stringResource(Res.string.step_minutes_plus, stepMinutes)) }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
+                // Duration + vibe line
                 Text(
                     stringResource(Res.string.minutes_format, minutes),
                     style = MaterialTheme.typography.headlineMedium,
@@ -144,6 +180,7 @@ fun TimerScreen(
                 Text(line, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
+            // Bottom actions
             Column(
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -171,8 +208,9 @@ fun TimerScreen(
                         .clip(btnShape)
                         .background(questBrush, btnShape)
                 ) {
+                    val typeLabel = selectedType.readable()
                     Text(
-                        stringResource(if (isSealing) Res.string.sealing else phrases.start),
+                        text = stringResource(if (isSealing) Res.string.sealing else phrases.start),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -201,6 +239,10 @@ fun TimerScreen(
     }
 }
 
+/* ---------------------------------------------------------- */
+/* Vignette                                                   */
+/* ---------------------------------------------------------- */
+
 @Composable
 fun DungeonVignette() {
     val bg1 = AternaColors.Neutral950
@@ -218,4 +260,148 @@ fun DungeonVignette() {
                 )
             }
     )
+}
+
+/* ---------------------------------------------------------- */
+/* Dropdown Type Selector                                     */
+/* ---------------------------------------------------------- */
+
+private data class TypeRow(
+    val type: QuestType,
+    val icon: ImageVector,
+    val label: String,
+    val tint: Color
+)
+
+@Composable
+private fun QuestTypeDropdown(
+    selected: QuestType,
+    onSelected: (QuestType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val rows = remember {
+        listOf(
+            TypeRow(QuestType.WORK, Icons.Filled.Work, "Work", AternaColors.GoldAccent),
+            TypeRow(QuestType.STUDY, Icons.Filled.School, "Study", AternaColors.GoldAccent),
+            TypeRow(QuestType.READING, Icons.Filled.MenuBook, "Reading", AternaColors.GoldAccent),
+            TypeRow(QuestType.FITNESS, Icons.Filled.FitnessCenter, "Fitness", AternaColors.GoldAccent),
+            TypeRow(QuestType.CHORES, Icons.Filled.CleaningServices, "Chores", AternaColors.GoldAccent),
+            TypeRow(QuestType.REST, Icons.Filled.Bedtime, "Rest", AternaColors.GoldAccent),
+            TypeRow(QuestType.OTHER, Icons.Filled.AutoAwesome, "Other", AternaColors.GoldAccent),
+        )
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+    val current = rows.firstOrNull { it.type == selected } ?: rows.last()
+
+    var anchorSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val density = LocalDensity.current
+
+    Box(modifier) {
+        val pillShape = CircleShape
+        Surface(
+            shape = pillShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+            tonalElevation = 2.dp,
+            modifier = Modifier
+                .height(46.dp)
+                .fillMaxWidth()
+                .clip(pillShape)
+                .clickable { expanded = true }
+                .onGloballyPositioned { anchorSize = it.size }
+        ) {
+            Row(
+                Modifier.padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(current.tint.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(current.icon, contentDescription = null, tint = current.tint, modifier = Modifier.size(16.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Type • ${current.label}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(with(density) { anchorSize.width.toDp() }),
+            shape = RoundedCornerShape(16.dp),
+            containerColor = AternaColors.Neutral900,
+            tonalElevation = 6.dp
+        ) {
+            rows.forEach { row ->
+                val selectedRow = row.type == selected
+                DropdownMenuItem(
+                    leadingIcon = {
+                        Box(
+                            Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(row.tint.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(row.icon, contentDescription = null, tint = row.tint, modifier = Modifier.size(16.dp))
+                        }
+                    },
+                    text = {
+                        Text(
+                            row.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (selectedRow) FontWeight.SemiBold else FontWeight.Medium
+                        )
+                    },
+                    trailingIcon = {
+                        if (selectedRow) Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = AternaColors.GoldAccent
+                        )
+                    },
+                    onClick = {
+                        onSelected(row.type)
+                        expanded = false
+                    },
+                    colors = MenuDefaults.itemColors(
+                        textColor = MaterialTheme.colorScheme.onSurface,
+                        leadingIconColor = MaterialTheme.colorScheme.onSurface,
+                        trailingIconColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        }
+    }
+}
+
+/* ---------------------------------------------------------- */
+/* Small helpers                                              */
+/* ---------------------------------------------------------- */
+
+private fun QuestType.readable(): String = when (this) {
+    QuestType.WORK -> "Work"
+    QuestType.STUDY -> "Study"
+    QuestType.READING -> "Reading"
+    QuestType.FITNESS -> "Fitness"
+    QuestType.CHORES -> "Chores"
+    QuestType.REST -> "Rest"
+    QuestType.OTHER -> "Other"
 }

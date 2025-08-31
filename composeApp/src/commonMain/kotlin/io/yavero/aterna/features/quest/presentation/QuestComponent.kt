@@ -27,5 +27,7 @@ interface QuestComponent {
 
     fun onNavigateToStats()
 
+    fun onNavigateToLogbook()
+
     fun onOpenAnalytics()
 }

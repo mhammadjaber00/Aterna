@@ -19,7 +19,7 @@ class DefaultHeroStatsComponent(
     private val questRepository: QuestRepository?,
     private val inventoryRepository: InventoryRepository?,
     private val onBackNav: () -> Unit,
-    private val onOpenLogbookNav: () -> Unit,   // <- only this stays
+    private val onOpenLogbookNav: () -> Unit,
 ) : HeroStatsComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

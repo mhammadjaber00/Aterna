@@ -502,4 +502,55 @@ class QuestRepositoryImpl(
             serverValidated = e.serverValidated == 1L,
             questType = runCatching { QuestType.valueOf(e.questType) }.getOrDefault(QuestType.OTHER)
         )
+
+    override suspend fun logbookFetchPage(
+        heroId: String,
+        includeIncomplete: Boolean,
+        types: List<String>,
+        fromEpochSec: Long,
+        toEpochSec: Long,
+        search: String?,
+        beforeAt: Long?,
+        limit: Int
+    ): List<QuestEvent> {
+        val typeNames = if (types.isEmpty()) EventType.entries.map { it.name } else types
+
+        return database.logbookQueries.logbook_selectEvents(
+            heroId = heroId,
+            includeIncomplete = if (includeIncomplete) 1 else 0,
+            types = typeNames,
+            fromSec = fromEpochSec,
+            toSec = toEpochSec,
+            search = search,
+            beforeAt = beforeAt,
+            limit = limit.toLong()
+        ).executeAsList().map { row ->
+            QuestEvent(
+                questId = row.questId,
+                idx = row.idx.toInt(),
+                at = Instant.fromEpochSeconds(row.at),
+                type = EventType.valueOf(row.type),
+                message = row.message,
+                xpDelta = row.xpDelta.toInt(),
+                goldDelta = row.goldDelta.toInt(),
+                outcome = decodeOutcome(row.outcome)
+            )
+        }
+    }
+
+    override suspend fun logbookDayEventCount(
+        heroId: String,
+        includeIncomplete: Boolean,
+        types: List<String>,
+        epochDay: Long
+    ): Int {
+        val typeNames =
+            if (types.isEmpty()) io.yavero.aterna.domain.model.quest.EventType.entries.map { it.name } else types
+        return database.logbookQueries.logbook_dayEventCount(
+            heroId = heroId,
+            includeIncomplete = if (includeIncomplete) 1 else 0,
+            types = typeNames,
+            epochDay = epochDay
+        ).executeAsOne().toInt()
+    }
 }

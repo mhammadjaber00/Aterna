@@ -7,6 +7,7 @@ import io.yavero.aterna.domain.error.toAppError
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
+import io.yavero.aterna.domain.model.quest.QuestType
 import io.yavero.aterna.domain.quest.curse.CurseService
 import io.yavero.aterna.domain.quest.ticker.Ticker
 import io.yavero.aterna.domain.repository.HeroRepository
@@ -117,7 +118,7 @@ class QuestStore(
         when (intent) {
             QuestIntent.Refresh -> refresh.tryEmit(Unit)
 
-            is QuestIntent.StartQuest -> startQuest(intent.durationMinutes, intent.classType)
+            is QuestIntent.StartQuest -> startQuest(intent.durationMinutes, intent.classType, intent.questType)
 
             QuestIntent.GiveUp -> giveUpQuest()
 
@@ -179,9 +180,9 @@ class QuestStore(
         return merge(dataFlow, tickFlow)
     }
 
-    private fun startQuest(durationMinutes: Int, classType: ClassType) {
+    private fun startQuest(durationMinutes: Int, classType: ClassType, questType: QuestType) {
         scope.launch {
-            runCatching { actions.start(durationMinutes, classType) }
+            runCatching { actions.start(durationMinutes, classType, questType) }
                 .onSuccess { r ->
                     reduce(QuestMsg.QuestStarted(r.quest))
                     r.uiEffects.forEach { _effects.tryEmit(it) }

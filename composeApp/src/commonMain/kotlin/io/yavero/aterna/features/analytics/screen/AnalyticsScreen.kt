@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,7 +42,8 @@ fun AnalyticsScreen(component: AnalyticsComponent, modifier: Modifier = Modifier
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize()
+            .nestedScroll(scroll.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("Analytics", fontWeight = FontWeight.SemiBold) },
@@ -51,7 +53,7 @@ fun AnalyticsScreen(component: AnalyticsComponent, modifier: Modifier = Modifier
                     }
                 },
                 actions = { TextButton(onClick = component::onExportCsv) { Text("Export") } },
-//                scrollBehavior = scroll
+                scrollBehavior = scroll
             )
         }
     ) { pv ->

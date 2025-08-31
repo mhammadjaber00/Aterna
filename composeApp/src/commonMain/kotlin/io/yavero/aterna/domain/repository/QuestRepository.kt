@@ -80,4 +80,23 @@ interface QuestRepository {
 
     // For streak calculations
     suspend fun analyticsDistinctDaysCompleted(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<Long>
+
+
+    suspend fun logbookFetchPage(
+        heroId: String,
+        includeIncomplete: Boolean,
+        types: List<String>,
+        fromEpochSec: Long,
+        toEpochSec: Long,
+        search: String?,
+        beforeAt: Long?,
+        limit: Int
+    ): List<QuestEvent>
+
+    suspend fun logbookDayEventCount(
+        heroId: String,
+        includeIncomplete: Boolean,
+        types: List<String>,
+        epochDay: Long
+    ): Int
 }

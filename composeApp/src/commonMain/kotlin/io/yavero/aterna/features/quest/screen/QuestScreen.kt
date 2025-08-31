@@ -350,14 +350,16 @@ fun QuestScreen(
         val questAtOpen = remember(modal) { uiState.activeQuest }
         val heroAtOpen = remember(modal) { uiState.hero }
         val lootAtOpen = remember(modal) { uiState.lastLoot }
-        val eventsAtOpen = remember(modal) { uiState.adventureLog.toList() }
 
         if (questAtOpen != null && lootAtOpen != null) {
             LootDisplayDialog(
                 quest = questAtOpen,
                 hero = heroAtOpen,
                 loot = lootAtOpen,
-                events = eventsAtOpen,
+                onShowLogbook = {
+                    modal = Modal.None
+                    component.onNavigateToLogbook()
+                },
                 onDismiss = {
                     modal = Modal.None
                     component.onRefresh()
