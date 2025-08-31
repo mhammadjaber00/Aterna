@@ -16,6 +16,7 @@ WHERE heroId = ?
 GROUP BY day
 ORDER BY day ASC;
 
+
 -- Minutes by quest type (completed only)
 analytics_minutesByType:
 SELECT
@@ -70,3 +71,12 @@ WHERE heroId = ?
   AND completed = 1
   AND endTime BETWEEN ? AND ?
 ORDER BY day ASC;
+
+analytics_firstCompletedDayLocal:
+SELECT CAST(strftime('%s', date(MIN(endTime), 'unixepoch','localtime')) AS INTEGER) / 86400 AS day
+FROM QuestLogEntity
+WHERE heroId = ? AND completed = 1;
+
+-- today local day
+analytics_todayLocalDay:
+SELECT CAST(strftime('%s', date('now','localtime')) AS INTEGER) / 86400 AS day;

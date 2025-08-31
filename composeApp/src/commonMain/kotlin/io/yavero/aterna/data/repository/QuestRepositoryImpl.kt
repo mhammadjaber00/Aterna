@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.yavero.aterna.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
@@ -15,13 +13,14 @@ import io.yavero.aterna.domain.model.quest.*
 import io.yavero.aterna.domain.quest.engine.LedgerSnapshot
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
-import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class QuestRepositoryImpl(
     private val database: AternaDatabase,
     private val questApi: QuestApi,
@@ -30,12 +29,7 @@ class QuestRepositoryImpl(
 
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
-
     private val analyticsQueries = database.analyticsQueries
-
-    // ------------------------------------------------------------------------
-    // Active quest
-    // ------------------------------------------------------------------------
 
     override suspend fun getCurrentActiveQuest(): Quest? {
         return questQueries.selectActiveQuestGlobal()
@@ -49,10 +43,6 @@ class QuestRepositoryImpl(
             .map { it.executeAsOneOrNull()?.let(::mapEntityToDomain) }
             .distinctUntilChanged()
     }
-
-    // ------------------------------------------------------------------------
-    // Queries by hero / date
-    // ------------------------------------------------------------------------
 
     override fun getQuestsByHero(heroId: String): Flow<List<Quest>> =
         questQueries.selectQuestsByHero(heroId)
@@ -78,10 +68,6 @@ class QuestRepositoryImpl(
             .selectQuestsByHeroAndStartBetween(heroId, startDate.epochSeconds, endDate.epochSeconds)
             .executeAsList()
             .map(::mapEntityToDomain)
-
-    // ------------------------------------------------------------------------
-    // Insert/Update quest rows
-    // ------------------------------------------------------------------------
 
     override suspend fun insertQuest(quest: Quest) {
         questQueries.insertQuest(
@@ -137,10 +123,6 @@ class QuestRepositoryImpl(
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
     }
 
-    // ------------------------------------------------------------------------
-    // Remote completion
-    // ------------------------------------------------------------------------
-
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
         val baseSeed =
             quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
@@ -166,18 +148,7 @@ class QuestRepositoryImpl(
             throw IllegalStateException(response.message ?: "Quest validation failed")
         }
 
-        val clientLoot = LootRoller.rollLoot(
-            questDurationMinutes = quest.durationMinutes,
-            heroLevel = hero.level,
-            classType = hero.classType,
-            serverSeed = baseSeed
-        )
         val loot = response.loot.toDomain()
-        println(
-            "[TELEMETRY] questId=${quest.id} baseSeed=$baseSeed clientPlanHash=$clientPlanHash " +
-                    "serverPlanHash=${response.serverPlanHash} serverGold=${loot.gold} serverXp=${loot.xp} " +
-                    "clientGold=${clientLoot.gold} clientXp=${clientLoot.xp} resolverMismatch=${response.resolverMismatch}"
-        )
 
         updateQuestCompletion(
             questId = quest.id,
@@ -189,10 +160,6 @@ class QuestRepositoryImpl(
         )
         return loot
     }
-
-    // ------------------------------------------------------------------------
-    // Plans & events
-    // ------------------------------------------------------------------------
 
     override suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>) {
         questEventsQueries.deletePlansByQuest(questId)
@@ -282,10 +249,6 @@ class QuestRepositoryImpl(
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
 
-    // ------------------------------------------------------------------------
-    // Ledger snapshot
-    // ------------------------------------------------------------------------
-
     override suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot) {
         questQueries.updateLedgerSnapshot(
             ledgerVersion = snapshot.version.toLong(),
@@ -304,10 +267,6 @@ class QuestRepositoryImpl(
         val totalGold = row.ledgerTotalGold?.toInt() ?: return null
         return LedgerSnapshot(version, hash, totalXp, totalGold)
     }
-
-    // ------------------------------------------------------------------------
-    // Lifetime aggregates
-    // ------------------------------------------------------------------------
 
     override suspend fun getLifetimeMinutes(): Int {
         val heroId = heroRepository.getCurrentHero()?.id ?: return 0
@@ -336,7 +295,7 @@ class QuestRepositoryImpl(
         var cur = 0
         var prev: Long? = null
         for (d in days) {
-            cur = if (prev != null && d == prev!! + 1) cur + 1 else 1
+            cur = if (prev != null && d == prev + 1) cur + 1 else 1
             if (cur > best) best = cur
             prev = d
         }
@@ -347,10 +306,6 @@ class QuestRepositoryImpl(
         val heroId = heroRepository.getCurrentHero()?.id ?: return 0
         return questQueries.countCleansesByHero(heroId).executeAsOne().toInt()
     }
-
-    // ------------------------------------------------------------------------
-    // Feeds
-    // ------------------------------------------------------------------------
 
     override fun observeAdventureLog(limit: Int): Flow<List<QuestEvent>> = flow {
         val heroId = heroRepository.getCurrentHero()?.id
@@ -398,10 +353,6 @@ class QuestRepositoryImpl(
             }
     }
 
-    // ------------------------------------------------------------------------
-    // Analytics (productivity)
-    // ------------------------------------------------------------------------
-
     override suspend fun analyticsMinutesPerDay(
         heroId: String,
         fromEpochSec: Long,
@@ -426,7 +377,7 @@ class QuestRepositoryImpl(
             .executeAsList()
             .map { row ->
                 QuestRepository.TypeMinutes(
-                    type = row.questType,                // SELECT questType
+                    type = row.questType,
                     minutes = (row.minutes ?: 0L).toInt()
                 )
             }
@@ -441,7 +392,7 @@ class QuestRepositoryImpl(
             .executeAsList()
             .map { row ->
                 QuestRepository.HeatCell(
-                    dow = row.dow.toInt(),               // SELECT dow, hour, minutes
+                    dow = row.dow.toInt(),
                     hour = row.hour.toInt(),
                     minutes = (row.minutes ?: 0L).toInt()
                 )
@@ -469,40 +420,6 @@ class QuestRepositoryImpl(
             .sorted()
     }
 
-    // ------------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------------
-
-    private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
-        is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
-        is EventOutcome.Flee -> "flee:${outcome.mobName}:${outcome.mobLevel}"
-        EventOutcome.None -> null
-    }
-
-    private fun decodeOutcome(s: String?): EventOutcome {
-        if (s == null) return EventOutcome.None
-        val parts = s.split(":")
-        return if (parts.size == 3) {
-            val kind = parts[0]
-            val name = parts[1]
-            val lvl = parts[2].toIntOrNull() ?: 0
-            if (kind == "win") EventOutcome.Win(name, lvl) else EventOutcome.Flee(name, lvl)
-        } else EventOutcome.None
-    }
-
-    private fun mapEntityToDomain(e: QuestLogEntity): Quest =
-        Quest(
-            id = e.id,
-            heroId = e.heroId,
-            durationMinutes = e.durationMinutes.toInt(),
-            startTime = Instant.fromEpochSeconds(e.startTime),
-            endTime = e.endTime?.let(Instant::fromEpochSeconds),
-            completed = e.completed == 1L,
-            gaveUp = e.gaveUp == 1L,
-            serverValidated = e.serverValidated == 1L,
-            questType = runCatching { QuestType.valueOf(e.questType) }.getOrDefault(QuestType.OTHER)
-        )
-
     override suspend fun logbookFetchPage(
         heroId: String,
         includeIncomplete: Boolean,
@@ -513,7 +430,7 @@ class QuestRepositoryImpl(
         beforeAt: Long?,
         limit: Int
     ): List<QuestEvent> {
-        val typeNames = if (types.isEmpty()) EventType.entries.map { it.name } else types
+        val typeNames = types.ifEmpty { EventType.entries.map { it.name } }
 
         return database.logbookQueries.logbook_selectEvents(
             heroId = heroId,
@@ -545,7 +462,7 @@ class QuestRepositoryImpl(
         epochDay: Long
     ): Int {
         val typeNames =
-            if (types.isEmpty()) io.yavero.aterna.domain.model.quest.EventType.entries.map { it.name } else types
+            types.ifEmpty { EventType.entries.map { it.name } }
         return database.logbookQueries.logbook_dayEventCount(
             heroId = heroId,
             includeIncomplete = if (includeIncomplete) 1 else 0,
@@ -553,4 +470,39 @@ class QuestRepositoryImpl(
             epochDay = epochDay
         ).executeAsOne().toInt()
     }
+
+    // QuestRepositoryImpl.kt
+    override suspend fun analyticsTodayLocalDay(): Long =
+        analyticsQueries.analytics_todayLocalDay().executeAsOne()
+
+
+    private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
+        is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
+        is EventOutcome.Flee -> "flee:${outcome.mobName}:${outcome.mobLevel}"
+        EventOutcome.None -> null
+    }
+
+    private fun decodeOutcome(s: String?): EventOutcome {
+        if (s == null) return EventOutcome.None
+        val parts = s.split(":")
+        return if (parts.size == 3) {
+            val kind = parts[0]
+            val name = parts[1]
+            val lvl = parts[2].toIntOrNull() ?: 0
+            if (kind == "win") EventOutcome.Win(name, lvl) else EventOutcome.Flee(name, lvl)
+        } else EventOutcome.None
+    }
+
+    private fun mapEntityToDomain(e: QuestLogEntity): Quest =
+        Quest(
+            id = e.id,
+            heroId = e.heroId,
+            durationMinutes = e.durationMinutes.toInt(),
+            startTime = Instant.fromEpochSeconds(e.startTime),
+            endTime = e.endTime?.let(Instant::fromEpochSeconds),
+            completed = e.completed == 1L,
+            gaveUp = e.gaveUp == 1L,
+            serverValidated = e.serverValidated == 1L,
+            questType = runCatching { QuestType.valueOf(e.questType) }.getOrDefault(QuestType.OTHER)
+        )
 }

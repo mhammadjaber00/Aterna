@@ -33,13 +33,13 @@ class DefaultAnalyticsComponent(
     }
 
     override fun onBack() = onBackNav()
+
     override fun onRangeSelected(days: Int) {
         _state.value = _state.value.copy(rangeDays = days)
         refresh()
     }
 
-    override fun onExportCsv() { /* hook up later */
-    }
+    override fun onExportCsv() {}
 
     override fun refresh() {
         scope.launch {
@@ -52,6 +52,7 @@ class DefaultAnalyticsComponent(
                 val fromSec = from.epochSeconds
                 val toSec = to.epochSeconds
 
+                // Range-scoped loads
                 val res: Septuple<
                         List<DayValue>,
                         List<TypeMinutes>,
@@ -76,6 +77,15 @@ class DefaultAnalyticsComponent(
                     )
                 }
 
+                // Lifetime denominator for "Avg / day since start"
+                val daysAllTime: List<Long> = withContext(Dispatchers.Default) {
+                    questRepository.analyticsDistinctDaysCompleted(heroId, 0, toSec)
+                }
+                val firstEverDay: Long? = daysAllTime.firstOrNull()
+                val todayDay: Long = withContext(Dispatchers.Default) { questRepository.analyticsTodayLocalDay() }
+                val daysSinceFirstUse = if (firstEverDay == null) 1 else
+                    (todayDay - firstEverDay + 1).toInt().coerceAtLeast(1)
+
                 val minutes = normalizeDailySeries(
                     _state.value.rangeDays, from, to,
                     res.a.associate { it.dayEpoch to it.minutes }
@@ -93,6 +103,7 @@ class DefaultAnalyticsComponent(
                     started = res.e,
                     finished = res.f,
                     gaveUp = res.g,
+                    daysSinceFirstUse = daysSinceFirstUse,
                 )
             } catch (t: Throwable) {
                 _state.value = _state.value.copy(loading = false, error = t.message ?: "Failed to load analytics")
@@ -102,10 +113,16 @@ class DefaultAnalyticsComponent(
 
     private fun computeRange(days: Int): Pair<Instant, Instant> {
         val now = Instant.fromEpochMilliseconds(timeProvider.nowMs())
-        return if (days <= 0) Instant.fromEpochSeconds(0) to now else (now - days.days) to now
+        return if (days <= 0) {
+            // "All"
+            Instant.fromEpochSeconds(0) to now
+        } else {
+            // Bounded ranges are inclusive of "today": N calendar days ending now.
+            (now - (days - 1).days) to now
+        }
     }
 
-    /** Fill missing days with zeros for a continuous chart when range is bounded. */
+    /** Fill missing days for bounded ranges. Keys are epoch-day buckets matching SQL bucketing. */
     private fun normalizeDailySeries(
         rangeDays: Int,
         from: Instant,
@@ -115,9 +132,9 @@ class DefaultAnalyticsComponent(
         if (rangeDays <= 0) {
             return raw.entries.sortedBy { it.key }.map { DayValue(it.key, it.value) }
         }
-        val fromDay = from.epochSeconds / 86_400
-        val toDay = to.epochSeconds / 86_400
-        val out = ArrayList<DayValue>((toDay - fromDay + 1).toInt().coerceAtLeast(1))
+        val toDay = ((to.epochSeconds - 1) / 86_400)
+        val fromDay = toDay - (rangeDays - 1)
+        val out = ArrayList<DayValue>(rangeDays)
         var d = fromDay
         while (d <= toDay) {
             out += DayValue(d, raw[d] ?: 0)
