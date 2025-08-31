@@ -694,12 +694,18 @@ private fun RadialBreakdownChart(
     strokeWidth: Dp = 22.dp,
     gapAngle: Float = 4f,
     trackAlpha: Float = 0.18f,
+    minSize: Dp = 120.dp,
     onSelected: ((Int?) -> Unit)? = null
 ) {
     val palette = rememberChartPalette()
     val total = slices.sumOf { it.value.toDouble() }.toFloat()
     if (total <= 0f) {
-        Box(modifier, contentAlignment = Alignment.Center) {
+        Box(
+            modifier
+                .sizeIn(minWidth = minSize, minHeight = minSize)
+                .aspectRatio(1f),
+            contentAlignment = Alignment.Center
+        ) {
             Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
@@ -707,39 +713,55 @@ private fun RadialBreakdownChart(
 
     var selected by remember(slices) { mutableStateOf<Int?>(null) }
     val progress by animateFloatAsState(1f, tween(650, easing = FastOutSlowInEasing), label = "reveal")
-    val swPx = with(LocalDensity.current) { strokeWidth.toPx() }
+    val swPxRequested = with(LocalDensity.current) { strokeWidth.toPx() }
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.copy(alpha = trackAlpha)
 
-    Box(modifier) {
+    // Precompute segments once; draw + hit-test share the same math
+    val segments = remember(slices, total, startAngle, gapAngle) {
+        val gaps = if (slices.size > 1) slices.size else 0
+        val usable = (360f - gaps * gapAngle).coerceAtLeast(1f)
+        val minSweep = 0.8f
+
+        val fracs = slices.map { (it.value / total).coerceAtLeast(0f) }
+        var sweeps = fracs.map { if (it > 0f) max(it * usable, minSweep) else 0f }
+
+        val sumSweeps = sweeps.sum()
+        if (sumSweeps > usable) {
+            val scale = usable / sumSweeps
+            sweeps = sweeps.map { it * scale }
+        }
+
+        var cursor = 0f
+        sweeps.mapIndexed { i, sweep ->
+            val start = ((startAngle + cursor) % 360f).let { if (it < 0f) it + 360f else it }
+            cursor += sweep + if (gaps > 0) gapAngle else 0f
+            Triple(i, start, sweep)
+        }
+    }
+
+    Box(
+        modifier
+            .sizeIn(minWidth = minSize, minHeight = minSize)
+            .aspectRatio(1f)
+    ) {
         Canvas(
             Modifier
-                .fillMaxSize()
-                .pointerInput(slices, swPx) {
+                .matchParentSize()
+                .pointerInput(slices, segments) {
                     detectTapGestures { p ->
-                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val c = Offset(size.width / 2f, size.height / 2f)
                         val rOuter = min(size.width, size.height) / 2f
-                        val rInner = rOuter - swPx
-                        val d = hypot(p.x - center.x, p.y - center.y)
+                        val radius = rOuter - (swPxRequested / 2f)
+                        val stroke = min(swPxRequested, radius * 0.9f)
+                        val rInner = rOuter - stroke
+                        val d = hypot(p.x - c.x, p.y - c.y)
                         if (d in rInner..rOuter) {
-                            val rawRad = atan2((p.y - center.y).toDouble(), (p.x - center.x).toDouble())
-                            val raw = (rawRad * 180.0 / PI).toFloat()
+                            val raw = (atan2((p.y - c.y).toDouble(), (p.x - c.x).toDouble()) * 100 / PI).toFloat()
                             val deg = (raw + 450f) % 360f
-
-                            val gaps = if (slices.size > 1) slices.size else 0
-                            val usable = (360f - (gaps * gapAngle)).coerceAtLeast(1f)   // avoid 0 sweep
-                            var cursor = 0f
-                            var acc = 0f
-                            var hit: Int? = null
-                            for (i in slices.indices) {
-                                val frac = (slices[i].value / total).coerceAtLeast(0f)
-                                val sweep = (if (frac > 0f) max(frac * usable, 0.8f) else 0f)
-                                val start = (startAngle + acc + 360f) % 360f
-                                val angle = (deg - start + 360f) % 360f
-                                if (angle in 0f..sweep) {
-                                    hit = i; break
-                                }
-                                acc += sweep + if (gaps > 0) gapAngle else 0f
-                            }
+                            val hit = segments.firstOrNull { (_, start, sweep) ->
+                                val rel = (deg - start + 360f) % 360f
+                                rel in 0f..sweep
+                            }?.first
                             selected = hit
                             onSelected?.invoke(hit)
                         } else {
@@ -750,7 +772,9 @@ private fun RadialBreakdownChart(
                 }
         ) {
             val cap = StrokeCap.Round
-            val radius = min(size.width, size.height) / 2f - swPx / 2f
+            val rOuter = min(size.width, size.height) / 2f
+            val radius = rOuter - (swPxRequested / 2f)
+            val stroke = min(swPxRequested, radius * 0.9f)
             val topLeft = Offset(center.x - radius, center.y - radius)
             val arcSize = Size(radius * 2, radius * 2)
 
@@ -761,36 +785,15 @@ private fun RadialBreakdownChart(
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
-                style = Stroke(width = swPx, cap = cap)
+                style = Stroke(width = stroke, cap = cap)
             )
 
-            val gaps = if (slices.size > 1) slices.size else 0
-            val usable = 360f - (gaps * gapAngle)
-            var cursor = 0f
-
-            slices.forEachIndexed { i, s ->
-                val clr = s.color ?: palette[i % palette.size]
-                val frac = (s.value / total).coerceAtLeast(0f)
-                var sweep = frac * usable
-                if (sweep < 0.8f && frac > 0f) sweep = 0.8f
-
-                var start = (startAngle + cursor) % 360f
-                if (start < 0f) start += 360f
+            segments.forEach { (i, start, sweep) ->
+                val color = slices[i].color ?: palette[i % palette.size]
+                val width = if (selected == i) stroke * 1.25f else stroke
                 val revealSweep = min(359.999f, sweep * progress)
-
                 drawArc(
-                    color = onSurfaceColor,
-                    startAngle = 0f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = swPx, cap = cap)
-                )
-
-                val width = if (selected == i) swPx * 1.25f else swPx
-                drawArc(
-                    color = clr,
+                    color = color,
                     startAngle = start,
                     sweepAngle = revealSweep,
                     useCenter = false,
@@ -798,8 +801,6 @@ private fun RadialBreakdownChart(
                     size = arcSize,
                     style = Stroke(width = width, cap = cap)
                 )
-
-                cursor += sweep + if (gaps > 0) gapAngle else 0f
             }
         }
 
@@ -808,7 +809,6 @@ private fun RadialBreakdownChart(
             val label = sel?.let { slices[it].label } ?: "Total"
             val value = sel?.let { slices[it].value } ?: total
             val pct = ((value / total) * 100f).roundToInt()
-
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 if (sel == null) "${value.roundToInt()}m" else "$pct%",
