@@ -9,6 +9,9 @@ interface QuestComponent {
     val tutorialSeen: StateFlow<Boolean>
     fun onMarkTutorialSeen()
 
+    val deepFocusArmed: StateFlow<Boolean>
+    suspend fun setDeepFocusArmed(armed: Boolean)
+
     fun onStartQuest(durationMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
     fun onGiveUpQuest()
     fun onCompleteQuest()

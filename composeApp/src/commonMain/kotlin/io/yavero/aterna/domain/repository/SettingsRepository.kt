@@ -23,4 +23,7 @@ interface SettingsRepository {
 
     suspend fun setModuleEnabled(module: String, enabled: Boolean)
     suspend fun isModuleEnabled(module: String): Boolean
+
+    suspend fun setDeepFocusArmed(armed: Boolean)
+    suspend fun getDeepFocusArmed(): Boolean
 }

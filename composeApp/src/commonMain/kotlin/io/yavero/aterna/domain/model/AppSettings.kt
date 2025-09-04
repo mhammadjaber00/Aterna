@@ -10,7 +10,8 @@ data class AppSettings(
     val reduceMotion: Boolean = false,
     val notificationsEnabled: Boolean = true,
     val onboardingDone: Boolean = false,
-    val tutorialSeen: Boolean = false
+    val tutorialSeen: Boolean = false,
+    val deepFocusArmed: Boolean = false
 )
 
 @Serializable

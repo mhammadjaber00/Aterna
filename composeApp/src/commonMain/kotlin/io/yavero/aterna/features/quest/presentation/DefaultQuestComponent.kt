@@ -42,6 +42,15 @@ class DefaultQuestComponent(
         .map { it.tutorialSeen }
         .stateIn(componentScope, SharingStarted.Eagerly, false)
 
+    override val deepFocusArmed: StateFlow<Boolean> = settingsRepository
+        .getAppSettings()
+        .map { it.deepFocusArmed }
+        .stateIn(componentScope, SharingStarted.Eagerly, false)
+
+    override suspend fun setDeepFocusArmed(armed: Boolean) {
+        settingsRepository.setDeepFocusArmed(armed)
+    }
+
     init {
         componentScope.launch {
             questStore.effects.collect { effect -> handleEffect(effect) }

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Aterna</string>
+    <string name="df_service_label">Aterna — Deep Focus</string>
+    <string name="df_service_desc">Blocks distracting apps during an active quest.</string>
 </resources>

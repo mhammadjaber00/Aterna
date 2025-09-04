@@ -44,6 +44,13 @@ kotlin {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.crashlytics)
+            val lifecycle = "2.9.3"
+            implementation("androidx.lifecycle:lifecycle-runtime:$lifecycle")
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle")
+            implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle")
+            implementation("androidx.savedstate:savedstate-ktx:1.2.1")
+            implementation("androidx.appcompat:appcompat:1.7.0")
+            implementation("androidx.lifecycle:lifecycle-service:$lifecycle")
         }
         commonMain.dependencies {
             implementation(compose.runtime)

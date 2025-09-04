@@ -41,6 +41,9 @@ import io.yavero.aterna.features.quest.component.sheets.FocusOptionsSheet
 import io.yavero.aterna.features.quest.component.sheets.SettingsSheet
 import io.yavero.aterna.features.quest.component.sheets.Soundtrack
 import io.yavero.aterna.features.quest.presentation.QuestComponent
+import io.yavero.aterna.focus.rememberApplyDeepFocusSession
+import io.yavero.aterna.focus.rememberDeepFocusPermissionStatus
+import io.yavero.aterna.focus.rememberEnsureDeepFocusPermissions
 import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
 import io.yavero.aterna.ui.components.MagicalBackground
@@ -57,6 +60,8 @@ fun QuestScreen(
 ) {
     val uiState by component.uiState.collectAsState()
     val tutorialSeen by component.tutorialSeen.collectAsState()
+    val deepFocusArmed by component.deepFocusArmed.collectAsState()
+    val accStatus = rememberDeepFocusPermissionStatus()
 
     val permStatus = rememberTimerPermissionStatus()
     val ensureTimerPermissions = rememberEnsureTimerPermissions()
@@ -101,7 +106,17 @@ fun QuestScreen(
 
     val haptic = LocalHapticFeedback.current
 
-    // Drive UI from store flags
+    val ensureDeepFocusPerms = rememberEnsureDeepFocusPermissions()
+    val applyDeepFocus = rememberApplyDeepFocusSession()
+
+    LaunchedEffect(deepFocusArmed, uiState.hasActiveQuest, accStatus.accessibilityEnabled) {
+        applyDeepFocus(deepFocusArmed && uiState.hasActiveQuest && accStatus.accessibilityEnabled)
+    }
+    LaunchedEffect(accStatus.accessibilityEnabled) {
+        if (!accStatus.accessibilityEnabled && deepFocusArmed) {
+            scope.launch { component.setDeepFocusArmed(false) }
+        }
+    }
     LaunchedEffect(uiState.pendingShowAdventureLog) {
         if (uiState.pendingShowAdventureLog) {
             logBadge = false; modal = Modal.AdventureLog
@@ -125,7 +140,6 @@ fun QuestScreen(
         }
     }
 
-    // When the log sheet is open, load entries
     LaunchedEffect(modal) {
         if (modal == Modal.AdventureLog) {
             component.onLoadAdventureLog()
@@ -133,7 +147,6 @@ fun QuestScreen(
         }
     }
 
-    // Auto-open Loot dialog after completion once per quest
     LaunchedEffect(uiState.isQuestCompleted, uiState.isAdventureLogLoading, uiState.activeQuest?.id) {
         if (uiState.isQuestCompleted && !uiState.isAdventureLogLoading) {
             component.onLoadAdventureLog()
@@ -145,7 +158,6 @@ fun QuestScreen(
         }
     }
 
-    // Badge: inventory on chest/trinket
     LaunchedEffect(uiState.eventFeed.size) {
         when (uiState.eventFeed.lastOrNull()?.type) {
             EventType.CHEST, EventType.TRINKET -> inventoryBadge = true
@@ -153,7 +165,6 @@ fun QuestScreen(
         }
     }
 
-    // Ephemeral ticker
     val modalState by rememberUpdatedState(modal)
     LaunchedEffect(uiState.eventPulseCounter) {
         if (uiState.eventPulseCounter != tickerPulseSeen) {
@@ -165,7 +176,6 @@ fun QuestScreen(
         }
     }
 
-    // Merge feed + log for the sheet if quest is active
     val eventsForSheet by remember(uiState.hasActiveQuest, uiState.eventFeed, uiState.adventureLog) {
         derivedStateOf {
             if (uiState.hasActiveQuest) {
@@ -323,7 +333,6 @@ fun QuestScreen(
                             }
                         )
                     }
-
                     TutorialStep.Halo -> haloAnchor?.let { target ->
                         SpotlightOverlay(
                             root = size,
@@ -337,14 +346,11 @@ fun QuestScreen(
                             }
                         )
                     }
-
                     else -> Unit
                 }
             }
         }
     }
-
-    // ----- Modals -----
 
     if (modal == Modal.Loot) {
         val questAtOpen = remember(modal) { uiState.activeQuest }
@@ -414,8 +420,18 @@ fun QuestScreen(
 
     if (modal == Modal.Focus) {
         FocusOptionsSheet(
-            deepFocusOn = deepFocusEnabled,
-            onDeepFocusChange = { deepFocusEnabled = it },
+            deepFocusOn = deepFocusArmed,
+            onDeepFocusChange = { on ->
+                scope.launch {
+                    if (!on) {
+                        component.setDeepFocusArmed(false)
+                        applyDeepFocus(false)
+                    } else {
+                        val ok = ensureDeepFocusPerms()
+                        component.setDeepFocusArmed(ok)
+                    }
+                }
+            },
             soundtrack = soundtrack,
             onSoundtrackChange = { soundtrack = it },
             hapticsOn = hapticsOn,

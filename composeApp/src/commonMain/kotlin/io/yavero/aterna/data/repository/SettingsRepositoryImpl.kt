@@ -117,6 +117,15 @@ class SettingsRepositoryImpl(
         }
     }
 
+    override suspend fun setDeepFocusArmed(armed: Boolean) {
+        val current = getCurrentAppSettings()
+        if (current.deepFocusArmed != armed) {
+            updateAppSettings(current.copy(deepFocusArmed = armed))
+        }
+    }
+
+    override suspend fun getDeepFocusArmed(): Boolean = getCurrentAppSettings().deepFocusArmed
+
     companion object {
         private const val SETTINGS_KEY = "app_settings"
     }
