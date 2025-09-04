@@ -26,4 +26,6 @@ interface SettingsRepository {
 
     suspend fun setDeepFocusArmed(armed: Boolean)
     suspend fun getDeepFocusArmed(): Boolean
+    suspend fun setDeepFocusAllowlist(pkgs: Set<String>)
+    suspend fun getDeepFocusAllowlist(): Set<String>
 }

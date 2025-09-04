@@ -11,7 +11,8 @@ data class AppSettings(
     val notificationsEnabled: Boolean = true,
     val onboardingDone: Boolean = false,
     val tutorialSeen: Boolean = false,
-    val deepFocusArmed: Boolean = false
+    val deepFocusArmed: Boolean = false,
+    val deepFocusAllowlist: Set<String> = emptySet()
 )
 
 @Serializable

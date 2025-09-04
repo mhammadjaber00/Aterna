@@ -41,6 +41,7 @@ import io.yavero.aterna.features.quest.component.sheets.FocusOptionsSheet
 import io.yavero.aterna.features.quest.component.sheets.SettingsSheet
 import io.yavero.aterna.features.quest.component.sheets.Soundtrack
 import io.yavero.aterna.features.quest.presentation.QuestComponent
+import io.yavero.aterna.focus.ManageExceptionsSheet
 import io.yavero.aterna.focus.rememberApplyDeepFocusSession
 import io.yavero.aterna.focus.rememberDeepFocusPermissionStatus
 import io.yavero.aterna.focus.rememberEnsureDeepFocusPermissions
@@ -51,7 +52,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private enum class TutorialStep { None, Hero, Halo }
-private enum class Modal { None, Stats, Analytics, AdventureLog, Retreat, Focus, Settings, Loot, Permissions }
+private enum class Modal { None, Stats, Analytics, AdventureLog, Retreat, Focus, Settings, Loot, Permissions, ManageExceptions }
 
 @Composable
 fun QuestScreen(
@@ -436,7 +437,7 @@ fun QuestScreen(
             onSoundtrackChange = { soundtrack = it },
             hapticsOn = hapticsOn,
             onHapticsChange = { hapticsOn = it },
-            onManageExceptions = { },
+            onManageExceptions = { modal = Modal.ManageExceptions },
             onClose = { modal = Modal.None }
         )
     }
@@ -469,6 +470,11 @@ fun QuestScreen(
                 modal = Modal.None
             }
         )
+    }
+    if (modal == Modal.ManageExceptions) {
+        ManageExceptionsSheet {
+            modal = Modal.None
+        }
     }
 }
 

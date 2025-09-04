@@ -124,6 +124,14 @@ class SettingsRepositoryImpl(
         }
     }
 
+    override suspend fun setDeepFocusAllowlist(pkgs: Set<String>) {
+        val current = getCurrentAppSettings()
+        updateAppSettings(current.copy(deepFocusAllowlist = pkgs))
+    }
+
+    override suspend fun getDeepFocusAllowlist(): Set<String> =
+        getCurrentAppSettings().deepFocusAllowlist
+
     override suspend fun getDeepFocusArmed(): Boolean = getCurrentAppSettings().deepFocusArmed
 
     companion object {
