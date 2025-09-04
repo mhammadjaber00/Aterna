@@ -25,7 +25,6 @@ interface LogbookDataSource {
         pageSize: Int,
         query: String,
         types: Set<EventType>,
-        includeIncomplete: Boolean,
         fromInstant: kotlinx.datetime.Instant?
     ): LogPage
 }
@@ -64,11 +63,6 @@ class DefaultLogbookComponent(
         refresh()
     }
 
-    override fun onToggleIncludeIncomplete() {
-        _state.update { it.copy(includeIncomplete = !it.includeIncomplete) }
-        refresh()
-    }
-
     override fun onRangeSelected(days: Int) {
         _state.update { it.copy(rangeDays = days) }
         refresh()
@@ -79,7 +73,6 @@ class DefaultLogbookComponent(
             it.copy(
                 query = "",
                 selectedTypes = emptySet(),
-                includeIncomplete = true,
                 rangeDays = -1
             )
         }
@@ -130,7 +123,6 @@ class DefaultLogbookComponent(
             pageSize = pageSize,
             query = s.query,
             types = s.selectedTypes,
-            includeIncomplete = s.includeIncomplete,
             fromInstant = fromInstant
         )
 

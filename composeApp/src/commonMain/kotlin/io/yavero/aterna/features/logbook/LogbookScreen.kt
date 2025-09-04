@@ -110,10 +110,8 @@ fun LogbookScreen(component: LogbookComponent, modifier: Modifier = Modifier) {
 
                         FilterRow(
                             selectedTypes = state.selectedTypes,
-                            includeIncomplete = state.includeIncomplete,
                             rangeDays = state.rangeDays,
                             onTypeToggle = component::onToggleType,
-                            onIncludeIncomplete = component::onToggleIncludeIncomplete,
                             onRangeSelect = component::onRangeSelected,
                             onClear = component::onClearFilters
                         )
@@ -172,23 +170,17 @@ fun LogbookScreen(component: LogbookComponent, modifier: Modifier = Modifier) {
 @Composable
 private fun FilterRow(
     selectedTypes: Set<EventType>,
-    includeIncomplete: Boolean,
     rangeDays: Int,
     onTypeToggle: (EventType) -> Unit,
-    onIncludeIncomplete: () -> Unit,
     onRangeSelect: (Int) -> Unit,
     onClear: () -> Unit
 ) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
         ) {
-            AssistChip(
-                onClick = onIncludeIncomplete,
-                label = { Text(if (includeIncomplete) "All quests" else "Completed only") },
-                leadingIcon = { Icon(Icons.Default.FilterList, null) }
-            )
             listOf(7, 30, 90, -1).forEach { d ->
                 val sel = (d == -1 && rangeDays <= 0) || (d == rangeDays)
                 FilterChip(
@@ -198,7 +190,10 @@ private fun FilterRow(
                 )
             }
         }
+
         Spacer(Modifier.height(6.dp))
+
+        // Type chips
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)

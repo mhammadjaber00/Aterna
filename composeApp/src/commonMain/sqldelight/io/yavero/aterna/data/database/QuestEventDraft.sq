@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS QuestEventDraftEntity (
+  questId TEXT NOT NULL,
+  idx INTEGER NOT NULL,
+  at INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  xpDelta INTEGER NOT NULL DEFAULT 0,
+  goldDelta INTEGER NOT NULL DEFAULT 0,
+  outcome TEXT,
+  PRIMARY KEY (questId, idx),
+  FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
+);
+
+-- Drafts queries
+insertDraftEvent:
+INSERT INTO QuestEventDraftEntity (questId, idx, at, type, message, xpDelta, goldDelta, outcome)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectDraftsByQuest:
+SELECT * FROM QuestEventDraftEntity
+WHERE questId = ?
+ORDER BY at ASC, idx ASC;
+
+deleteDraftsByQuest:
+DELETE FROM QuestEventDraftEntity
+WHERE questId = ?;

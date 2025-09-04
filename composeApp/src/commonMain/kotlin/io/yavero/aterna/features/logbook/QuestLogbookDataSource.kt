@@ -21,7 +21,6 @@ class QuestLogbookDataSource(
         pageSize: Int,
         query: String,
         types: Set<EventType>,
-        includeIncomplete: Boolean,
         fromInstant: Instant?
     ): LogPage {
         val heroId = heroRepository.getCurrentHero()?.id
@@ -35,7 +34,6 @@ class QuestLogbookDataSource(
 
         val events = questRepository.logbookFetchPage(
             heroId = heroId,
-            includeIncomplete = includeIncomplete,
             types = typeNames,
             fromEpochSec = fromSec,
             toEpochSec = toSec,

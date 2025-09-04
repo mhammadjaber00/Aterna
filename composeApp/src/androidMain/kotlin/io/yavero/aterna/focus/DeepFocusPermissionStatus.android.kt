@@ -45,7 +45,7 @@ private fun isServiceEnabled(ctx: Context): Boolean {
 private fun labelOf(pm: PackageManager, pkg: String): String =
     try {
         val ai = pm.getApplicationInfo(pkg, 0)
-        pm.getApplicationLabel(ai)?.toString() ?: pkg
+        pm.getApplicationLabel(ai).toString()
     } catch (_: Exception) {
         pkg
     }

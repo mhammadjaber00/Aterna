@@ -62,7 +62,6 @@ interface QuestRepository {
 
     suspend fun logbookFetchPage(
         heroId: String,
-        includeIncomplete: Boolean,
         types: List<String>,
         fromEpochSec: Long,
         toEpochSec: Long,
@@ -73,7 +72,6 @@ interface QuestRepository {
 
     suspend fun logbookDayEventCount(
         heroId: String,
-        includeIncomplete: Boolean,
         types: List<String>,
         epochDay: Long
     ): Int

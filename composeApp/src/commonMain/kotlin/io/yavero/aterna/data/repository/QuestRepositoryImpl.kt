@@ -15,11 +15,23 @@ import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+/**
+ * QuestRepository implementation:
+ * - Logbook is completed-only (enforced in SQL; see Logbook.sq).
+ * - In-progress QuestEvents are NOT persisted; they are buffered in-memory and:
+ *     - Flushed to DB on quest completion.
+ *     - Discarded on give-up.
+ *
+ * NOTE: In-progress events will be lost if the process is killed before completion.
+ *       If you need crash-safety, switch to a drafts table approach.
+ */
 @OptIn(ExperimentalTime::class)
 class QuestRepositoryImpl(
     private val database: AternaDatabase,
@@ -30,6 +42,14 @@ class QuestRepositoryImpl(
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
     private val analyticsQueries = database.analyticsQueries
+
+    // Thread-safe in-memory buffer for in-progress events.
+    private val eventBuffer = mutableMapOf<String, MutableList<QuestEvent>>()
+    private val bufferMutex = Mutex()
+
+    // ------------------------------------------------------------------------
+    // Quests
+    // ------------------------------------------------------------------------
 
     override suspend fun getCurrentActiveQuest(): Quest? {
         return questQueries.selectActiveQuestGlobal()
@@ -117,10 +137,37 @@ class QuestRepositoryImpl(
             serverValidated = if (serverValidated) 1L else 0L,
             id = questId
         )
+
+        if (completed) {
+            // Flush buffered events to DB atomically
+            val drafts = bufferMutex.withLock {
+                eventBuffer.remove(questId).orEmpty().sortedWith(
+                    compareBy<QuestEvent>({ it.at.epochSeconds }).thenBy { it.idx }
+                )
+            }
+            if (drafts.isNotEmpty()) {
+                questEventsQueries.transaction {
+                    drafts.forEach { e ->
+                        questEventsQueries.insertEvent(
+                            questId = e.questId,
+                            idx = e.idx.toLong(),
+                            at = e.at.epochSeconds,
+                            type = e.type.name,
+                            message = e.message,
+                            xpDelta = e.xpDelta.toLong(),
+                            goldDelta = e.goldDelta.toLong(),
+                            outcome = encodeOutcome(e.outcome)
+                        )
+                    }
+                }
+            }
+        } // else: not completed, do not flush
     }
 
     override suspend fun markQuestGaveUp(questId: String, endTime: Instant) {
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
+        // Drop buffered events
+        bufferMutex.withLock { eventBuffer.remove(questId) }
     }
 
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
@@ -161,6 +208,10 @@ class QuestRepositoryImpl(
         return loot
     }
 
+    // ------------------------------------------------------------------------
+    // Plans & Events
+    // ------------------------------------------------------------------------
+
     override suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>) {
         questEventsQueries.deletePlansByQuest(questId)
         plans.forEach { p ->
@@ -195,20 +246,14 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun appendQuestEvent(event: QuestEvent) {
-        questEventsQueries.insertEvent(
-            questId = event.questId,
-            idx = event.idx.toLong(),
-            at = event.at.epochSeconds,
-            type = event.type.name,
-            message = event.message,
-            xpDelta = event.xpDelta.toLong(),
-            goldDelta = event.goldDelta.toLong(),
-            outcome = encodeOutcome(event.outcome)
-        )
+        bufferMutex.withLock {
+            val buf = eventBuffer.getOrPut(event.questId) { mutableListOf() }
+            buf.add(event)
+        }
     }
 
     override suspend fun getQuestEvents(questId: String): List<QuestEvent> {
-        return questEventsQueries.selectEventsByQuest(questId)
+        val persisted = questEventsQueries.selectEventsByQuest(questId)
             .executeAsList()
             .map { e ->
                 QuestEvent(
@@ -222,23 +267,19 @@ class QuestRepositoryImpl(
                     outcome = decodeOutcome(e.outcome)
                 )
             }
+
+        val drafts = bufferMutex.withLock { eventBuffer[questId].orEmpty().toList() }
+
+        return (persisted + drafts).sortedWith(
+            compareBy<QuestEvent>({ it.at.epochSeconds }).thenBy { it.idx }
+        )
     }
 
     override suspend fun getQuestEventsPreview(questId: String, limit: Int): List<QuestEvent> {
-        return questEventsQueries.selectRecentEvents(questId, limit.toLong())
-            .executeAsList()
-            .map { e ->
-                QuestEvent(
-                    questId = e.questId,
-                    idx = e.idx.toInt(),
-                    at = Instant.fromEpochSeconds(e.at),
-                    type = EventType.valueOf(e.type),
-                    message = e.message,
-                    xpDelta = e.xpDelta.toInt(),
-                    goldDelta = e.goldDelta.toInt(),
-                    outcome = decodeOutcome(e.outcome)
-                )
-            }
+        val combined = getQuestEvents(questId)
+        return combined.sortedWith(
+            compareByDescending<QuestEvent>({ it.at.epochSeconds }).thenByDescending { it.idx }
+        ).take(limit)
     }
 
     override suspend fun getLastResolvedEventIdx(questId: String): Int {
@@ -248,6 +289,10 @@ class QuestRepositoryImpl(
     override suspend fun countNarrationEvents(questId: String): Int {
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
+
+    // ------------------------------------------------------------------------
+    // Ledger & Analytics
+    // ------------------------------------------------------------------------
 
     override suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot) {
         questQueries.updateLedgerSnapshot(
@@ -422,7 +467,6 @@ class QuestRepositoryImpl(
 
     override suspend fun logbookFetchPage(
         heroId: String,
-        includeIncomplete: Boolean,
         types: List<String>,
         fromEpochSec: Long,
         toEpochSec: Long,
@@ -434,7 +478,6 @@ class QuestRepositoryImpl(
 
         return database.logbookQueries.logbook_selectEvents(
             heroId = heroId,
-            includeIncomplete = if (includeIncomplete) 1 else 0,
             types = typeNames,
             fromSec = fromEpochSec,
             toSec = toEpochSec,
@@ -457,24 +500,23 @@ class QuestRepositoryImpl(
 
     override suspend fun logbookDayEventCount(
         heroId: String,
-        includeIncomplete: Boolean,
         types: List<String>,
         epochDay: Long
     ): Int {
-        val typeNames =
-            types.ifEmpty { EventType.entries.map { it.name } }
+        val typeNames = types.ifEmpty { EventType.entries.map { it.name } }
         return database.logbookQueries.logbook_dayEventCount(
             heroId = heroId,
-            includeIncomplete = if (includeIncomplete) 1 else 0,
             types = typeNames,
             epochDay = epochDay
         ).executeAsOne().toInt()
     }
 
-    // QuestRepositoryImpl.kt
     override suspend fun analyticsTodayLocalDay(): Long =
         analyticsQueries.analytics_todayLocalDay().executeAsOne()
 
+    // ------------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------------
 
     private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
         is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
