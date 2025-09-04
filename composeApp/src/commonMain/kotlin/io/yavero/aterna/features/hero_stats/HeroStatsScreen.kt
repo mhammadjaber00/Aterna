@@ -65,6 +65,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                scrollBehavior = scroll
             )
         }
     ) { pv ->
@@ -85,7 +86,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = pad,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.section)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.section),
                     ) {
                         item("hero-card") {
                             HeroHeaderCard(hero = state.hero)

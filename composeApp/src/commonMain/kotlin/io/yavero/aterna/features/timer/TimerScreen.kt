@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import aterna.composeapp.generated.resources.*
+import io.yavero.aterna.designsystem.effects.longPressAutoRepeat
 import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.designsystem.theme.ringPaletteFor
 import io.yavero.aterna.domain.model.ClassType
@@ -62,6 +63,9 @@ fun TimerScreen(
     var isSealing by remember { mutableStateOf(false) }
     var sealProgress by remember { mutableFloatStateOf(0f) }
     val phrases = rememberTimerPhrasePair() // your existing strings helper
+
+    var skipMinusClick by remember { mutableStateOf(false) }
+    var skipPlusClick by remember { mutableStateOf(false) }
 
     LaunchedEffect(isSealing) {
         if (isSealing) {
@@ -151,14 +155,35 @@ fun TimerScreen(
                 // +/- controls
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
-                        onClick = { minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes) },
+                        onClick = {
+                            if (skipMinusClick) {
+                                skipMinusClick = false; return@OutlinedButton
+                            }
+                            minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes)
+                        },
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        modifier = Modifier.longPressAutoRepeat(
+                            markSkipClick = { skipMinusClick = it },
+                            onRepeat = {
+                                minutes = (minutes - stepMinutes).coerceAtLeast(minMinutes)
+                            }
+                        ),
                     ) { Text(stringResource(Res.string.step_minutes_minus, stepMinutes)) }
                     OutlinedButton(
-                        onClick = { minutes = (minutes + stepMinutes).coerceAtMost(maxMinutes) },
+                        onClick = {
+                            if (skipMinusClick) {
+                                skipMinusClick = false; return@OutlinedButton
+                            }
+                            minutes = (minutes + stepMinutes).coerceAtMost(maxMinutes)
+                        },
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        modifier = Modifier.longPressAutoRepeat(
+                            markSkipClick = { skipPlusClick = it },
+                            onRepeat = {
+                                minutes = (minutes + stepMinutes).coerceAtMost(maxMinutes)
+                            })
                     ) { Text(stringResource(Res.string.step_minutes_plus, stepMinutes)) }
                 }
 
@@ -208,7 +233,6 @@ fun TimerScreen(
                         .clip(btnShape)
                         .background(questBrush, btnShape)
                 ) {
-                    val typeLabel = selectedType.readable()
                     Text(
                         text = stringResource(if (isSealing) Res.string.sealing else phrases.start),
                         fontSize = 18.sp,
@@ -279,18 +303,18 @@ private fun QuestTypeDropdown(
     onSelected: (QuestType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scheme = MaterialTheme.colorScheme
     val rows = remember {
         listOf(
-            TypeRow(QuestType.WORK, Icons.Filled.Work, "Work", AternaColors.GoldAccent),
-            TypeRow(QuestType.STUDY, Icons.Filled.School, "Study", AternaColors.GoldAccent),
-            TypeRow(QuestType.READING, Icons.Filled.MenuBook, "Reading", AternaColors.GoldAccent),
-            TypeRow(QuestType.FITNESS, Icons.Filled.FitnessCenter, "Fitness", AternaColors.GoldAccent),
-            TypeRow(QuestType.CHORES, Icons.Filled.CleaningServices, "Chores", AternaColors.GoldAccent),
-            TypeRow(QuestType.REST, Icons.Filled.Bedtime, "Rest", AternaColors.GoldAccent),
+            TypeRow(QuestType.DEEP_WORK, Icons.Filled.Work, "Deep Work", AternaColors.GoldAccent),
+            TypeRow(QuestType.LEARNING, Icons.Filled.School, "Learning", AternaColors.GoldAccent),
+            TypeRow(QuestType.CREATIVE, Icons.Filled.Create, "Writing / Creative", AternaColors.GoldAccent),
+            TypeRow(QuestType.TRAINING, Icons.Filled.FitnessCenter, "Training", AternaColors.GoldAccent),
+            TypeRow(QuestType.ADMIN, Icons.Filled.CleaningServices, "Admin & Chores", AternaColors.GoldAccent),
+            TypeRow(QuestType.BREAK, Icons.Filled.Bedtime, "Break / Recovery", AternaColors.GoldAccent),
             TypeRow(QuestType.OTHER, Icons.Filled.AutoAwesome, "Other", AternaColors.GoldAccent),
         )
     }
+
 
     var expanded by remember { mutableStateOf(false) }
     val current = rows.firstOrNull { it.type == selected } ?: rows.last()
@@ -390,18 +414,4 @@ private fun QuestTypeDropdown(
             }
         }
     }
-}
-
-/* ---------------------------------------------------------- */
-/* Small helpers                                              */
-/* ---------------------------------------------------------- */
-
-private fun QuestType.readable(): String = when (this) {
-    QuestType.WORK -> "Work"
-    QuestType.STUDY -> "Study"
-    QuestType.READING -> "Reading"
-    QuestType.FITNESS -> "Fitness"
-    QuestType.CHORES -> "Chores"
-    QuestType.REST -> "Rest"
-    QuestType.OTHER -> "Other"
 }

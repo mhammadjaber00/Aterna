@@ -3,23 +3,22 @@ package io.yavero.aterna.features.timer.component
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ClassType
 import kotlin.math.*
@@ -46,6 +45,7 @@ fun RitualRing(
     modifier: Modifier = Modifier
 ) {
     var box by remember { mutableStateOf(IntSize.Zero) }
+    var lastDragValue by remember { mutableStateOf<Int?>(null) }
 
     fun valueToAngle(v: Float): Float {
         val t = ((v - min) / (max - min).toFloat()).coerceIn(0f, 1f)
@@ -83,8 +83,34 @@ fun RitualRing(
         modifier.size(diameter).onSizeChanged { box = it }.pointerInput(min, max, step, isSealing) {
             if (!isSealing) {
                 detectDragGestures(
-                    onDragStart = { onValueChange(positionToValue(it)) },
-                    onDrag = { change, _ -> onValueChange(positionToValue(change.position)) })
+                    onDragStart = {
+                        val v = positionToValue(it)
+                        lastDragValue = v
+                        onValueChange(v)
+                    },
+                    onDrag = { change, _ ->
+                        val v = positionToValue(change.position)
+                        val prev = lastDragValue
+                        if (prev == null) {
+                            onValueChange(v)
+                            lastDragValue = v
+                        } else {
+                            val span = max - min
+                            val rawDiff = v - prev
+                            val wrapDiff = when {
+                                rawDiff > span / 2 -> rawDiff - span
+                                rawDiff < -span / 2 -> rawDiff + span
+                                else -> rawDiff
+                            }
+                            if (wrapDiff == rawDiff) {
+                                onValueChange(v)
+                                lastDragValue = v
+                            }
+                        }
+                    },
+                    onDragEnd = { lastDragValue = null },
+                    onDragCancel = { lastDragValue = null }
+                )
             }
         }, contentAlignment = Alignment.Center
     ) {
@@ -200,267 +226,6 @@ fun RitualRing(
         CenterSigil(
             isSealing = isSealing, progress = sealProgress, tint = tickColor, hint = centerHint
         )
-    }
-}
-
-@Composable
-private fun RuneMarksAroundRing(
-    diameter: Dp,
-    tickInset: Dp,
-    offsetFromRing: Dp,
-    valueToAngle: (Float) -> Float,
-    runeMap: Map<Int, String>,
-    tint: Color
-) {
-    val density = LocalDensity.current
-    runeMap.forEach { (minute, glyph) ->
-        val angleRad = valueToAngle(minute.toFloat()) * (PI.toFloat() / 180f)
-        val radiusPx = with(density) { diameter.toPx() } / 2f - with(density) { tickInset.toPx() }
-        val runeRadiusPx = radiusPx + with(density) { offsetFromRing.toPx() }
-        val rx = runeRadiusPx * cos(angleRad)
-        val ry = runeRadiusPx * sin(angleRad)
-
-        Text(
-            text = glyph, fontSize = 22.sp, color = tint.copy(alpha = 0.92f), modifier = Modifier.graphicsLayer {
-                    translationX = rx
-                    translationY = ry
-            })
-    }
-}
-
-@Composable
-private fun CenterSigil(
-    isSealing: Boolean, progress: Float, tint: Color, hint: String
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSealing) 1.08f else 1f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "sigilScale"
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        PixelGuardianStatueSprite(
-            size = 48.dp,
-            classType = if (tint == AternaColors.Primary300) ClassType.MAGE else ClassType.WARRIOR,
-            sealing = isSealing,
-            progress = progress,
-            modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale })
-
-        if (isSealing) {
-            SealingFX(tint = tint, progress = progress)
-        } else {
-            Spacer(Modifier.height(6.dp))
-        }
-
-        Spacer(Modifier.height(6.dp))
-        Text(hint, fontSize = 14.sp, color = tint.copy(alpha = 0.80f))
-    }
-}
-
-@Composable
-private fun PixelGuardianStatueSprite(
-    size: Dp, classType: ClassType, sealing: Boolean = false, progress: Float = 0f, modifier: Modifier = Modifier
-) {
-    val flicker by rememberInfiniteTransition(label = "crackFlicker").animateFloat(
-        0.75f,
-        1f,
-            animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-            label = "f"
-        )
-
-    val dustT by rememberInfiniteTransition(label = "dust").animateFloat(
-        0f, 1f, animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing)), label = "d"
-        )
-
-    val stoneL = Color(0xFFA8B1BD)
-    val stoneM = Color(0xFF85909E)
-    val stoneD = Color(0xFF5E6773)
-    val pedestal = Color(0xFF4A515B)
-    val moss = Color(0xFF679E63)
-    val eyeGlow = when (classType) {
-        ClassType.WARRIOR -> AternaColors.GoldAccent
-        ClassType.MAGE -> AternaColors.Primary300
-    }
-
-    Canvas(modifier.size(size)) {
-
-        val cols = 16
-        val rows = 18
-        val cell = floor(min(this.size.width, this.size.height) / cols)
-        val w = cell * cols
-        val h = cell * rows
-        val ox = (this.size.width - w) / 2f
-        val oy = (this.size.height - h) / 2f
-
-        fun p(x: Int, y: Int, c: Color, a: Float = 1f) {
-            drawRect(c.copy(alpha = a), Offset(ox + x * cell, oy + y * cell), Size(cell, cell))
-        }
-
-
-        for (x in 2..13) p(x, 15, pedestal)
-        for (x in 3..12) p(x, 14, pedestal)
-
-        p(3, 14, moss, 0.45f); p(6, 15, moss, 0.35f); p(11, 14, moss, 0.4f)
-
-
-
-        p(5, 13, stoneD); p(6, 13, stoneD); p(9, 13, stoneD); p(10, 13, stoneD)
-
-        for (y in 10..12) {
-            p(6, y, stoneM); p(9, y, stoneM)
-        }
-
-        for (x in 5..10) p(x, 10, stoneM)
-
-        for (x in 5..10) for (y in 6..9) p(x, y, stoneL)
-
-        p(4, 6, stoneL); p(11, 6, stoneL)
-
-        for (x in 6..9) for (y in 3..5) p(x, y, stoneL)
-        p(5, 4, stoneL); p(10, 4, stoneL)
-
-        val eyeA = if (sealing) (0.2f + 0.8f * progress) * flicker else 0.22f
-        p(7, 4, eyeGlow, eyeA); p(8, 4, eyeGlow, eyeA)
-
-
-        when (classType) {
-            ClassType.WARRIOR -> {
-
-                for (y in 7..13) p(3, y, Color(0xFFC7D2FF))
-                p(3, 6, AternaColors.GoldAccent)
-            }
-
-            ClassType.MAGE -> {
-
-                for (y in 7..13) p(12, y, Color(0xFF7E5A3A))
-                p(12, 6, eyeGlow)
-                p(11, 6, Color.White, 0.25f)
-            }
-        }
-
-
-        p(5, 6, stoneD); p(10, 6, stoneD)
-        p(6, 5, stoneD, .6f); p(9, 5, stoneD, .6f)
-
-
-        if (sealing) {
-            val crackA = (0.25f + 0.75f * progress) * flicker
-            val glow = eyeGlow.copy(alpha = crackA)
-
-            val cracks = listOf(
-                5 to 7, 6 to 7, 7 to 8, 8 to 9, 9 to 9, 10 to 10, 6 to 11, 7 to 11, 8 to 12, 9 to 12
-            )
-            cracks.forEach { (cx, cy) -> p(cx, cy, glow) }
-
-
-            p(7, 3, glow); p(8, 3, glow)
-
-
-            drawCircle(
-                brush = Brush.radialGradient(listOf(glow.copy(alpha = .35f), Color.Transparent)),
-                radius = cell * 4.5f,
-                center = Offset(ox + 8.5f * cell, oy + 7.5f * cell)
-            )
-
-
-            repeat(6) { i ->
-                val phase = (dustT + i * 0.17f) % 1f
-                val dx = ox + (4 + (i * 2)) * cell + (sin(phase * 2 * PI).toFloat() * 0.5f * cell)
-                val dy = oy + (15f - phase * 4f) * cell
-                drawRect(eyeGlow.copy(alpha = 0.25f * (1f - phase)), Offset(dx, dy), Size(cell * 0.6f, cell * 0.6f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SealingFX(tint: Color, progress: Float) {
-    val spin by rememberInfiniteTransition(label = "spin").animateFloat(
-        0f,
-        360f,
-        infiniteRepeatable(tween(2400, easing = LinearEasing)),
-        label = "a"
-    )
-
-    val rays by rememberInfiniteTransition(label = "rays").animateFloat(
-        0.85f, 1.15f, infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "b"
-        )
-
-    val alpha = (0.25f + 0.65f * progress).coerceIn(0f, 1f)
-
-    Canvas(Modifier.size(88.dp)) {
-        val r = size.minDimension / 2f
-        val ringR = r * (0.76f + 0.12f * progress)
-        val stroke = 2.5.dp.toPx()
-
-
-        rotate(spin) {
-            drawArc(
-                color = tint.copy(alpha = alpha),
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(center.x - ringR, center.y - ringR),
-                size = Size(ringR * 2, ringR * 2),
-                style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 12f)))
-            )
-        }
-
-
-        repeat(6) { i ->
-            val a = i * 60f + spin * 0.25f
-            val rad = toRadians(a.toDouble()).toFloat()
-            val inner = ringR * 0.55f
-            val outer = ringR * (0.95f * rays)
-            val sx = center.x + inner * cos(rad)
-            val sy = center.y + inner * sin(rad)
-            val ex = center.x + outer * cos(rad)
-            val ey = center.y + outer * sin(rad)
-            drawLine(
-                color = tint.copy(alpha = alpha), start = Offset(sx, sy), end = Offset(ex, ey), strokeWidth = stroke
-            )
-        }
-
-        drawCircle(
-            brush = Brush.radialGradient(listOf(tint.copy(alpha = 0.25f * alpha), Color.Transparent)),
-            radius = ringR * 0.9f,
-            center = center
-        )
-    }
-}
-
-@Composable
-private fun InfernoOverlay(
-    visible: Boolean, degrees: Float, tint: Color = AternaColors.GoldAccent
-) {
-    if (!visible) return
-    val flicker by rememberInfiniteTransition(label = "inferno").animateFloat(
-        0.85f,
-        1.15f,
-        animationSpec = infiniteRepeatable(tween(90, easing = LinearEasing), RepeatMode.Reverse),
-        label = "flicker"
-    )
-
-    val colors = listOf(
-        tint.copy(alpha = .28f), tint.copy(alpha = .18f), tint.copy(alpha = .10f)
-    )
-
-    Canvas(Modifier.fillMaxSize()) {
-        val r = size.minDimension / 2f
-        val stroke = 22f * flicker
-        val start = -90f
-
-        colors.forEachIndexed { i, c ->
-            drawArc(
-                color = c,
-                startAngle = start + i * 7f,
-                sweepAngle = degrees - i * 5f,
-                useCenter = false,
-                topLeft = Offset(center.x - r, center.y - r),
-                size = Size(r * 2, r * 2),
-                style = Stroke(width = stroke, cap = StrokeCap.Round)
-            )
-        }
     }
 }
 
