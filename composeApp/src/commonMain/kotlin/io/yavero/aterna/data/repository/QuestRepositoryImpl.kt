@@ -16,7 +16,6 @@ import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
@@ -42,6 +41,8 @@ class QuestRepositoryImpl(
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
     private val analyticsQueries = database.analyticsQueries
+
+    private val questEventDraftQueries = database.questEventDraftQueries
 
     // Thread-safe in-memory buffer for in-progress events.
     private val eventBuffer = mutableMapOf<String, MutableList<QuestEvent>>()
@@ -139,35 +140,32 @@ class QuestRepositoryImpl(
         )
 
         if (completed) {
-            // Flush buffered events to DB atomically
-            val drafts = bufferMutex.withLock {
-                eventBuffer.remove(questId).orEmpty().sortedWith(
-                    compareBy<QuestEvent>({ it.at.epochSeconds }).thenBy { it.idx }
-                )
-            }
+            val drafts = questEventDraftQueries.selectDraftsByQuest(questId).executeAsList()
             if (drafts.isNotEmpty()) {
                 questEventsQueries.transaction {
-                    drafts.forEach { e ->
+                    drafts.forEach { d ->
                         questEventsQueries.insertEvent(
-                            questId = e.questId,
-                            idx = e.idx.toLong(),
-                            at = e.at.epochSeconds,
-                            type = e.type.name,
-                            message = e.message,
-                            xpDelta = e.xpDelta.toLong(),
-                            goldDelta = e.goldDelta.toLong(),
-                            outcome = encodeOutcome(e.outcome)
+                            questId = d.questId,
+                            idx = d.idx,
+                            at = d.at,
+                            type = d.type,
+                            message = d.message,
+                            xpDelta = d.xpDelta,
+                            goldDelta = d.goldDelta,
+                            outcome = d.outcome
                         )
                     }
+                    questEventDraftQueries.deleteDraftsByQuest(questId)
                 }
             }
-        } // else: not completed, do not flush
+        } else {
+            // no-op; not completed
+        }
     }
 
     override suspend fun markQuestGaveUp(questId: String, endTime: Instant) {
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
-        // Drop buffered events
-        bufferMutex.withLock { eventBuffer.remove(questId) }
+        questEventDraftQueries.deleteDraftsByQuest(questId) // discard drafts
     }
 
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
@@ -246,30 +244,39 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun appendQuestEvent(event: QuestEvent) {
-        bufferMutex.withLock {
-            val buf = eventBuffer.getOrPut(event.questId) { mutableListOf() }
-            buf.add(event)
-        }
+        questEventDraftQueries.insertDraftEvent(
+            questId = event.questId,
+            idx = event.idx.toLong(),
+            at = event.at.epochSeconds,
+            type = event.type.name,
+            message = event.message,
+            xpDelta = event.xpDelta.toLong(),
+            goldDelta = event.goldDelta.toLong(),
+            outcome = encodeOutcome(event.outcome)
+        )
     }
 
     override suspend fun getQuestEvents(questId: String): List<QuestEvent> {
-        val persisted = questEventsQueries.selectEventsByQuest(questId)
-            .executeAsList()
-            .map { e ->
-                QuestEvent(
-                    questId = e.questId,
-                    idx = e.idx.toInt(),
-                    at = Instant.fromEpochSeconds(e.at),
-                    type = EventType.valueOf(e.type),
-                    message = e.message,
-                    xpDelta = e.xpDelta.toInt(),
-                    goldDelta = e.goldDelta.toInt(),
-                    outcome = decodeOutcome(e.outcome)
-                )
-            }
-
-        val drafts = bufferMutex.withLock { eventBuffer[questId].orEmpty().toList() }
-
+        val persisted = questEventsQueries.selectEventsByQuest(questId).executeAsList().map { e ->
+            QuestEvent(
+                questId = e.questId, idx = e.idx.toInt(),
+                at = Instant.fromEpochSeconds(e.at),
+                type = EventType.valueOf(e.type),
+                message = e.message, xpDelta = e.xpDelta.toInt(),
+                goldDelta = e.goldDelta.toInt(),
+                outcome = decodeOutcome(e.outcome)
+            )
+        }
+        val drafts = questEventDraftQueries.selectDraftsByQuest(questId).executeAsList().map { d ->
+            QuestEvent(
+                questId = d.questId, idx = d.idx.toInt(),
+                at = Instant.fromEpochSeconds(d.at),
+                type = EventType.valueOf(d.type),
+                message = d.message, xpDelta = d.xpDelta.toInt(),
+                goldDelta = d.goldDelta.toInt(),
+                outcome = decodeOutcome(d.outcome)
+            )
+        }
         return (persisted + drafts).sortedWith(
             compareBy<QuestEvent>({ it.at.epochSeconds }).thenBy { it.idx }
         )
