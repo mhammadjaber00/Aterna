@@ -35,7 +35,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalTime::class)
 @Composable
 fun LogbookScreen(component: LogbookComponent, modifier: Modifier = Modifier) {
     val state by component.state.collectAsState()

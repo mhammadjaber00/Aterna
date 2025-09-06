@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.Foundation.*
 import platform.UserNotifications.*
-import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -81,49 +80,7 @@ actual class LocalNotifier {
             }
         }
     }
-    
-    actual suspend fun scheduleRepeating(
-        id: String,
-        firstAt: Instant,
-        interval: Duration,
-        title: String,
-        body: String,
-        channel: String?
-    ) = withContext(Dispatchers.Default) {
-        val permissionResult = requestPermissionIfNeeded()
-        if (permissionResult == PermissionResult.DENIED) {
-            return@withContext
-        }
 
-
-        val content = UNMutableNotificationContent().apply {
-            setTitle(title)
-            setBody(body)
-            setSound(UNNotificationSound.defaultSound())
-        }
-
-
-        val intervalSeconds = maxOf(interval.inWholeSeconds, 60L)
-        
-        val trigger = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(
-            timeInterval = intervalSeconds.toDouble(),
-            repeats = true
-        )
-
-
-        val request = UNNotificationRequest.requestWithIdentifier(
-            identifier = id,
-            content = content,
-            trigger = trigger
-        )
-        
-        notificationCenter.addNotificationRequest(request) { error ->
-            if (error != null) {
-
-            }
-        }
-    }
-    
     actual suspend fun cancel(id: String) = withContext(Dispatchers.Default) {
         notificationCenter.removePendingNotificationRequestsWithIdentifiers(listOf(id))
         notificationCenter.removeDeliveredNotificationsWithIdentifiers(listOf(id))

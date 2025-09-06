@@ -103,10 +103,10 @@ FROM QuestLogEntity
 WHERE heroId = ? AND completed = 1;
 
 selectEventDaysEpochByHero:
-SELECT DISTINCT (startTime / 86400) AS epoch_day
+SELECT DISTINCT (startTime / 86400) AS days
 FROM QuestLogEntity
 WHERE heroId = ? AND completed = 1
-ORDER BY epoch_day ASC;
+ORDER BY days ASC;
 
 countCleansesByHero:
 SELECT COUNT(*) AS cleansed

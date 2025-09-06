@@ -1,6 +1,5 @@
 package io.yavero.aterna.notifications
 
-import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -15,16 +14,7 @@ expect class LocalNotifier {
         body: String,
         channel: String? = null
     )
-    
-    suspend fun scheduleRepeating(
-        id: String,
-        firstAt: Instant,
-        interval: Duration,
-        title: String,
-        body: String,
-        channel: String? = null
-    )
-    
+
     suspend fun cancel(id: String)
     
     suspend fun cancelAll()

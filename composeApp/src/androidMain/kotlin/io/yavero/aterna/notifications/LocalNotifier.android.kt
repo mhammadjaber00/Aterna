@@ -9,13 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -61,32 +58,6 @@ actual class LocalNotifier(private val context: Context) {
         }
     }
 
-    actual suspend fun scheduleRepeating(
-        id: String,
-        firstAt: Instant,
-        interval: Duration,
-        title: String,
-        body: String,
-        channel: String?
-    ) = withContext(Dispatchers.IO) {
-        if (requestPermissionIfNeeded() == PermissionResult.DENIED) return@withContext
-
-        val notificationId = id.hashCode()
-        val pi = PendingIntent.getBroadcast(
-            context, notificationId,
-            createNotificationIntent(notificationId, title, body, channel ?: DEFAULT_CHANNEL_ID).apply {
-                putExtra(EXTRA_REPEAT_MS, interval.inWholeMilliseconds)
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val t = firstAt.toEpochMilliseconds()
-        if (canScheduleExactAlarms()) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-        } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, pi)
-        }
-    }
-
     actual suspend fun cancel(id: String) = withContext(Dispatchers.IO) {
         val notificationId = id.hashCode()
         val pi = PendingIntent.getBroadcast(
@@ -105,12 +76,6 @@ actual class LocalNotifier(private val context: Context) {
     // ---- helpers ----
     private fun canScheduleExactAlarms(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) alarmManager.canScheduleExactAlarms() else true
-
-    fun buildRequestExactAlarmIntent(): Intent? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                .setData("package:${context.packageName}".toUri())
-        } else null
 
     private fun createDefaultChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -154,4 +119,5 @@ actual class LocalNotifier(private val context: Context) {
         const val EXTRA_CHANNEL_ID = "channel_id"
         const val EXTRA_REPEAT_MS = "repeat_ms"
     }
+
 }

@@ -9,6 +9,8 @@ object QuestActions {
     const val ACTION_VIEW_LOGS = "io.yavero.aterna.QUEST_VIEW_LOGS"
     const val ACTION_RETREAT = "io.yavero.aterna.QUEST_RETREAT"
 
+    const val ACTION_DEFAULT = "io.yavero.aterna.ACTION_DEFAULT"
+
     const val EXTRA_SESSION_ID = "session_id"
     const val EXTRA_ACTION_TYPE = "action_type"
 

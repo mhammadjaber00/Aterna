@@ -124,7 +124,7 @@ class DefaultQuestEngine(
             val ev = QuestResolver.resolveFromLedger(
                 ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
             )
-            questRepository.appendQuestEvent(ev)
+            questRepository.appendQuestEvent(ev) // will insert into Events (quest is now completed)
         }
 
         // Update hero progression & wallet

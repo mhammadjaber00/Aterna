@@ -35,7 +35,7 @@ object SessionNotifications {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(android.app.Notification.CATEGORY_PROGRESS)
-            .setContentIntent(activityActionPI(context, sessionId, QuestActions.ACTION_VIEW_LOGS))
+            .setContentIntent(activityActionPI(context, sessionId, QuestActions.ACTION_DEFAULT))
             .addAction(0, "View Logs", activityActionPI(context, sessionId, QuestActions.ACTION_VIEW_LOGS))
             .addAction(0, "Retreat", activityActionPI(context, sessionId, QuestActions.ACTION_RETREAT))
 

@@ -52,7 +52,6 @@ class QuestNotifierAndroid(
     }
 
     override suspend fun scheduleEnd(sessionId: String, endAt: Instant) {
-        // Use Alerts channel (high importance) so the completion actually pops.
         localNotifier.schedule(
             id = "focus_end_$sessionId",
             at = endAt,

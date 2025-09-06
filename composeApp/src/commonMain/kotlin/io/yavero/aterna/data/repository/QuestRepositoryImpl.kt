@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package io.yavero.aterna.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
@@ -15,23 +17,11 @@ import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Mutex
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/**
- * QuestRepository implementation:
- * - Logbook is completed-only (enforced in SQL; see Logbook.sq).
- * - In-progress QuestEvents are NOT persisted; they are buffered in-memory and:
- *     - Flushed to DB on quest completion.
- *     - Discarded on give-up.
- *
- * NOTE: In-progress events will be lost if the process is killed before completion.
- *       If you need crash-safety, switch to a drafts table approach.
- */
-@OptIn(ExperimentalTime::class)
 class QuestRepositoryImpl(
     private val database: AternaDatabase,
     private val questApi: QuestApi,
@@ -41,12 +31,7 @@ class QuestRepositoryImpl(
     private val questQueries = database.questLogQueries
     private val questEventsQueries = database.questEventsQueries
     private val analyticsQueries = database.analyticsQueries
-
     private val questEventDraftQueries = database.questEventDraftQueries
-
-    // Thread-safe in-memory buffer for in-progress events.
-    private val eventBuffer = mutableMapOf<String, MutableList<QuestEvent>>()
-    private val bufferMutex = Mutex()
 
     // ------------------------------------------------------------------------
     // Quests
@@ -130,6 +115,7 @@ class QuestRepositoryImpl(
         goldGained: Int,
         serverValidated: Boolean
     ) {
+        // Mark the quest completion/giveup state
         questQueries.updateQuestCompletion(
             endTime = endTime.epochSeconds,
             completed = if (completed) 1L else 0L,
@@ -140,32 +126,17 @@ class QuestRepositoryImpl(
         )
 
         if (completed) {
-            val drafts = questEventDraftQueries.selectDraftsByQuest(questId).executeAsList()
-            if (drafts.isNotEmpty()) {
-                questEventsQueries.transaction {
-                    drafts.forEach { d ->
-                        questEventsQueries.insertEvent(
-                            questId = d.questId,
-                            idx = d.idx,
-                            at = d.at,
-                            type = d.type,
-                            message = d.message,
-                            xpDelta = d.xpDelta,
-                            goldDelta = d.goldDelta,
-                            outcome = d.outcome
-                        )
-                    }
-                    questEventDraftQueries.deleteDraftsByQuest(questId)
-                }
+            // Atomically copy all drafts -> events, then clear drafts.
+            questEventsQueries.transaction {
+                questEventsQueries.copyDraftsToEventsByQuest(questId)
+                questEventDraftQueries.deleteDraftsByQuest(questId)
             }
-        } else {
-            // no-op; not completed
         }
     }
 
     override suspend fun markQuestGaveUp(questId: String, endTime: Instant) {
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
-        questEventDraftQueries.deleteDraftsByQuest(questId) // discard drafts
+        questEventDraftQueries.deleteDraftsByQuest(questId) // discard live drafts
     }
 
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
@@ -244,16 +215,62 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun appendQuestEvent(event: QuestEvent) {
-        questEventDraftQueries.insertDraftEvent(
-            questId = event.questId,
-            idx = event.idx.toLong(),
-            at = event.at.epochSeconds,
-            type = event.type.name,
-            message = event.message,
-            xpDelta = event.xpDelta.toLong(),
-            goldDelta = event.goldDelta.toLong(),
-            outcome = encodeOutcome(event.outcome)
-        )
+        // 1) Is this quest already completed?
+        val completedFlag: Long? = questEventsQueries
+            .selectQuestCompleted(event.questId)
+            .executeAsOneOrNull()
+        val isCompleted = (completedFlag == 1L)
+
+        // 2) Check collision across BOTH final Events and Drafts
+        val existsInEvents = questEventsQueries
+            .existsEventByQuestIdx(event.questId, event.idx.toLong())
+            .executeAsOne()
+        val existsInDrafts = questEventDraftQueries
+            .existsDraftByQuestIdx(event.questId, event.idx.toLong())
+            .executeAsOne()
+        val hasCollision = existsInEvents || existsInDrafts
+
+        val idxToUse =
+            if (!hasCollision) {
+                event.idx
+            } else if (event.type == EventType.NARRATION && event.idx < 0) {
+                // Keep a monotonic negative series across BOTH tables
+                val minAcross = questEventDraftQueries
+                    .selectMinIdxAcrossAll(event.questId, event.questId)
+                    .executeAsOne().toInt()
+                if (minAcross >= 0) -1 else minAcross - 1
+            } else {
+                // Next positive across BOTH tables
+                val maxAcross = questEventDraftQueries
+                    .selectMaxIdxAcrossAll(event.questId, event.questId)
+                    .executeAsOne().toInt()
+                maxAcross + 1
+            }
+
+        // 3) Route to Drafts (active) or Events (completed)
+        if (isCompleted) {
+            questEventsQueries.insertEvent(
+                questId = event.questId,
+                idx = idxToUse.toLong(),
+                at = event.at.epochSeconds,
+                type = event.type.name,
+                message = event.message,
+                xpDelta = event.xpDelta.toLong(),
+                goldDelta = event.goldDelta.toLong(),
+                outcome = encodeOutcome(event.outcome)
+            )
+        } else {
+            questEventDraftQueries.insertDraftEvent(
+                event.questId,
+                idxToUse.toLong(),
+                event.at.epochSeconds,
+                event.type.name,
+                event.message,
+                event.xpDelta.toLong(),
+                event.goldDelta.toLong(),
+                encodeOutcome(event.outcome)
+            )
+        }
     }
 
     override suspend fun getQuestEvents(questId: String): List<QuestEvent> {
@@ -294,6 +311,8 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun countNarrationEvents(questId: String): Int {
+        // Count only finalized narrations for stable negative indexing,
+        // collision logic already handles active-quest negatives across both.
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
 

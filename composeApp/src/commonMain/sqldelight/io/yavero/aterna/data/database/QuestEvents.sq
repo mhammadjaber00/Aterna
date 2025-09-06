@@ -1,6 +1,4 @@
--- io.yavero.aterna.data.database.QuestEvents.sq
-
-CREATE TABLE QuestPlanEntity (
+CREATE TABLE IF NOT EXISTS QuestPlanEntity (
   questId TEXT NOT NULL,
   idx INTEGER NOT NULL,
   dueAt INTEGER NOT NULL,    -- epoch seconds
@@ -11,7 +9,7 @@ CREATE TABLE QuestPlanEntity (
   FOREIGN KEY (questId) REFERENCES QuestLogEntity(id)
 );
 
-CREATE TABLE QuestEventEntity (
+CREATE TABLE IF NOT EXISTS QuestEventEntity (
   questId TEXT NOT NULL,
   idx INTEGER NOT NULL,
   at INTEGER NOT NULL,       -- epoch seconds
@@ -60,22 +58,38 @@ WHERE questId = ?
 ORDER BY at DESC, idx DESC
 LIMIT ?;
 
+-- Make inserts idempotent
 insertEvent:
-INSERT INTO QuestEventEntity (questId, idx, at, type, message, xpDelta, goldDelta, outcome)
+INSERT OR REPLACE INTO QuestEventEntity (questId, idx, at, type, message, xpDelta, goldDelta, outcome)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Bulk-copy all drafts for a quest into the real table (atomic & fast).
+copyDraftsToEventsByQuest:
+INSERT OR REPLACE INTO QuestEventEntity (questId, idx, at, type, message, xpDelta, goldDelta, outcome)
+SELECT questId, idx, at, type, message, xpDelta, goldDelta, outcome
+FROM QuestEventDraftEntity
+WHERE questId = ?;
 
 selectLastResolvedIdx:
 SELECT COALESCE(MAX(idx), -1) AS last_idx
 FROM QuestEventEntity
 WHERE questId = ?;
 
--- Count narration entries (idx < 0 means narration)
+-- Count narration entries (finalized only)
 countNarrationsByQuest:
 SELECT COUNT(*) FROM QuestEventEntity
 WHERE questId = ?
   AND idx < 0;
 
--- Global "recent events" for a hero (used elsewhere; includes active quests)
+-- Existence in Events
+existsEventByQuestIdx:
+SELECT EXISTS(SELECT 1 FROM QuestEventEntity WHERE questId = ? AND idx = ?) AS present;
+
+-- Is quest completed?
+selectQuestCompleted:
+SELECT completed FROM QuestLogEntity WHERE id = ?;
+
+-- Global "recent events" for a hero (includes active quests)
 selectRecentEventsByHero:
 SELECT e.questId, e.idx, e.at, e.type, e.message, e.xpDelta, e.goldDelta, e.outcome
 FROM QuestEventEntity e
@@ -103,3 +117,39 @@ FROM QuestEventEntity e
 JOIN QuestLogEntity q ON e.questId = q.id
 WHERE q.heroId = ? AND q.completed = 1 AND q.startTime BETWEEN ? AND ?
 GROUP BY e.type;
+
+-- ---------------------------------------------------------------------
+-- Logbook (completed-only)
+-- ---------------------------------------------------------------------
+logbook_selectEvents:
+SELECT
+  e.questId,
+  e.idx,
+  e.at,
+  e.type,
+  e.message,
+  e.xpDelta,
+  e.goldDelta,
+  e.outcome,
+  q.completed    AS q_completed,
+  q.durationMinutes AS q_duration,
+  q.questType    AS q_type
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = :heroId
+  AND q.completed = 1
+  AND e.type IN :types
+  AND e.at >= :fromSec AND e.at <= :toSec
+  AND ( :search IS NULL OR e.message LIKE '%' || :search || '%' )
+  AND e.at < COALESCE(:beforeAt, 9223372036854775807)
+ORDER BY e.at DESC, e.idx DESC
+LIMIT :limit;
+
+logbook_dayEventCount:
+SELECT COUNT(*) AS c
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = :heroId
+  AND q.completed = 1
+  AND e.type IN :types
+  AND e.at BETWEEN (:epochDay * 86400) AND ((:epochDay + 1) * 86400 - 1);

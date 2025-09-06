@@ -37,7 +37,6 @@ class NotificationReceiver : BroadcastReceiver() {
             NotificationManagerCompat.from(context).notify(id, notif)
         }
 
-        // Optional precise repeat reschedule
         val repeatMs = intent.getLongExtra(LocalNotifier.EXTRA_REPEAT_MS, -1L)
         if (repeatMs > 0) {
             val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -50,17 +49,9 @@ class NotificationReceiver : BroadcastReceiver() {
             )
             val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
             if (canExact) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
-                } else {
-                    am.setExact(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
-                }
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
-                } else {
-                    am.set(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
-                }
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAt, nextPi)
             }
         }
     }

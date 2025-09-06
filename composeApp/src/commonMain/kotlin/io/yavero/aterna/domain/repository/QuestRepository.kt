@@ -30,21 +30,30 @@ interface QuestRepository {
     )
     suspend fun markQuestGaveUp(questId: String, endTime: Instant)
     suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot
+
+    // Plans & events
     suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>)
     suspend fun getQuestPlan(questId: String): List<PlannedEvent>
     suspend fun clearQuestPlan(questId: String)
+
     suspend fun appendQuestEvent(event: QuestEvent)
     suspend fun getQuestEvents(questId: String): List<QuestEvent>
     suspend fun getQuestEventsPreview(questId: String, limit: Int): List<QuestEvent>
     suspend fun getLastResolvedEventIdx(questId: String): Int
     suspend fun countNarrationEvents(questId: String): Int
+
+    // Ledger
     suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot)
     suspend fun getLedgerSnapshot(questId: String): LedgerSnapshot?
+
+    // Stats
     suspend fun getLifetimeMinutes(): Int
     suspend fun getTotalQuests(): Int
     suspend fun getLongestSessionMinutes(): Int
     suspend fun getBestStreakDays(): Int
     suspend fun getCursesCleansed(): Int
+
+    // Feeds / logs
     fun observeAdventureLog(limit: Int): Flow<List<QuestEvent>>
     suspend fun getRecentAdventureLogCompleted(limit: Int): List<QuestEvent>
 
@@ -60,6 +69,7 @@ interface QuestRepository {
     suspend fun analyticsGaveUpCount(heroId: String, fromEpochSec: Long, toEpochSec: Long): Int
     suspend fun analyticsDistinctDaysCompleted(heroId: String, fromEpochSec: Long, toEpochSec: Long): List<Long>
 
+    // Logbook (completed-only)
     suspend fun logbookFetchPage(
         heroId: String,
         types: List<String>,

@@ -24,3 +24,25 @@ ORDER BY at ASC, idx ASC;
 deleteDraftsByQuest:
 DELETE FROM QuestEventDraftEntity
 WHERE questId = ?;
+
+-- Existence in Drafts
+existsDraftByQuestIdx:
+SELECT EXISTS(SELECT 1 FROM QuestEventDraftEntity WHERE questId = ? AND idx = ?) AS present;
+
+-- Max positive idx across BOTH drafts and events for this quest
+selectMaxIdxAcrossAll:
+SELECT COALESCE(MAX(idx), -1) AS max_idx
+FROM (
+  SELECT idx FROM QuestEventDraftEntity WHERE questId = ?
+  UNION ALL
+  SELECT idx FROM QuestEventEntity      WHERE questId = ?
+);
+
+-- Min idx across BOTH (for narration negatives)
+selectMinIdxAcrossAll:
+SELECT COALESCE(MIN(idx), 1) AS min_idx
+FROM (
+  SELECT idx FROM QuestEventDraftEntity WHERE questId = ?
+  UNION ALL
+  SELECT idx FROM QuestEventEntity      WHERE questId = ?
+);
