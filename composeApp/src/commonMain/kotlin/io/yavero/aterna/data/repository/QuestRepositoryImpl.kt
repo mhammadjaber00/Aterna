@@ -19,7 +19,6 @@ import io.yavero.aterna.domain.repository.QuestRepository
 import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
 import kotlin.time.Duration.Companion.days
-import kotlin.time.DurationUnit
 import kotlin.time.Instant
 
 class QuestRepositoryImpl(
@@ -357,18 +356,16 @@ class QuestRepositoryImpl(
 
     override suspend fun getBestStreakDays(): Int {
         val heroId = heroRepository.getCurrentHero()?.id ?: return 0
-        val days: List<Long> = questQueries.selectEventDaysEpochByHero(heroId)
+        val epochDays: List<Long> = questQueries.selectEventDaysEpochByHero(heroId)
             .executeAsList()
-            .map { row -> row.days.toLong(DurationUnit.DAYS) }
-            .distinct()
-            .sorted()
-
+            .map { row -> row.days.inWholeDays }
+        val sorted = epochDays.distinct().sorted()
         var best = 0
-        var cur = 0
+        var streak = 0
         var prev: Long? = null
-        for (d in days) {
-            cur = if (prev != null && d == prev + 1) cur + 1 else 1
-            if (cur > best) best = cur
+        for (d in sorted) {
+            streak = if (prev != null && d == prev + 1) streak + 1 else 1
+            if (streak > best) best = streak
             prev = d
         }
         return best

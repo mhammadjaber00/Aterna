@@ -16,17 +16,17 @@ class MockQuestApi : QuestApi {
             val start = Instant.parse(request.questStartTime)
             val end = Instant.parse(request.questEndTime)
 
-            val v = QuestValidationService.validateTimes(
+            val validation = QuestValidationService.validateTimes(
                 start = start,
                 end = end,
                 expectedMinutes = request.durationMinutes
             )
-            if (!v.valid) {
+            if (!validation.valid) {
                 return QuestCompletionResponse(
                     success = false,
                     loot = QuestLootDto(0, 0, emptyList()),
                     serverSeed = request.baseSeed,
-                    message = v.reason ?: "Validation failed"
+                    message = validation.reason ?: "Validation failed"
                 )
             }
 
@@ -37,13 +37,6 @@ class MockQuestApi : QuestApi {
                 classType = classType,
                 serverSeed = request.baseSeed
             )
-
-
-            val startLevel = request.heroLevel
-            val newXP = startLevel * 100 + loot.xp
-            val newLevel = (newXP / 100) + 1
-            val levelUp = newLevel > startLevel
-
 
             return QuestCompletionResponse(
                 success = true,
@@ -60,13 +53,13 @@ class MockQuestApi : QuestApi {
                         )
                     }
                 ),
-                levelUp = levelUp,
-                newLevel = if (levelUp) newLevel else null,
+                levelUp = false,
+                newLevel = null,
                 serverSeed = request.baseSeed,
                 serverPlanHash = request.clientPlanHash,
                 resolverVersion = request.resolverVersion,
                 resolverMismatch = false,
-                message = "Quest completed successfully!"
+                message = "Quest completed successfully"
             )
         } catch (e: Exception) {
             QuestCompletionResponse(

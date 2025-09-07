@@ -8,10 +8,10 @@ import io.yavero.aterna.domain.repository.AttributeProgressRepository
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
+import io.yavero.aterna.domain.util.SpecialThresholds
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.math.pow
 
 /**
  * Lifetime "Hero" profile. Keep analytics/trends on a separate screen.
@@ -99,19 +99,9 @@ class DefaultHeroStatsComponent(
 
     private fun buildAttrUi(
         hero: Hero,
-        residues: AttributeProgress? // pass null if you don't have APXP residues yet
+        residues: AttributeProgress?
     ): List<AttrUi> {
-
-        fun thresholdForAttr(rank: Int, base: Double = 120.0, alpha: Double = 2.0): Int {
-            val need = base * (rank + 1).toDouble().pow(alpha)
-            return need.toInt().coerceAtLeast(1)
-        }
-
-        fun progress(rank: Int, xpNow: Int?): Float {
-            val need = thresholdForAttr(rank)
-            val cur = (xpNow ?: 0).coerceAtLeast(0)
-            return (cur.toFloat() / need.toFloat()).coerceIn(0f, 1f)
-        }
+        fun progress(rank: Int, xpNow: Int?): Float = SpecialThresholds.progressFraction(rank, xpNow)
 
         return listOf(
             AttrUi(SpecialAttr.STR, hero.strength, progressToNext = progress(hero.strength, residues?.strXp)),
@@ -120,7 +110,7 @@ class DefaultHeroStatsComponent(
             AttrUi(SpecialAttr.CHA, hero.charisma, progressToNext = progress(hero.charisma, residues?.chaXp)),
             AttrUi(SpecialAttr.INT, hero.intelligence, progressToNext = progress(hero.intelligence, residues?.intXp)),
             AttrUi(SpecialAttr.AGI, hero.agility, progressToNext = progress(hero.agility, residues?.agiXp)),
-            AttrUi(SpecialAttr.LUCK, hero.luck, progressToNext = progress(hero.luck, residues?.luckXp)),
+            AttrUi(SpecialAttr.LUCK, hero.luck, progressToNext = progress(hero.luck, residues?.luckXp))
         )
     }
 }
