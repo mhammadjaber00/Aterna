@@ -1,17 +1,20 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, kotlin.time.ExperimentalTime::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class,
+    kotlin.time.ExperimentalTime::class
+)
 
 package io.yavero.aterna.features.hero_stats
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,14 +22,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -34,7 +36,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Hero
@@ -45,8 +46,9 @@ import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
 import io.yavero.aterna.ui.components.MagicalBackground
 import kotlin.math.abs
-import kotlin.math.min
 import kotlin.math.roundToInt
+
+/* -------------------------------------------------------------------------- */
 
 private object Spacing {
     val gutter = 16.dp
@@ -55,6 +57,8 @@ private object Spacing {
     val small = 8.dp
     val big = 24.dp
 }
+
+/* -------------------------------------------------------------------------- */
 
 @Composable
 fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier) {
@@ -79,6 +83,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
     ) { pv ->
         Box(Modifier.fillMaxSize()) {
             MagicalBackground()
+
             when {
                 state.loading -> LoadingState(Modifier.padding(pv))
                 state.error != null -> ErrorState(
@@ -96,12 +101,9 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                         contentPadding = pad,
                         verticalArrangement = Arrangement.spacedBy(Spacing.section),
                     ) {
-                        item("hero-card") { HeroHeaderCard(hero = state.hero) }
-
-                        // ATTRIBUTES (SPECIAL)
-                        item("attr-title") { SectionHeader("Attributes") }
-                        item("attr-grid") {
-                            AttributesGrid(
+                        item("hero-card") {
+                            HeroHeaderExpandableCard(
+                                hero = state.hero,
                                 attrs = state.attributes,
                                 dailyApUsed = state.dailyApUsed,
                                 dailyApCap = state.dailyApCap,
@@ -111,6 +113,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                         }
 
                         item("overview-title") { SectionHeader("Overview • All-time") }
+
                         item("overview-carousel") {
                             OverviewCarousel(
                                 items = listOf(
@@ -123,6 +126,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 itemSpacing = Spacing.inCard,
                             )
                         }
+
                         item("micro-row") {
                             Row(
                                 Modifier.padding(horizontal = Spacing.gutter),
@@ -132,6 +136,7 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 MicroPill(Icons.Filled.AutoAwesome, "Curses Cleansed", "${state.cursesCleansed}")
                             }
                         }
+
                         item("recent-title") {
                             SectionHeader(
                                 title = "Recent Adventure Log",
@@ -139,12 +144,11 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 onAction = component::onOpenLogbook
                             )
                         }
+
                         if (state.recentEvents.isEmpty()) {
                             item("empty") { EmptyLogHint("No logs yet. Start a quest and your story will appear here.") }
                         } else {
-                            item("recent-list") {
-                                AdventureLogList(events = state.recentEvents.take(3))
-                            }
+                            item("recent-list") { AdventureLogList(events = state.recentEvents.take(3)) }
                         }
                     }
                 }
@@ -153,17 +157,42 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
     }
 }
 
-/* -------------------- Header -------------------- */
+/* -------------------------------------------------------------------------- */
+/* Hero card with compact SPECIAL rail + bottom-sheet details                 */
+/* -------------------------------------------------------------------------- */
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeroHeaderCard(hero: Hero?) {
+private fun HeroHeaderExpandableCard(
+    hero: Hero?,
+    attrs: List<AttrUi>,
+    dailyApUsed: Int,
+    dailyApCap: Int,
+    dailyLuckUsed: Int,
+    dailyLuckCap: Int
+) {
     if (hero == null) return
-    val lvlFromXp = io.yavero.aterna.domain.util.LevelCurve.levelForXp(hero.xp)
-    val need = io.yavero.aterna.domain.util.LevelCurve.xpToNextLevel(lvlFromXp)
+
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val rotate by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        label = "chevron"
+    )
+
+    // Bottom sheet for per-attr detail
+    var showSheet by rememberSaveable { mutableStateOf(false) }
+    var focusedKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val focused = attrs.firstOrNull { it.kind.name == focusedKey }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val lvl = io.yavero.aterna.domain.util.LevelCurve.levelForXp(hero.xp)
+    val need = io.yavero.aterna.domain.util.LevelCurve.xpToNextLevel(lvl)
     val into = io.yavero.aterna.domain.util.LevelCurve.xpIntoCurrentLevel(hero.xp)
     val frac = io.yavero.aterna.domain.util.LevelCurve.xpProgressFraction(hero.xp).toFloat()
+
     Surface(
-        tonalElevation = 3.dp,
+        tonalElevation = 6.dp,
         shape = MaterialTheme.shapes.extraLarge,
         modifier = Modifier
             .padding(horizontal = Spacing.gutter, vertical = Spacing.big)
@@ -172,7 +201,7 @@ private fun HeroHeaderCard(hero: Hero?) {
         Column(Modifier.padding(Spacing.inCard)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 HeroAvatarWithXpRing(
-                    hero = hero.copy(level = lvlFromXp),
+                    hero = hero.copy(level = lvl),
                     onExpandedChange = {},
                     modifier = Modifier.size(64.dp),
                     ringWidth = 0.dp
@@ -184,18 +213,196 @@ private fun HeroHeaderCard(hero: Hero?) {
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Text("Level $lvlFromXp", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Level $lvl", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 GoldChip(gold = hero.gold)
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(Icons.Filled.ExpandMore, null, modifier = Modifier.rotate(rotate))
+                }
             }
+
             Spacer(Modifier.height(Spacing.inCard))
-            XpProgressRow(
-                progress = frac,
-                label = "XP ${into} / ${need}  •  ${(frac * 100f).toInt()}%"
+            XpProgressRow(progress = frac, label = "XP ${into} / ${need}  •  ${(frac * 100f).toInt()}%")
+
+            // Mini stats line (always visible, low-clutter)
+            Spacer(Modifier.height(Spacing.small))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.inCard)
+            ) {
+                MiniStatPill(Icons.Filled.Timeline, "${dailyApUsed} / ${dailyApCap}")
+                MiniStatPill(Icons.Filled.Casino, "${dailyLuckUsed} / ${dailyLuckCap}")
+            }
+
+            // Only the rail animates; we avoid animating the whole card to remove jitter.
+            AnimatedVisibility(
+                visible = expanded,
+                modifier = Modifier.fillMaxWidth(),
+                enter = expandVertically(
+                    animationSpec = tween(280, easing = FastOutSlowInEasing),
+                    expandFrom = Alignment.Top
+                ) + fadeIn(tween(180)),
+                exit = shrinkVertically(
+                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    shrinkTowards = Alignment.Top
+                ) + fadeOut(tween(120))
+            ) {
+                Column {
+                    Spacer(Modifier.height(Spacing.section))
+                    AttributesRail(
+                        attrs = attrs,
+                        onClick = { a ->
+                            focusedKey = a.kind.name
+                            showSheet = true
+                        }
+                    )
+                    Spacer(Modifier.height(Spacing.small))
+                    Text(
+                        "Tap a stat to see details",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+
+    if (showSheet && focused != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = sheetState,
+            tonalElevation = 8.dp,
+        ) {
+            AttrDetailSheet(
+                attr = focused!!,
+                dailyApUsed = dailyApUsed,
+                dailyApCap = dailyApCap,
+                onClose = { showSheet = false }
             )
         }
     }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Compact rail                                                               */
+/* -------------------------------------------------------------------------- */
+
+@Composable
+private fun AttributesRail(
+    attrs: List<AttrUi>,
+    onClick: (AttrUi) -> Unit
+) {
+    val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)
+    val listState = rememberLazyListState()
+
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        state = listState,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(horizontal = Spacing.inCard)
+    ) {
+        items(attrs) { a ->
+            val tint = attrColor(a.kind)
+            val progress = a.progressToNext.coerceIn(0f, 1f)
+
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                border = BorderStroke(1.dp, outline),
+                shape = RoundedCornerShape(14.dp),
+                tonalElevation = 2.dp,
+                modifier = Modifier
+                    .widthIn(min = 140.dp)
+                    .clickable { onClick(a) }
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AttrBadge(short = a.short, tint = tint)
+                        Spacer(Modifier.width(8.dp))
+                        Text(a.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f))
+                        RankPill(rank = a.rank)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    // Tiny bar (2 lines of visual info max)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progress)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Brush.horizontalGradient(listOf(tint.copy(alpha = 0.8f), tint)))
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bottom sheet detail                                                        */
+/* -------------------------------------------------------------------------- */
+
+@Composable
+private fun AttrDetailSheet(
+    attr: AttrUi,
+    dailyApUsed: Int,
+    dailyApCap: Int,
+    onClose: () -> Unit
+) {
+    val tint = attrColor(attr.kind)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .imePadding()
+            .padding(horizontal = Spacing.gutter, vertical = Spacing.section),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AttrBadge(short = attr.short, tint = tint)
+            Spacer(Modifier.width(10.dp))
+            Text(attr.label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            Spacer(Modifier.weight(1f))
+            RankPill(rank = attr.rank)
+        }
+
+        // Big progress with ticks + % label
+        val pct = (attr.progressToNext.coerceIn(0f, 1f) * 100f).roundToInt()
+        AttrProgressBar(
+            progress = attr.progressToNext.coerceIn(0f, 1f),
+            tint = tint,
+            label = "To next: $pct%"
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inCard)) {
+            MiniStatPill(Icons.Filled.Timeline, "AP Today ${dailyApUsed}/${dailyApCap}")
+        }
+
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Improve this by completing matching quests. Rank ups unlock perks elsewhere in Aterna.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(Spacing.small))
+        Button(
+            onClick = onClose,
+            modifier = Modifier.align(Alignment.End)
+        ) { Text("Close") }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Small bits                                                                 */
+/* -------------------------------------------------------------------------- */
 
 @Composable
 private fun XpProgressRow(progress: Float, label: String) {
@@ -245,136 +452,98 @@ private fun GoldChip(gold: Int) {
     }
 }
 
-/* -------------------- Attributes (SPECIAL) -------------------- */
-
 @Composable
-private fun AttributesGrid(
-    attrs: List<AttrUi>,
-    dailyApUsed: Int,
-    dailyApCap: Int,
-    dailyLuckUsed: Int,
-    dailyLuckCap: Int
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Chips for today's usage/caps
-        Row(
-            Modifier.padding(horizontal = Spacing.gutter),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.inCard)
-        ) {
-            MicroPill(Icons.Filled.Timeline, "AP Today", "$dailyApUsed / $dailyApCap")
-            MicroPill(Icons.Filled.Casino, "Luck Today", "$dailyLuckUsed / $dailyLuckCap")
-        }
-
-        FlowRow(
-            modifier = Modifier
-                .padding(horizontal = Spacing.gutter)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.inCard),
-            verticalArrangement = Arrangement.spacedBy(Spacing.inCard)
-        ) {
-            attrs.forEach { a ->
-                AttributeCard(a, Modifier.weight(1f, fill = false))
-            }
-        }
+private fun AttrBadge(short: String, tint: Color) {
+    Surface(
+        color = tint.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.35f)),
+        shape = CircleShape
+    ) {
+        Text(
+            short,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = tint,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Composable
-private fun AttributeCard(a: AttrUi, modifier: Modifier = Modifier) {
-    val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
-    val ringColor = attrColor(a.kind)
-
-    val progressAnim by animateFloatAsState(
-        targetValue = a.progressToNext.coerceIn(0f, 1f),
-        animationSpec = tween(650, easing = FastOutSlowInEasing),
-        label = "attrProgress"
-    )
-
+private fun RankPill(rank: Int) {
     Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-        border = BorderStroke(1.dp, outline),
-        tonalElevation = 2.dp,
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier.widthIn(min = 150.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+        shape = CircleShape
+    ) {
+        Text(
+            "Rank $rank",
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun AttrProgressBar(progress: Float, tint: Color, label: String) {
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(progress.coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        Brush.horizontalGradient(listOf(tint.copy(alpha = 0.80f), tint))
+                    )
+            )
+            // quarter ticks
+            Row(Modifier.fillMaxSize()) {
+                repeat(3) {
+                    Spacer(Modifier.weight(1f))
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Color.White.copy(alpha = 0.18f))
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun MiniStatPill(icon: ImageVector, value: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+        shape = CircleShape
     ) {
         Row(
-            Modifier.padding(12.dp),
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Progress ring
-            Box(
-                Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)),
-                contentAlignment = Alignment.Center
-            ) {
-                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-                    val stroke = 6.dp.toPx()
-                    val pad = 6.dp.toPx()
-                    val diameter = min(size.width, size.height) - pad * 2
-                    val topLeft = Offset(
-                        (size.width - diameter) / 2f,
-                        (size.height - diameter) / 2f
-                    )
-                    val sz = Size(diameter, diameter)
-
-                    // track
-                    drawArc(
-                        color = ringColor.copy(alpha = 0.22f),
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = sz,
-                        style = Stroke(stroke)
-                    )
-                    // progress
-                    drawArc(
-                        color = ringColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f * progressAnim,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = sz,
-                        style = Stroke(stroke)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(a.short, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${a.rank}", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text(a.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(2.dp))
-                val pct = (a.progressToNext * 100f).roundToInt()
-                Text(
-                    "To next: $pct%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
-/** Attribute → theme color mapping used by the ring. */
-@Composable
-private fun attrColor(kind: SpecialAttr): Color = when (kind) {
-    SpecialAttr.STR -> MaterialTheme.colorScheme.primary
-    SpecialAttr.PER -> MaterialTheme.colorScheme.tertiary
-    SpecialAttr.END -> MaterialTheme.colorScheme.secondary
-    SpecialAttr.CHA -> AternaColors.GoldAccent
-    SpecialAttr.INT -> MaterialTheme.colorScheme.inversePrimary
-    SpecialAttr.AGI -> MaterialTheme.colorScheme.error
-    SpecialAttr.LUCK -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-}
-
-/* -------------------- KPI carousel -------------------- */
+/* -------------------------------------------------------------------------- */
+/* Overview carousel + logbook UI (unchanged)                                 */
+/* -------------------------------------------------------------------------- */
 
 private data class Kpi(val icon: ImageVector, val label: String, val value: String)
 
@@ -388,6 +557,7 @@ private fun OverviewCarousel(
         val listState = rememberLazyListState()
         val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
+
         Box {
             LazyRow(
                 state = listState,
@@ -401,8 +571,10 @@ private fun OverviewCarousel(
                             val info = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
                             if (info == null) 1f else {
                                 val itemCenter = info.offset + info.size / 2f
-                                val viewportCenter = listState.layoutInfo.viewportStartOffset + widthPx / 2f
-                                val distNorm = (abs(itemCenter - viewportCenter) / (widthPx / 2f)).coerceIn(0f, 1f)
+                                val viewportCenter =
+                                    listState.layoutInfo.viewportStartOffset + widthPx / 2f
+                                val distNorm =
+                                    (abs(itemCenter - viewportCenter) / (widthPx / 2f)).coerceIn(0f, 1f)
                                 0.96f + (1f - distNorm) * 0.06f
                             }
                         }
@@ -448,6 +620,7 @@ private fun OverviewCarousel(
                     }
                 }
             }
+
             val canScrollBack by remember {
                 derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 }
             }
@@ -455,7 +628,8 @@ private fun OverviewCarousel(
                 derivedStateOf {
                     val info = listState.layoutInfo
                     val last = info.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
-                    last.index < (info.totalItemsCount - 1) || (info.viewportEndOffset - (last.offset + last.size)) < 0
+                    last.index < (info.totalItemsCount - 1) ||
+                            (info.viewportEndOffset - (last.offset + last.size)) < 0
                 }
             }
             if (canScrollBack) EdgeFade(Modifier.align(Alignment.CenterStart))
@@ -467,10 +641,8 @@ private fun OverviewCarousel(
 @Composable
 private fun EdgeFade(modifier: Modifier, invert: Boolean = false) {
     val brush = Brush.horizontalGradient(
-        if (!invert)
-            listOf(AternaColors.GoldAccent.copy(alpha = 0.18f), Color.Transparent)
-        else
-            listOf(Color.Transparent, AternaColors.GoldAccent.copy(alpha = 0.18f))
+        if (!invert) listOf(AternaColors.GoldAccent.copy(alpha = 0.18f), Color.Transparent)
+        else listOf(Color.Transparent, AternaColors.GoldAccent.copy(alpha = 0.18f))
     )
     Box(
         modifier
@@ -541,10 +713,7 @@ private fun AdventureLogList(events: List<QuestEvent>) {
         verticalArrangement = Arrangement.spacedBy(Spacing.inCard)
     ) {
         events.forEach { e ->
-            LogRowGleam(
-                event = e,
-                modifier = Modifier.fillMaxWidth()
-            )
+            LogRowGleam(event = e, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -599,4 +768,17 @@ private fun LogRowGleam(event: QuestEvent, modifier: Modifier = Modifier) {
             Text("✧", color = tint.copy(alpha = 0.9f), modifier = Modifier.padding(start = Spacing.small))
         }
     }
+}
+
+/* -------------------------------------------------------------------------- */
+
+@Composable
+private fun attrColor(kind: SpecialAttr): Color = when (kind) {
+    SpecialAttr.STR -> MaterialTheme.colorScheme.primary
+    SpecialAttr.PER -> MaterialTheme.colorScheme.tertiary
+    SpecialAttr.END -> MaterialTheme.colorScheme.secondary
+    SpecialAttr.CHA -> AternaColors.GoldAccent
+    SpecialAttr.INT -> MaterialTheme.colorScheme.inversePrimary
+    SpecialAttr.AGI -> MaterialTheme.colorScheme.error
+    SpecialAttr.LUCK -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
 }

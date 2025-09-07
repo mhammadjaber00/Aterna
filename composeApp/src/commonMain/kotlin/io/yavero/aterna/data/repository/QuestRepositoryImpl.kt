@@ -1,4 +1,3 @@
-// file: io/yavero/aterna/data/repository/QuestRepositoryImpl.kt
 @file:OptIn(kotlin.time.ExperimentalTime::class)
 
 package io.yavero.aterna.data.repository
@@ -32,10 +31,6 @@ class QuestRepositoryImpl(
     private val analyticsQueries = database.analyticsQueries
     private val questEventDraftQueries = database.questEventDraftQueries
     private val logbookQueries = database.logbookQueries
-
-    // ------------------------------------------------------------------------
-    // Quests
-    // ------------------------------------------------------------------------
 
     override suspend fun getCurrentActiveQuest(): Quest? {
         return questQueries.selectActiveQuestGlobal()
@@ -123,9 +118,7 @@ class QuestRepositoryImpl(
             serverValidated = if (serverValidated) 1L else 0L,
             id = questId
         )
-
         if (completed) {
-            // Atomically copy all drafts → events, then clear drafts
             questEventsQueries.transaction {
                 questEventsQueries.copyDraftsToEventsByQuest(questId)
                 questEventDraftQueries.deleteDraftsByQuest(questId)
@@ -135,7 +128,7 @@ class QuestRepositoryImpl(
 
     override suspend fun markQuestGaveUp(questId: String, endTime: Instant) {
         questQueries.updateQuestGaveUp(endTime = endTime.epochSeconds, id = questId)
-        questEventDraftQueries.deleteDraftsByQuest(questId) // discard live drafts
+        questEventDraftQueries.deleteDraftsByQuest(questId)
     }
 
     override suspend fun completeQuestRemote(hero: Hero, quest: Quest, questEndTime: Instant): QuestLoot {
@@ -143,10 +136,7 @@ class QuestRepositoryImpl(
             quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
         val plans = getQuestPlan(quest.id)
         val clientPlanHash = PlanHash.compute(plans)
-
-        // We don't have classType anymore; send "ADVENTURER" or hero.spec if present in your domain.
         val classTypeForServer = "ADVENTURER"
-
         val response = questApi.completeQuest(
             QuestCompletionRequest(
                 heroId = hero.id,
@@ -161,13 +151,10 @@ class QuestRepositoryImpl(
                 clientPlanHash = clientPlanHash
             )
         )
-
         if (!response.success) {
             throw IllegalStateException(response.message ?: "Quest validation failed")
         }
-
         val loot = response.loot.toDomain()
-
         updateQuestCompletion(
             questId = quest.id,
             endTime = questEndTime,
@@ -178,10 +165,6 @@ class QuestRepositoryImpl(
         )
         return loot
     }
-
-    // ------------------------------------------------------------------------
-    // Plans & Events
-    // ------------------------------------------------------------------------
 
     override suspend fun saveQuestPlan(questId: String, plans: List<PlannedEvent>) {
         questEventsQueries.deletePlansByQuest(questId)
@@ -217,13 +200,10 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun appendQuestEvent(event: QuestEvent) {
-        // 1) Is this quest already completed?
         val completedFlag: Long? = questEventsQueries
             .selectQuestCompleted(event.questId)
             .executeAsOneOrNull()
         val isCompleted = (completedFlag == 1L)
-
-        // 2) Check collision across BOTH final Events and Drafts (fix Long→Boolean)
         val existsInEvents = questEventsQueries
             .existsEventByQuestIdx(event.questId, event.idx.toLong())
             .executeAsOne()
@@ -231,25 +211,20 @@ class QuestRepositoryImpl(
             .existsDraftByQuestIdx(event.questId, event.idx.toLong())
             .executeAsOne()
         val hasCollision = existsInEvents || existsInDrafts
-
         val idxToUse =
             if (!hasCollision) {
                 event.idx
             } else if (event.type == EventType.NARRATION && event.idx < 0) {
-                // Keep a monotonic negative series across BOTH tables
                 val minAcross = questEventDraftQueries
                     .selectMinIdxAcrossAll(event.questId, event.questId)
                     .executeAsOne().toInt()
                 if (minAcross >= 0) -1 else minAcross - 1
             } else {
-                // Next positive across BOTH tables
                 val maxAcross = questEventDraftQueries
                     .selectMaxIdxAcrossAll(event.questId, event.questId)
                     .executeAsOne().toInt()
                 maxAcross + 1
             }
-
-        // 3) Route to Drafts (active) or Events (completed)
         if (isCompleted) {
             questEventsQueries.insertEvent(
                 questId = event.questId,
@@ -315,10 +290,6 @@ class QuestRepositoryImpl(
     override suspend fun countNarrationEvents(questId: String): Int {
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
-
-    // ------------------------------------------------------------------------
-    // Ledger & Analytics
-    // ------------------------------------------------------------------------
 
     override suspend fun saveLedgerSnapshot(questId: String, snapshot: LedgerSnapshot) {
         questQueries.updateLedgerSnapshot(
@@ -499,7 +470,6 @@ class QuestRepositoryImpl(
         limit: Int
     ): List<QuestEvent> {
         val typeNames = types.ifEmpty { EventType.entries.map { it.name } }
-
         return logbookQueries.logbook_selectEvents(
             heroId = heroId,
             types = typeNames,
@@ -538,10 +508,6 @@ class QuestRepositoryImpl(
     override suspend fun analyticsTodayLocalDay(): Long =
         analyticsQueries.analytics_todayLocalDay().executeAsOne()
 
-    // ------------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------------
-
     private fun encodeOutcome(outcome: EventOutcome): String? = when (outcome) {
         is EventOutcome.Win -> "win:${outcome.mobName}:${outcome.mobLevel}"
         is EventOutcome.Flee -> "flee:${outcome.mobName}:${outcome.mobLevel}"
@@ -571,35 +537,4 @@ class QuestRepositoryImpl(
             serverValidated = e.serverValidated == 1L,
             questType = runCatching { QuestType.valueOf(e.questType) }.getOrDefault(QuestType.OTHER)
         )
-
-    private val rulesQueries = database.questAttributeRulesQueries
-
-    override suspend fun rulesSelectAggregate(
-        questType: String,
-        durationMinutes: Int
-    ): QuestRepository.SpecialDeltas {
-        val row = rulesQueries
-            .rules_selectAggregateForQuest(questType, durationMinutes.toLong())
-            .executeAsOne()
-        return QuestRepository.SpecialDeltas(
-            str = (row.d_strength ?: 0L).toInt(),
-            per = (row.d_perception ?: 0L).toInt(),
-            end = (row.d_endurance ?: 0L).toInt(),
-            cha = (row.d_charisma ?: 0L).toInt(),
-            int = (row.d_intelligence ?: 0L).toInt(),
-            agi = (row.d_agility ?: 0L).toInt(),
-            luck = (row.d_luck ?: 0L).toInt()
-        )
-    }
-
-    data class AttrDeltas(
-        val str: Int,
-        val per: Int,
-        val end: Int,
-        val cha: Int,
-        val int: Int,
-        val agi: Int,
-        val luck: Int
-    )
-
 }

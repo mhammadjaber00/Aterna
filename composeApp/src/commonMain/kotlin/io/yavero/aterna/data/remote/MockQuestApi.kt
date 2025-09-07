@@ -1,21 +1,17 @@
 package io.yavero.aterna.data.remote
 
-import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.services.validation.QuestValidationService
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-
 @OptIn(ExperimentalTime::class)
 class MockQuestApi : QuestApi {
-
 
     override suspend fun completeQuest(request: QuestCompletionRequest): QuestCompletionResponse {
         return try {
             val start = Instant.parse(request.questStartTime)
             val end = Instant.parse(request.questEndTime)
-
             val validation = QuestValidationService.validateTimes(
                 start = start,
                 end = end,
@@ -29,15 +25,11 @@ class MockQuestApi : QuestApi {
                     message = validation.reason ?: "Validation failed"
                 )
             }
-
-            val classType = ClassType.valueOf(request.classType)
             val loot = LootRoller.rollLoot(
                 questDurationMinutes = request.durationMinutes,
                 heroLevel = request.heroLevel,
-                classType = classType,
                 serverSeed = request.baseSeed
             )
-
             return QuestCompletionResponse(
                 success = true,
                 loot = QuestLootDto(
@@ -75,7 +67,6 @@ class MockQuestApi : QuestApi {
         return try {
             val start = Instant.parse(request.startTime)
             val end = Instant.parse(request.endTime)
-
             val res = QuestValidationService.validateTimes(
                 start = start,
                 end = end,

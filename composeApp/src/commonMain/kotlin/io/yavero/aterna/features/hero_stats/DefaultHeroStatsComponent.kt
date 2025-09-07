@@ -2,6 +2,7 @@ package io.yavero.aterna.features.hero_stats
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.essenty.lifecycle.doOnResume
 import io.yavero.aterna.domain.model.AttributeProgress
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.repository.AttributeProgressRepository
@@ -13,9 +14,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Lifetime "Hero" profile. Keep analytics/trends on a separate screen.
- */
 class DefaultHeroStatsComponent(
     componentContext: ComponentContext,
     private val heroRepository: HeroRepository,
@@ -32,6 +30,7 @@ class DefaultHeroStatsComponent(
 
     init {
         refresh()
+        lifecycle.doOnResume { refresh() }
         lifecycle.doOnDestroy { scope.cancel() }
     }
 
@@ -45,8 +44,6 @@ class DefaultHeroStatsComponent(
             try {
                 val hero = heroRepository.getCurrentHero()
                 val heroId = hero?.id
-
-                // ---- Attributes (SPECIAL) ----
                 val attrsUi: List<AttrUi>
                 var dailyAp = 0
                 var dailyLuck = 0
@@ -58,8 +55,6 @@ class DefaultHeroStatsComponent(
                 } else {
                     attrsUi = emptyList()
                 }
-
-                // ---- Lifetime aggregates (completed-only via SQL) ----
                 val totals = withContext(Dispatchers.Default) {
                     val lifetimeMinutes = runCatching { questRepository?.getLifetimeMinutes() ?: 0 }.getOrDefault(0)
                     val totalQuests = runCatching { questRepository?.getTotalQuests() ?: 0 }.getOrDefault(0)
@@ -71,12 +66,9 @@ class DefaultHeroStatsComponent(
                     val cleansed = runCatching { questRepository?.getCursesCleansed() ?: 0 }.getOrDefault(0)
                     Sextuple(lifetimeMinutes, totalQuests, longestSession, bestStreak, itemsFound, cleansed)
                 }
-
-                // ---- Completed-only recent adventure log for Hero screen ----
                 val recent = runCatching {
                     questRepository?.getRecentAdventureLogCompleted(limit = 6) ?: emptyList()
                 }.getOrDefault(emptyList())
-
                 _ui.value = _ui.value.copy(
                     loading = false,
                     hero = hero,
@@ -102,7 +94,6 @@ class DefaultHeroStatsComponent(
         residues: AttributeProgress?
     ): List<AttrUi> {
         fun progress(rank: Int, xpNow: Int?): Float = SpecialThresholds.progressFraction(rank, xpNow)
-
         return listOf(
             AttrUi(SpecialAttr.STR, hero.strength, progressToNext = progress(hero.strength, residues?.strXp)),
             AttrUi(SpecialAttr.PER, hero.perception, progressToNext = progress(hero.perception, residues?.perXp)),
@@ -115,5 +106,4 @@ class DefaultHeroStatsComponent(
     }
 }
 
-/** Tiny tuple helper for readability. */
 private data class Sextuple<A, B, C, D, E, F>(val a: A, val b: B, val c: C, val d: D, val e: E, val f: F)

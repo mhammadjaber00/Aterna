@@ -301,7 +301,6 @@ class DefaultQuestEngine(
         val estBase = LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
-            classType = ClassType.ADVENTURER,
             serverSeed = baseSeed
         )
 

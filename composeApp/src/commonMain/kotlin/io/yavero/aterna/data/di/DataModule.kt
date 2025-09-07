@@ -9,7 +9,7 @@ import io.yavero.aterna.data.repository.*
 import io.yavero.aterna.domain.quest.economy.RewardService
 import io.yavero.aterna.domain.repository.*
 import io.yavero.aterna.domain.service.attr.AttributeProgressService
-import io.yavero.aterna.domain.service.attr.AttributeProgressServiceImpl
+import io.yavero.aterna.domain.service.attr.DefaultAttributeProgressService
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -39,7 +39,7 @@ val dataModule = module {
     single<AttributeProgressRepository> { AttributeProgressRepositoryImpl(get()) }
 
     single<AttributeProgressService> {
-        AttributeProgressServiceImpl(
+        DefaultAttributeProgressService(
             attrRepo = get(),
             questRepo = get(),
             heroRepo = get()

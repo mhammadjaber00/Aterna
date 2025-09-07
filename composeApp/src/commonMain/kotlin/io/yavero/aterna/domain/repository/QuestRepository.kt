@@ -88,9 +88,4 @@ interface QuestRepository {
 
     suspend fun analyticsTodayLocalDay(): Long
 
-    data class SpecialDeltas(
-        val str: Int, val per: Int, val end: Int, val cha: Int, val int: Int, val agi: Int, val luck: Int
-    )
-
-    suspend fun rulesSelectAggregate(questType: String, durationMinutes: Int): SpecialDeltas
 }
