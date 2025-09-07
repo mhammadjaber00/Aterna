@@ -1,7 +1,10 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, kotlin.time.ExperimentalTime::class)
 
 package io.yavero.aterna.features.hero_stats
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,8 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -28,6 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.designsystem.theme.AternaTypography
 import io.yavero.aterna.domain.model.Hero
@@ -38,7 +45,8 @@ import io.yavero.aterna.ui.components.ErrorState
 import io.yavero.aterna.ui.components.LoadingState
 import io.yavero.aterna.ui.components.MagicalBackground
 import kotlin.math.abs
-import kotlin.time.ExperimentalTime
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 private object Spacing {
     val gutter = 16.dp
@@ -88,9 +96,20 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                         contentPadding = pad,
                         verticalArrangement = Arrangement.spacedBy(Spacing.section),
                     ) {
-                        item("hero-card") {
-                            HeroHeaderCard(hero = state.hero)
+                        item("hero-card") { HeroHeaderCard(hero = state.hero) }
+
+                        // ATTRIBUTES (SPECIAL)
+                        item("attr-title") { SectionHeader("Attributes") }
+                        item("attr-grid") {
+                            AttributesGrid(
+                                attrs = state.attributes,
+                                dailyApUsed = state.dailyApUsed,
+                                dailyApCap = state.dailyApCap,
+                                dailyLuckUsed = state.dailyLuckUsed,
+                                dailyLuckCap = state.dailyLuckCap
+                            )
                         }
+
                         item("overview-title") { SectionHeader("Overview • All-time") }
                         item("overview-carousel") {
                             OverviewCarousel(
@@ -113,8 +132,6 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
                                 MicroPill(Icons.Filled.AutoAwesome, "Curses Cleansed", "${state.cursesCleansed}")
                             }
                         }
-                        item("achievements-title") { SectionHeader("Achievements") }
-                        item("achievements") { AchievementsRow() }
                         item("recent-title") {
                             SectionHeader(
                                 title = "Recent Adventure Log",
@@ -136,7 +153,8 @@ fun HeroStatsScreen(component: HeroStatsComponent, modifier: Modifier = Modifier
     }
 }
 
-@OptIn(ExperimentalTime::class)
+/* -------------------- Header -------------------- */
+
 @Composable
 private fun HeroHeaderCard(hero: Hero?) {
     if (hero == null) return
@@ -226,6 +244,137 @@ private fun GoldChip(gold: Int) {
         }
     }
 }
+
+/* -------------------- Attributes (SPECIAL) -------------------- */
+
+@Composable
+private fun AttributesGrid(
+    attrs: List<AttrUi>,
+    dailyApUsed: Int,
+    dailyApCap: Int,
+    dailyLuckUsed: Int,
+    dailyLuckCap: Int
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Chips for today's usage/caps
+        Row(
+            Modifier.padding(horizontal = Spacing.gutter),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.inCard)
+        ) {
+            MicroPill(Icons.Filled.Timeline, "AP Today", "$dailyApUsed / $dailyApCap")
+            MicroPill(Icons.Filled.Casino, "Luck Today", "$dailyLuckUsed / $dailyLuckCap")
+        }
+
+        FlowRow(
+            modifier = Modifier
+                .padding(horizontal = Spacing.gutter)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.inCard),
+            verticalArrangement = Arrangement.spacedBy(Spacing.inCard)
+        ) {
+            attrs.forEach { a ->
+                AttributeCard(a, Modifier.weight(1f, fill = false))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttributeCard(a: AttrUi, modifier: Modifier = Modifier) {
+    val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+    val ringColor = attrColor(a.kind)
+
+    val progressAnim by animateFloatAsState(
+        targetValue = a.progressToNext.coerceIn(0f, 1f),
+        animationSpec = tween(650, easing = FastOutSlowInEasing),
+        label = "attrProgress"
+    )
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, outline),
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.widthIn(min = 150.dp)
+    ) {
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Progress ring
+            Box(
+                Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    val stroke = 6.dp.toPx()
+                    val pad = 6.dp.toPx()
+                    val diameter = min(size.width, size.height) - pad * 2
+                    val topLeft = Offset(
+                        (size.width - diameter) / 2f,
+                        (size.height - diameter) / 2f
+                    )
+                    val sz = Size(diameter, diameter)
+
+                    // track
+                    drawArc(
+                        color = ringColor.copy(alpha = 0.22f),
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = sz,
+                        style = Stroke(stroke)
+                    )
+                    // progress
+                    drawArc(
+                        color = ringColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f * progressAnim,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = sz,
+                        style = Stroke(stroke)
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(a.short, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${a.rank}", fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(Modifier.weight(1f)) {
+                Text(a.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
+                val pct = (a.progressToNext * 100f).roundToInt()
+                Text(
+                    "To next: $pct%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Attribute → theme color mapping used by the ring. */
+@Composable
+private fun attrColor(kind: SpecialAttr): Color = when (kind) {
+    SpecialAttr.STR -> MaterialTheme.colorScheme.primary
+    SpecialAttr.PER -> MaterialTheme.colorScheme.tertiary
+    SpecialAttr.END -> MaterialTheme.colorScheme.secondary
+    SpecialAttr.CHA -> AternaColors.GoldAccent
+    SpecialAttr.INT -> MaterialTheme.colorScheme.inversePrimary
+    SpecialAttr.AGI -> MaterialTheme.colorScheme.error
+    SpecialAttr.LUCK -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+}
+
+/* -------------------- KPI carousel -------------------- */
 
 private data class Kpi(val icon: ImageVector, val label: String, val value: String)
 
@@ -356,30 +505,15 @@ private fun MicroPill(icon: ImageVector, label: String, value: String) {
 
 @Composable
 private fun SectionHeader(title: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.gutter),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
         Spacer(Modifier.weight(1f))
         if (actionLabel != null && onAction != null) TextButton(onClick = onAction) { Text(actionLabel) }
-    }
-}
-
-@Composable
-private fun AchievementsRow() {
-    val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-    val badges = listOf("🏅", "🗡️", "🛡️")
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = Spacing.gutter),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.inCard)
-    ) {
-        itemsIndexed(badges) { _, b ->
-            Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-                border = BorderStroke(1.dp, outline),
-                tonalElevation = 2.dp,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) { Box(contentAlignment = Alignment.Center) { Text(b, style = MaterialTheme.typography.titleLarge) } }
-        }
     }
 }
 
@@ -415,7 +549,6 @@ private fun AdventureLogList(events: List<QuestEvent>) {
     }
 }
 
-@OptIn(ExperimentalTime::class)
 @Composable
 private fun LogRowGleam(event: QuestEvent, modifier: Modifier = Modifier) {
     val tint = when (event.type) {

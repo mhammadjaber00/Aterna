@@ -12,13 +12,13 @@ interface QuestComponent {
     val deepFocusArmed: StateFlow<Boolean>
     suspend fun setDeepFocusArmed(armed: Boolean)
 
-    fun onStartQuest(durationMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
+    fun onStartQuest(durationMinutes: Int = 25, classType: ClassType = ClassType.ADVENTURER)
     fun onGiveUpQuest()
     fun onCompleteQuest()
     fun onRefresh()
     fun onClearError()
 
-    fun onNavigateToTimer(initialMinutes: Int = 25, classType: ClassType = ClassType.WARRIOR)
+    fun onNavigateToTimer(initialMinutes: Int = 25, classType: ClassType = ClassType.ADVENTURER)
     fun onNavigateToInventory()
 
     fun onLoadAdventureLog()

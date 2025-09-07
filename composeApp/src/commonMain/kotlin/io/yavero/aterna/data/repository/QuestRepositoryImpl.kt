@@ -1,4 +1,5 @@
-@file:OptIn(ExperimentalTime::class)
+// file: io/yavero/aterna/data/repository/QuestRepositoryImpl.kt
+@file:OptIn(kotlin.time.ExperimentalTime::class)
 
 package io.yavero.aterna.data.repository
 
@@ -19,7 +20,6 @@ import io.yavero.aterna.domain.util.PlanHash
 import kotlinx.coroutines.flow.*
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 class QuestRepositoryImpl(
@@ -32,6 +32,7 @@ class QuestRepositoryImpl(
     private val questEventsQueries = database.questEventsQueries
     private val analyticsQueries = database.analyticsQueries
     private val questEventDraftQueries = database.questEventDraftQueries
+    private val logbookQueries = database.logbookQueries
 
     // ------------------------------------------------------------------------
     // Quests
@@ -115,7 +116,6 @@ class QuestRepositoryImpl(
         goldGained: Int,
         serverValidated: Boolean
     ) {
-        // Mark the quest completion/giveup state
         questQueries.updateQuestCompletion(
             endTime = endTime.epochSeconds,
             completed = if (completed) 1L else 0L,
@@ -126,7 +126,7 @@ class QuestRepositoryImpl(
         )
 
         if (completed) {
-            // Atomically copy all drafts -> events, then clear drafts.
+            // Atomically copy all drafts → events, then clear drafts
             questEventsQueries.transaction {
                 questEventsQueries.copyDraftsToEventsByQuest(questId)
                 questEventDraftQueries.deleteDraftsByQuest(questId)
@@ -145,6 +145,9 @@ class QuestRepositoryImpl(
         val plans = getQuestPlan(quest.id)
         val clientPlanHash = PlanHash.compute(plans)
 
+        // We don't have classType anymore; send "ADVENTURER" or hero.spec if present in your domain.
+        val classTypeForServer = "ADVENTURER"
+
         val response = questApi.completeQuest(
             QuestCompletionRequest(
                 heroId = hero.id,
@@ -153,7 +156,7 @@ class QuestRepositoryImpl(
                 durationMinutes = quest.durationMinutes,
                 questStartTime = quest.startTime.toString(),
                 questEndTime = questEndTime.toString(),
-                classType = hero.classType.name,
+                classType = classTypeForServer,
                 baseSeed = baseSeed,
                 resolverVersion = 1,
                 clientPlanHash = clientPlanHash
@@ -221,7 +224,7 @@ class QuestRepositoryImpl(
             .executeAsOneOrNull()
         val isCompleted = (completedFlag == 1L)
 
-        // 2) Check collision across BOTH final Events and Drafts
+        // 2) Check collision across BOTH final Events and Drafts (fix Long→Boolean)
         val existsInEvents = questEventsQueries
             .existsEventByQuestIdx(event.questId, event.idx.toLong())
             .executeAsOne()
@@ -311,8 +314,6 @@ class QuestRepositoryImpl(
     }
 
     override suspend fun countNarrationEvents(questId: String): Int {
-        // Count only finalized narrations for stable negative indexing,
-        // collision logic already handles active-quest negatives across both.
         return questEventsQueries.countNarrationsByQuest(questId).executeAsOne().toInt()
     }
 
@@ -502,7 +503,7 @@ class QuestRepositoryImpl(
     ): List<QuestEvent> {
         val typeNames = types.ifEmpty { EventType.entries.map { it.name } }
 
-        return database.logbookQueries.logbook_selectEvents(
+        return logbookQueries.logbook_selectEvents(
             heroId = heroId,
             types = typeNames,
             fromSec = fromEpochSec,
@@ -530,7 +531,7 @@ class QuestRepositoryImpl(
         epochDay: Long
     ): Int {
         val typeNames = types.ifEmpty { EventType.entries.map { it.name } }
-        return database.logbookQueries.logbook_dayEventCount(
+        return logbookQueries.logbook_dayEventCount(
             heroId = heroId,
             types = typeNames,
             epochDay = epochDay
@@ -573,4 +574,35 @@ class QuestRepositoryImpl(
             serverValidated = e.serverValidated == 1L,
             questType = runCatching { QuestType.valueOf(e.questType) }.getOrDefault(QuestType.OTHER)
         )
+
+    private val rulesQueries = database.questAttributeRulesQueries
+
+    override suspend fun rulesSelectAggregate(
+        questType: String,
+        durationMinutes: Int
+    ): QuestRepository.SpecialDeltas {
+        val row = rulesQueries
+            .rules_selectAggregateForQuest(questType, durationMinutes.toLong())
+            .executeAsOne()
+        return QuestRepository.SpecialDeltas(
+            str = (row.d_strength ?: 0L).toInt(),
+            per = (row.d_perception ?: 0L).toInt(),
+            end = (row.d_endurance ?: 0L).toInt(),
+            cha = (row.d_charisma ?: 0L).toInt(),
+            int = (row.d_intelligence ?: 0L).toInt(),
+            agi = (row.d_agility ?: 0L).toInt(),
+            luck = (row.d_luck ?: 0L).toInt()
+        )
+    }
+
+    data class AttrDeltas(
+        val str: Int,
+        val per: Int,
+        val end: Int,
+        val cha: Int,
+        val int: Int,
+        val agi: Int,
+        val luck: Int
+    )
+
 }

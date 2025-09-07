@@ -20,10 +20,11 @@ fun PixelHeroAvatar(
     ) {
         val pixelSize = this.size.width / 16f
 
-        when (classType) {
-            ClassType.MAGE -> drawMageAvatar(pixelSize)
-            ClassType.WARRIOR -> drawWarriorAvatar(pixelSize)
-        }
+        drawWarriorAvatar(pixelSize)
+//        when (classType) {
+//            ClassType.MAGE -> drawMageAvatar(pixelSize)
+//            ClassType.WARRIOR -> drawWarriorAvatar(pixelSize)
+//        }
     }
 }
 

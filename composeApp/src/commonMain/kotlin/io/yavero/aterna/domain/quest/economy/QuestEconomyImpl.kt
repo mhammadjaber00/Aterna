@@ -1,7 +1,6 @@
-@file:OptIn(ExperimentalTime::class)
-
 package io.yavero.aterna.domain.quest.economy
 
+import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.Hero
 import io.yavero.aterna.domain.model.Quest
 import io.yavero.aterna.domain.model.QuestLoot
@@ -32,7 +31,8 @@ class QuestEconomyImpl(
 
     private fun roll(hero: Hero, quest: Quest, minutes: Int): QuestLoot {
         val seed = computeBaseSeed(hero, quest)
-        return LootRoller.rollLoot(minutes, hero.level, hero.classType, serverSeed = seed)
+        // ClassType is neutral for progression now.
+        return LootRoller.rollLoot(minutes, hero.level, ClassType.ADVENTURER, serverSeed = seed)
     }
 
     private fun progress(hero: Hero, final: QuestLoot, base: QuestLoot): EconomyResult {
@@ -43,6 +43,7 @@ class QuestEconomyImpl(
     }
 
     companion object {
+        @OptIn(ExperimentalTime::class)
         fun computeBaseSeed(hero: Hero, quest: Quest): Long =
             quest.startTime.toEpochMilliseconds() xor hero.id.hashCode().toLong() xor quest.id.hashCode().toLong()
     }

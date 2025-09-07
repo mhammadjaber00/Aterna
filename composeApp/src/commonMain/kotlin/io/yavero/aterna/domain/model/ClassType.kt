@@ -1,27 +1,9 @@
 package io.yavero.aterna.domain.model
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 enum class ClassType(
     val displayName: String,
-    val description: String,
-    val flavor: String,
-    val xpMultiplier: Double,
-    val goldMultiplier: Double
+    val xpMultiplier: Double = 1.0,
+    val goldMultiplier: Double = 1.0
 ) {
-    WARRIOR(
-        "Warrior",
-        "+20% Gold",
-        "Turns effort into Gold.",
-        xpMultiplier = 1.0,
-        goldMultiplier = 1.2
-    ),
-    MAGE(
-        "Mage",
-        "+30% XP",
-        "Turns insight into XP.",
-        xpMultiplier = 1.3,
-        goldMultiplier = 1.0
-    ),
+    ADVENTURER("Adventurer", xpMultiplier = 1.0, goldMultiplier = 1.0)
 }

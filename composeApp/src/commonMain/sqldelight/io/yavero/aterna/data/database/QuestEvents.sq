@@ -27,9 +27,16 @@ CREATE INDEX IF NOT EXISTS idx_event_quest_idx ON QuestEventEntity(questId, idx)
 CREATE INDEX IF NOT EXISTS idx_event_at        ON QuestEventEntity(at);
 
 -- ---------------------------------------------------------------------
+-- Utility: is the quest completed?
+-- ---------------------------------------------------------------------
+selectQuestCompleted:
+SELECT completed
+FROM QuestLogEntity
+WHERE id = ?;
+
+-- ---------------------------------------------------------------------
 -- Plan queries
 -- ---------------------------------------------------------------------
-
 selectPlansByQuest:
 SELECT * FROM QuestPlanEntity
 WHERE questId = ?
@@ -46,7 +53,6 @@ WHERE questId = ?;
 -- ---------------------------------------------------------------------
 -- Event queries
 -- ---------------------------------------------------------------------
-
 selectEventsByQuest:
 SELECT * FROM QuestEventEntity
 WHERE questId = ?
@@ -77,17 +83,16 @@ WHERE questId = ?;
 
 -- Count narration entries (finalized only)
 countNarrationsByQuest:
-SELECT COUNT(*) FROM QuestEventEntity
+SELECT COUNT(*)
+FROM QuestEventEntity
 WHERE questId = ?
   AND idx < 0;
 
 -- Existence in Events
 existsEventByQuestIdx:
-SELECT EXISTS(SELECT 1 FROM QuestEventEntity WHERE questId = ? AND idx = ?) AS present;
-
--- Is quest completed?
-selectQuestCompleted:
-SELECT completed FROM QuestLogEntity WHERE id = ?;
+SELECT EXISTS(
+  SELECT 1 FROM QuestEventEntity WHERE questId = ? AND idx = ?
+) AS present;
 
 -- Global "recent events" for a hero (includes active quests)
 selectRecentEventsByHero:
@@ -107,49 +112,3 @@ WHERE q.heroId = ?
   AND q.completed = 1
 ORDER BY e.at DESC, e.idx DESC
 LIMIT ?;
-
--- ---------------------------------------------------------------------
--- Analytics: Event-type breakdown within range (completed quests only)
--- ---------------------------------------------------------------------
-analytics_eventTypeBreakdown:
-SELECT e.type, COUNT(*) AS c
-FROM QuestEventEntity e
-JOIN QuestLogEntity q ON e.questId = q.id
-WHERE q.heroId = ? AND q.completed = 1 AND q.startTime BETWEEN ? AND ?
-GROUP BY e.type;
-
--- ---------------------------------------------------------------------
--- Logbook (completed-only)
--- ---------------------------------------------------------------------
-logbook_selectEvents:
-SELECT
-  e.questId,
-  e.idx,
-  e.at,
-  e.type,
-  e.message,
-  e.xpDelta,
-  e.goldDelta,
-  e.outcome,
-  q.completed    AS q_completed,
-  q.durationMinutes AS q_duration,
-  q.questType    AS q_type
-FROM QuestEventEntity e
-JOIN QuestLogEntity q ON e.questId = q.id
-WHERE q.heroId = :heroId
-  AND q.completed = 1
-  AND e.type IN :types
-  AND e.at >= :fromSec AND e.at <= :toSec
-  AND ( :search IS NULL OR e.message LIKE '%' || :search || '%' )
-  AND e.at < COALESCE(:beforeAt, 9223372036854775807)
-ORDER BY e.at DESC, e.idx DESC
-LIMIT :limit;
-
-logbook_dayEventCount:
-SELECT COUNT(*) AS c
-FROM QuestEventEntity e
-JOIN QuestLogEntity q ON e.questId = q.id
-WHERE q.heroId = :heroId
-  AND q.completed = 1
-  AND e.type IN :types
-  AND e.at BETWEEN (:epochDay * 86400) AND ((:epochDay + 1) * 86400 - 1);

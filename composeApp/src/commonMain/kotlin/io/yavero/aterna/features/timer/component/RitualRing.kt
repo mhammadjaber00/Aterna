@@ -36,10 +36,9 @@ fun RitualRing(
     fireEnabled: Boolean,
     isSealing: Boolean = false,
     sealProgress: Float = 0f,
-    classType: ClassType = ClassType.WARRIOR,
+    classType: ClassType = ClassType.ADVENTURER,
     tickColor: Color = when (classType) {
-        ClassType.WARRIOR -> AternaColors.GoldAccent
-        ClassType.MAGE -> AternaColors.Primary300
+        ClassType.ADVENTURER -> AternaColors.GoldAccent
     },
     centerHint: String = "",
     modifier: Modifier = Modifier

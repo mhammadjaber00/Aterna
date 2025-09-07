@@ -19,25 +19,25 @@ object OnboardingScenes {
         Scene(
             id = 1,
             backgroundRes = CAMP_BACKGROUND,
-            message = "Aterna helps you stay focused!",
+            message = "Welcome to Aterna — where focus becomes an adventure.",
             warriorState = WarriorState.Idle
         ),
         Scene(
             id = 2,
             backgroundRes = PATH_BACKGROUND,
-            message = "Transform your boring tasks into quests.",
+            message = "Turn your everyday tasks into epic quests.",
             warriorState = WarriorState.Walking
         ),
         Scene(
             id = 3,
             backgroundRes = DUNGEON_GATE_BACKGROUND,
-            message = "Start a timer and earn rewards.",
+            message = "Start a quest timer and earn gold, XP, and loot.",
             warriorState = WarriorState.SwordReady
         ),
         Scene(
             id = 4,
             backgroundRes = OPEN_GATE_BACKGROUND,
-            message = "Pick your Class: Warrior for gold, Mage for XP.",
+            message = "Grow your adventurer’s Strength, Agility, Intelligence… and more.",
             warriorState = WarriorState.Idle
         )
     )

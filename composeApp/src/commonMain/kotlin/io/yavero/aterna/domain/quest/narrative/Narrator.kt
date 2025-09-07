@@ -2,7 +2,6 @@
 
 package io.yavero.aterna.domain.quest.narrative
 
-import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.EventType
 import io.yavero.aterna.domain.util.TextBits
 import io.yavero.aterna.domain.util.TextRng
@@ -19,12 +18,8 @@ object Narrator {
 
     // ===== Public entry points =====
 
-    fun startLine(classType: ClassType, heroName: String, salt: Long? = null): String? {
-        val cat = when (classType) {
-            ClassType.WARRIOR -> Category.StartWarrior
-            ClassType.MAGE -> Category.StartMage
-        }
-        return pickWeighted(cat, mapOf("HERO_NAME" to heroName), salt)
+    fun startLine(heroName: String, salt: Long? = null): String? {
+        return pickWeighted(Category.StartWarrior, mapOf("HERO_NAME" to heroName), salt)
             ?: pickWeighted(Category.StartCommon, mapOf("HERO_NAME" to heroName), salt)
     }
 

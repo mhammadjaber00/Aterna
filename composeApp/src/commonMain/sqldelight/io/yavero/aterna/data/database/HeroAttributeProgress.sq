@@ -1,0 +1,111 @@
+-- Holds hidden attribute XP (APXP) and daily caps/counters per hero.
+CREATE TABLE IF NOT EXISTS HeroAttributeProgressEntity (
+  heroId TEXT NOT NULL PRIMARY KEY,
+
+  -- Hidden progress toward next SPECIAL ranks
+  strXp  INTEGER NOT NULL DEFAULT 0 CHECK(strXp  >= 0),
+  perXp  INTEGER NOT NULL DEFAULT 0 CHECK(perXp  >= 0),
+  endXp  INTEGER NOT NULL DEFAULT 0 CHECK(endXp  >= 0),
+  chaXp  INTEGER NOT NULL DEFAULT 0 CHECK(chaXp  >= 0),
+  intXp  INTEGER NOT NULL DEFAULT 0 CHECK(intXp  >= 0),
+  agiXp  INTEGER NOT NULL DEFAULT 0 CHECK(agiXp  >= 0),
+  luckXp INTEGER NOT NULL DEFAULT 0 CHECK(luckXp >= 0),
+
+  -- Daily caps/counters (reset by epoch-day)
+  lastGainDay INTEGER NOT NULL DEFAULT 0 CHECK(lastGainDay >= 0),
+  dailyTotalAp INTEGER NOT NULL DEFAULT 0 CHECK(dailyTotalAp >= 0),
+
+  dailyStrAp INTEGER NOT NULL DEFAULT 0,
+  dailyPerAp INTEGER NOT NULL DEFAULT 0,
+  dailyEndAp INTEGER NOT NULL DEFAULT 0,
+  dailyChaAp INTEGER NOT NULL DEFAULT 0,
+  dailyIntAp INTEGER NOT NULL DEFAULT 0,
+  dailyAgiAp INTEGER NOT NULL DEFAULT 0,
+  dailyLuckAp INTEGER NOT NULL DEFAULT 0,
+
+  -- repetition penalty counters by quest type
+  dailyTypeDeepWork INTEGER NOT NULL DEFAULT 0,
+  dailyTypeLearning INTEGER NOT NULL DEFAULT 0,
+  dailyTypeCreative INTEGER NOT NULL DEFAULT 0,
+  dailyTypeTraining INTEGER NOT NULL DEFAULT 0,
+  dailyTypeAdmin INTEGER NOT NULL DEFAULT 0,
+  dailyTypeBreak INTEGER NOT NULL DEFAULT 0,
+  dailyTypeOther INTEGER NOT NULL DEFAULT 0,
+
+  FOREIGN KEY (heroId) REFERENCES HeroEntity(id)
+);
+
+-- Reads
+attrprog_selectByHero:
+SELECT * FROM HeroAttributeProgressEntity WHERE heroId = :heroId LIMIT 1;
+
+-- Upsert blank row (idempotent)
+attrprog_initIfMissing:
+INSERT OR IGNORE INTO HeroAttributeProgressEntity (heroId)
+VALUES (:heroId);
+
+-- Reset daily counters to zero and set day
+attrprog_resetDaily:
+UPDATE HeroAttributeProgressEntity
+SET lastGainDay = CAST(:epochDay AS INTEGER),
+    dailyTotalAp = 0,
+    dailyStrAp = 0, dailyPerAp = 0, dailyEndAp = 0, dailyChaAp = 0, dailyIntAp = 0, dailyAgiAp = 0, dailyLuckAp = 0,
+    dailyTypeDeepWork = 0, dailyTypeLearning = 0, dailyTypeCreative = 0, dailyTypeTraining = 0,
+    dailyTypeAdmin = 0, dailyTypeBreak = 0, dailyTypeOther = 0
+WHERE heroId = :heroId;
+
+-- Increment repetition counter for a quest type
+attrprog_incTypeCounter:
+UPDATE HeroAttributeProgressEntity
+SET
+  dailyTypeDeepWork = dailyTypeDeepWork + CASE WHEN CAST(:questType AS TEXT) = 'DEEP_WORK' THEN 1 ELSE 0 END,
+  dailyTypeLearning = dailyTypeLearning + CASE WHEN CAST(:questType AS TEXT) = 'LEARNING'  THEN 1 ELSE 0 END,
+  dailyTypeCreative = dailyTypeCreative + CASE WHEN CAST(:questType AS TEXT) = 'CREATIVE'  THEN 1 ELSE 0 END,
+  dailyTypeTraining = dailyTypeTraining + CASE WHEN CAST(:questType AS TEXT) = 'TRAINING'  THEN 1 ELSE 0 END,
+  dailyTypeAdmin    = dailyTypeAdmin    + CASE WHEN CAST(:questType AS TEXT) = 'ADMIN'     THEN 1 ELSE 0 END,
+  dailyTypeBreak    = dailyTypeBreak    + CASE WHEN CAST(:questType AS TEXT) = 'BREAK'     THEN 1 ELSE 0 END,
+  dailyTypeOther    = dailyTypeOther    + CASE WHEN CAST(:questType AS TEXT) = 'OTHER'     THEN 1 ELSE 0 END
+WHERE heroId = :heroId;
+
+-- Add APXP deltas (already capped/multiplied in service), and bump daily totals
+attrprog_addApDeltas:
+UPDATE HeroAttributeProgressEntity
+SET
+  strXp  = strXp  + CAST(:dStr  AS INTEGER),
+  perXp  = perXp  + CAST(:dPer  AS INTEGER),
+  endXp  = endXp  + CAST(:dEnd  AS INTEGER),
+  chaXp  = chaXp  + CAST(:dCha  AS INTEGER),
+  intXp  = intXp  + CAST(:dInt  AS INTEGER),
+  agiXp  = agiXp  + CAST(:dAgi  AS INTEGER),
+  luckXp = luckXp + CAST(:dLuck AS INTEGER),
+
+  dailyStrAp  = dailyStrAp  + CAST(:dStr  AS INTEGER),
+  dailyPerAp  = dailyPerAp  + CAST(:dPer  AS INTEGER),
+  dailyEndAp  = dailyEndAp  + CAST(:dEnd  AS INTEGER),
+  dailyChaAp  = dailyChaAp  + CAST(:dCha  AS INTEGER),
+  dailyIntAp  = dailyIntAp  + CAST(:dInt  AS INTEGER),
+  dailyAgiAp  = dailyAgiAp  + CAST(:dAgi  AS INTEGER),
+  dailyLuckAp = dailyLuckAp + CAST(:dLuck AS INTEGER),
+
+  dailyTotalAp = dailyTotalAp
+                 + ( CAST(:dStr AS INTEGER)
+                   + CAST(:dPer AS INTEGER)
+                   + CAST(:dEnd AS INTEGER)
+                   + CAST(:dCha AS INTEGER)
+                   + CAST(:dInt AS INTEGER)
+                   + CAST(:dAgi AS INTEGER)
+                   + CAST(:dLuck AS INTEGER) )
+WHERE heroId = :heroId;
+
+-- Write back post-rankup residue (subtract thresholds per attr)
+attrprog_applyResidues:
+UPDATE HeroAttributeProgressEntity
+SET
+  strXp  = CAST(:rStr  AS INTEGER),
+  perXp  = CAST(:rPer  AS INTEGER),
+  endXp  = CAST(:rEnd  AS INTEGER),
+  chaXp  = CAST(:rCha  AS INTEGER),
+  intXp  = CAST(:rInt  AS INTEGER),
+  agiXp  = CAST(:rAgi  AS INTEGER),
+  luckXp = CAST(:rLuck AS INTEGER)
+WHERE heroId = :heroId;

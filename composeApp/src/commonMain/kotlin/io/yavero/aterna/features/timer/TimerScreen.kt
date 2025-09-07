@@ -49,7 +49,7 @@ fun TimerScreen(
     minMinutes: Int = 10,
     maxMinutes: Int = 120,
     stepMinutes: Int = 5,
-    classType: ClassType = ClassType.WARRIOR,
+    classType: ClassType = ClassType.ADVENTURER,
     initialType: QuestType = QuestType.OTHER,
     onConfirm: (minutes: Int, type: QuestType) -> Unit,
     onDismiss: () -> Unit

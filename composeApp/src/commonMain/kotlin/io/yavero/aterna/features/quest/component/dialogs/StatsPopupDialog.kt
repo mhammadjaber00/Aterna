@@ -33,7 +33,7 @@ fun StatsPopupDialog(hero: Hero?, onDismiss: () -> Unit, modifier: Modifier = Mo
                     Text(stringResource(Res.string.gold_format, h.gold))
                     Text(stringResource(Res.string.focus_minutes_format, h.totalFocusMinutes))
                     Text(stringResource(Res.string.daily_streak_format, h.dailyStreak))
-                    Text(stringResource(Res.string.class_format, h.classType.displayName))
+//                    Text(stringResource(Res.string.class_format, h.classType.displayName))
                 } ?: Text(stringResource(Res.string.no_hero_data))
             }
         },

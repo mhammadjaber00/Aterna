@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.yavero.aterna.domain.repository
 
 import io.yavero.aterna.domain.model.Hero
@@ -7,10 +9,8 @@ import io.yavero.aterna.domain.model.quest.PlannedEvent
 import io.yavero.aterna.domain.model.quest.QuestEvent
 import io.yavero.aterna.domain.quest.engine.LedgerSnapshot
 import kotlinx.coroutines.flow.Flow
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 interface QuestRepository {
     suspend fun getCurrentActiveQuest(): Quest?
     fun observeActiveQuest(): Flow<Quest?>
@@ -87,4 +87,10 @@ interface QuestRepository {
     ): Int
 
     suspend fun analyticsTodayLocalDay(): Long
+
+    data class SpecialDeltas(
+        val str: Int, val per: Int, val end: Int, val cha: Int, val int: Int, val agi: Int, val luck: Int
+    )
+
+    suspend fun rulesSelectAggregate(questType: String, durationMinutes: Int): SpecialDeltas
 }

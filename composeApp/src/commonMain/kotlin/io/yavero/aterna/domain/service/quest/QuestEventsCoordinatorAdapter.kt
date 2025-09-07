@@ -16,6 +16,7 @@ class QuestEventsCoordinatorAdapter(
     override fun observe(
         heroFlow: Flow<Hero?>,
         activeQuestFlow: Flow<Quest?>,
+
         ticker: Flow<Instant>
     ) = engine.feed(heroFlow, activeQuestFlow, ticker)
 }

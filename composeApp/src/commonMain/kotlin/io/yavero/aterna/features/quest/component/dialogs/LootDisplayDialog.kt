@@ -47,7 +47,6 @@ fun LootDisplayDialog(
         if (hero != null) LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
-            classType = hero.classType,
             serverSeed = quest.startTime.toEpochMilliseconds()
         ) else null
     } ?: return

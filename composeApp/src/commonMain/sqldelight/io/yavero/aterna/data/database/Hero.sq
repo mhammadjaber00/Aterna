@@ -1,29 +1,93 @@
+-- Single canonical hero row per user
 CREATE TABLE HeroEntity (
-    id TEXT NOT NULL PRIMARY KEY,
-    name TEXT NOT NULL,
-    classType TEXT NOT NULL,
-    level INTEGER NOT NULL DEFAULT 1,
-    xp INTEGER NOT NULL DEFAULT 0,
-    gold INTEGER NOT NULL DEFAULT 0,
-    totalFocusMinutes INTEGER NOT NULL DEFAULT 0,
-    dailyStreak INTEGER NOT NULL DEFAULT 0,
-    lastActiveDate INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+
+  -- Core progression
+  level INTEGER NOT NULL DEFAULT 1 CHECK(level >= 1),
+  xp INTEGER NOT NULL DEFAULT 0 CHECK(xp >= 0),
+  gold INTEGER NOT NULL DEFAULT 0 CHECK(gold >= 0),
+  totalFocusMinutes INTEGER NOT NULL DEFAULT 0 CHECK(totalFocusMinutes >= 0),
+
+  -- Streaks (epoch-day, localtime safe)
+  dailyStreak INTEGER NOT NULL DEFAULT 0 CHECK(dailyStreak >= 0),
+  bestStreak  INTEGER NOT NULL DEFAULT 0 CHECK(bestStreak  >= 0),
+  lastActiveDay INTEGER NOT NULL DEFAULT 0 CHECK(lastActiveDay >= 0),
+
+  -- S.P.E.C.I.A.L. ranks (small integers)
+  strength     INTEGER NOT NULL DEFAULT 0 CHECK(strength     >= 0),
+  perception   INTEGER NOT NULL DEFAULT 0 CHECK(perception   >= 0),
+  endurance    INTEGER NOT NULL DEFAULT 0 CHECK(endurance    >= 0),
+  charisma     INTEGER NOT NULL DEFAULT 0 CHECK(charisma     >= 0),
+  intelligence INTEGER NOT NULL DEFAULT 0 CHECK(intelligence >= 0),
+  agility      INTEGER NOT NULL DEFAULT 0 CHECK(agility      >= 0),
+  luck         INTEGER NOT NULL DEFAULT 0 CHECK(luck         >= 0),
+
+  -- Optional specialization (future evolution)
+  spec TEXT,
+  specChosenAt INTEGER,
+  respecCount INTEGER NOT NULL DEFAULT 0 CHECK(respecCount >= 0),
+
+  -- Cosmetics (free-form JSON)
+  cosmeticsJson TEXT NOT NULL DEFAULT '{}',
+
+  createdAt INTEGER NOT NULL
 );
 
--- Queries
+-- Reads
 selectHero:
 SELECT * FROM HeroEntity LIMIT 1;
 
-insertOrUpdateHero:
-INSERT OR REPLACE INTO HeroEntity 
-(id, name, classType, level, xp, gold, totalFocusMinutes, dailyStreak, lastActiveDate, createdAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+selectHeroSpecial:
+SELECT strength, perception, endurance, charisma, intelligence, agility, luck
+FROM HeroEntity
+LIMIT 1;
 
+-- Upserts
+insertOrReplaceHero:
+INSERT OR REPLACE INTO HeroEntity (
+  id, name,
+  level, xp, gold, totalFocusMinutes,
+  dailyStreak, bestStreak, lastActiveDay,
+  strength, perception, endurance, charisma, intelligence, agility, luck,
+  spec, specChosenAt, respecCount,
+  cosmeticsJson, createdAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Updates
 updateHeroStats:
-UPDATE HeroEntity 
-SET level = ?, xp = ?, gold = ?, totalFocusMinutes = ?, dailyStreak = ?, lastActiveDate = ?
+UPDATE HeroEntity
+SET level = ?, xp = ?, gold = ?, totalFocusMinutes = ?,
+    dailyStreak = ?, bestStreak = ?, lastActiveDay = ?
 WHERE id = ?;
 
+updateHeroSpecial:
+UPDATE HeroEntity
+SET strength = ?, perception = ?, endurance = ?, charisma = ?,
+    intelligence = ?, agility = ?, luck = ?
+WHERE id = ?;
+
+incrementHeroSpecial:
+UPDATE HeroEntity
+SET strength     = strength     + ?,
+    perception   = perception   + ?,
+    endurance    = endurance    + ?,
+    charisma     = charisma     + ?,
+    intelligence = intelligence + ?,
+    agility      = agility      + ?,
+    luck         = luck         + ?
+WHERE id = ?;
+
+updateHeroSpec:
+UPDATE HeroEntity
+SET spec = ?, specChosenAt = ?, respecCount = ?
+WHERE id = ?;
+
+updateHeroCosmetics:
+UPDATE HeroEntity
+SET cosmeticsJson = ?
+WHERE id = ?;
+
+-- Delete
 deleteHero:
 DELETE FROM HeroEntity;

@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
@@ -15,11 +16,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import io.yavero.aterna.domain.model.ClassType
 import io.yavero.aterna.domain.model.quest.QuestType
 import io.yavero.aterna.features.analytics.screen.AnalyticsScreen
-import io.yavero.aterna.features.classselection.ClassSelectionScreen
 import io.yavero.aterna.features.hero_stats.HeroStatsScreen
 import io.yavero.aterna.features.inventory.InventoryScreen
 import io.yavero.aterna.features.logbook.LogbookScreen
-import io.yavero.aterna.features.onboarding.ui.ClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.OnboardingScreen
 import io.yavero.aterna.features.quest.presentation.QuestComponent
 import io.yavero.aterna.features.timer.TimerScreen
@@ -52,7 +51,7 @@ fun AppContent(
             ) {
                 when (val instance = it.instance) {
                     is AppRootComponent.Child.Onboarding -> OnboardingScreen(component = instance.component)
-                    is AppRootComponent.Child.ClassSelect -> ClassSelectScreen(component = instance.component)
+//                    is AppRootComponent.Child.ClassSelect -> ClassSelectScreen(component = instance.component)
                     is AppRootComponent.Child.QuestHub -> QuestHubScreen(component = instance.component)
                     is AppRootComponent.Child.Inventory -> InventoryScreen(component = instance.component)
                     is AppRootComponent.Child.Timer -> TimerScreenWrapper(
@@ -69,18 +68,18 @@ fun AppContent(
     }
 }
 
-@Composable
-private fun ClassSelectScreen(component: ClassSelectComponent) {
-    var selectedClass by remember { mutableStateOf<ClassType?>(null) }
-
-    ClassSelectionScreen(
-        selected = selectedClass,
-        onSelect = { selectedClass = it },
-        onConfirm = { classType ->
-            component.onClassSelected(classType)
-        },
-    )
-}
+//@Composable
+//private fun ClassSelectScreen(component: ClassSelectComponent) {
+//    var selectedClass by remember { mutableStateOf<ClassType?>(null) }
+//
+//    ClassSelectionScreen(
+//        selected = selectedClass,
+//        onSelect = { selectedClass = it },
+//        onConfirm = { classType ->
+//            component.onClassSelected(classType)
+//        },
+//    )
+//}
 
 @Composable
 private fun QuestHubScreen(component: QuestComponent) {
@@ -96,7 +95,7 @@ private fun TimerScreenWrapper(
     val classTypeEnum = try {
         ClassType.valueOf(classType)
     } catch (e: IllegalArgumentException) {
-        ClassType.WARRIOR
+        ClassType.ADVENTURER
     }
 
     TimerScreen(

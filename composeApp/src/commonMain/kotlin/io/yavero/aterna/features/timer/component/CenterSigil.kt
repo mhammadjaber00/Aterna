@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.yavero.aterna.designsystem.theme.AternaColors
 import io.yavero.aterna.domain.model.ClassType
 
 @Composable
@@ -28,21 +27,21 @@ fun CenterSigil(
         label = "sigilScale"
     )
 
-    Box(contentAlignment = Alignment.Companion.Center) {
+    Box(contentAlignment = Alignment.Center) {
         PixelGuardianStatueSprite(
             size = 48.dp,
-            classType = if (tint == AternaColors.Primary300) ClassType.MAGE else ClassType.WARRIOR,
+            classType = ClassType.ADVENTURER,
             sealing = isSealing,
             progress = progress,
-            modifier = Modifier.Companion.graphicsLayer { scaleX = scale; scaleY = scale })
+            modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale })
 
         if (isSealing) {
             SealingFX(tint = tint, progress = progress)
         } else {
-            Spacer(Modifier.Companion.height(6.dp))
+            Spacer(Modifier.height(6.dp))
         }
 
-        Spacer(Modifier.Companion.height(6.dp))
+        Spacer(Modifier.height(6.dp))
         Text(hint, fontSize = 14.sp, color = tint.copy(alpha = 0.80f))
     }
 }

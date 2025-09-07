@@ -75,7 +75,7 @@ fun HeroAvatarWithXpRing(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 PixelHeroAvatar(
-                    classType = hero?.classType ?: ClassType.WARRIOR,
+                    classType = ClassType.ADVENTURER,
                     size = (innerSize - 4.dp).value.toInt()
                 )
             }

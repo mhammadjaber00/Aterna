@@ -16,6 +16,7 @@ import io.yavero.aterna.domain.quest.narrative.Narrator
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
+import io.yavero.aterna.domain.service.attr.AttributeProgressService
 import io.yavero.aterna.domain.util.LootRoller
 import io.yavero.aterna.domain.util.QuestPlanner
 import io.yavero.aterna.domain.util.QuestResolver
@@ -33,10 +34,6 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-/**
- * Unified quest engine: start, complete, retreat, and live feed generation.
- * Uses Narrator for both flavor lines and event messages.
- */
 class DefaultQuestEngine(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository,
@@ -44,15 +41,14 @@ class DefaultQuestEngine(
     private val curseService: CurseService,
     private val economy: QuestEconomy,
     private val inventory: InventoryRepository,
+    private val attrService: AttributeProgressService
 ) : QuestEngine {
-
-    // ------------------------ lifecycle: start / complete / retreat ------------------------
 
     private val completeMutex = Mutex()
     private val retreatMutex = Mutex()
 
-    override suspend fun start(durationMinutes: Int, classType: ClassType, questType: QuestType): StartResult {
-        val hero = heroRepository.getCurrentHero() ?: createDefaultHero(classType)
+    override suspend fun start(durationMinutes: Int, questType: QuestType): StartResult {
+        val hero = heroRepository.getCurrentHero() ?: createDefaultHero()
         val quest = Quest(
             id = Uuid.random().toString(),
             heroId = hero.id,
@@ -67,12 +63,12 @@ class DefaultQuestEngine(
         questNotifier.showOngoing(
             sessionId = quest.id,
             title = "Quest Active",
-            text = "${durationMinutes} minute ${classType.displayName} quest",
+            text = "${durationMinutes} minute",
             endAt = endTime
         )
         questNotifier.scheduleEnd(sessionId = quest.id, endAt = endTime)
 
-        val startLine = Narrator.startLine(classType, hero.name)
+        val startLine = Narrator.startLine(hero.name)
         if (startLine != null) appendNarration(quest.id, startLine)
 
         val fx = buildList {
@@ -90,18 +86,16 @@ class DefaultQuestEngine(
 
         val completed = active.copy(endTime = Clock.System.now(), completed = true)
 
-        // Remote validation + server loot
         val serverLoot = questRepository.completeQuestRemote(hero, active, completed.endTime!!)
         val econ = economy.completion(hero, active, serverLootOverride = serverLoot)
 
-        // Ledger the final allocation and persist events still due
         val plan = questRepository.getQuestPlan(active.id)
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, active)
         val ledger = RewardAllocator.allocate(
             questId = active.id,
             baseSeed = baseSeed,
             heroLevel = hero.level,
-            classType = hero.classType,
+            classType = ClassType.ADVENTURER,
             plan = plan,
             finalTotals = econ.final
         )
@@ -115,35 +109,36 @@ class DefaultQuestEngine(
             )
         )
 
-        // Append any unresolved events deterministically from the ledger
         val byIdx = ledger.entries.associateBy { it.eventIdx }
         val lastIdx = questRepository.getLastResolvedEventIdx(active.id)
-        val ctx = QuestResolver.Context(active.id, baseSeed, hero.level, hero.classType)
+        val ctx = QuestResolver.Context(active.id, baseSeed, hero.level, ClassType.ADVENTURER)
         plan.filter { it.idx > lastIdx }.sortedBy { it.idx }.forEach { p ->
             val e = byIdx[p.idx]
             val ev = QuestResolver.resolveFromLedger(
                 ctx, p, xpDelta = e?.xpDelta ?: 0, goldDelta = e?.goldDelta ?: 0
             )
-            questRepository.appendQuestEvent(ev) // will insert into Events (quest is now completed)
+            questRepository.appendQuestEvent(ev)
         }
 
-        // Update hero progression & wallet
         val updatedHero = hero.copy(
             xp = econ.newXp,
             level = econ.newLevel,
             gold = hero.gold + econ.final.gold,
-            totalFocusMinutes = hero.totalFocusMinutes + active.durationMinutes,
-            lastActiveDate = completed.endTime
+            totalFocusMinutes = hero.totalFocusMinutes + active.durationMinutes
         )
         heroRepository.updateHero(updatedHero)
 
-        // Inventory updates (new items only)
+        val attrResult = attrService.applyForCompletedQuest(updatedHero, active)
+        if (attrResult.rankUps.anyPositive()) {
+            val msg = "Attribute up: ${attrResult.rankUps}"
+            appendNarration(active.id, msg)
+        }
+
         val ownedBefore = inventory.getOwnedItemIds(hero.id)
         val newItems = econ.final.items.filter { it.id !in ownedBefore }
         newItems.forEach { inventory.addItemOnce(hero.id, it.id) }
         val newItemIds = newItems.map { it.id }.toSet()
 
-        // Notifications
         questNotifier.cancelScheduledEnd(active.id)
         questNotifier.clearOngoing(active.id)
         questNotifier.showCompleted(
@@ -152,7 +147,6 @@ class DefaultQuestEngine(
             text = "+${econ.final.xp} XP, +${econ.final.gold} gold"
         )
 
-        // Closing flavor
         val lootLine = if (newItems.isNotEmpty())
             Narrator.lootGainLine(newItems.joinToString { it.name })
         else null
@@ -166,12 +160,13 @@ class DefaultQuestEngine(
             econ.leveledUpTo?.let { add(QuestEffect.ShowLevelUp(it)) }
             lootLine?.let { add(QuestEffect.ShowNarration(it)) }
             closer?.let { add(QuestEffect.ShowNarration(it)) }
+            if (attrResult.rankUps.anyPositive()) add(QuestEffect.ShowSuccess("Attributes increased"))
             add(QuestEffect.PlayQuestCompleteSound)
         }
 
         CompleteResult(
             quest = completed,
-            updatedHero = updatedHero,
+            updatedHero = heroRepository.getCurrentHero() ?: updatedHero,
             loot = econ.final,
             leveledUpTo = econ.leveledUpTo,
             newItemIds = newItemIds,
@@ -202,9 +197,6 @@ class DefaultQuestEngine(
         val gaveUp = active.copy(endTime = now, gaveUp = true)
         questRepository.markQuestGaveUp(active.id, gaveUp.endTime!!)
 
-        val updatedHero = hero.copy(lastActiveDate = now)
-        heroRepository.updateHero(updatedHero)
-
         questNotifier.cancelScheduledEnd(active.id)
         questNotifier.clearOngoing(active.id)
 
@@ -215,7 +207,7 @@ class DefaultQuestEngine(
         uiFx += QuestEffect.ShowQuestGaveUp
         uiFx += QuestEffect.PlayQuestFailSound
 
-        RetreatResult(gaveUp, updatedHero, bankedLoot = null, curseApplied = !inGrace, uiEffects = uiFx)
+        RetreatResult(gaveUp, hero, bankedLoot = null, curseApplied = !inGrace, uiEffects = uiFx)
     }
 
     override suspend fun cleanseCurseWithGold(cost: Int): Boolean {
@@ -227,8 +219,6 @@ class DefaultQuestEngine(
         heroRepository.updateHero(hero.copy(gold = hero.gold - cost))
         return true
     }
-
-    // ----------------------------------- live feed -----------------------------------
 
     private var lastPlannedQuestId: String? = null
     private var lastPreviewQuestId: String? = null
@@ -306,12 +296,12 @@ class DefaultQuestEngine(
         val due = plan.filter { it.dueAt <= now }.sortedBy { it.idx }
 
         val baseSeed = QuestEconomyImpl.computeBaseSeed(hero, quest)
-        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
+        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, ClassType.ADVENTURER)
 
         val estBase = LootRoller.rollLoot(
             questDurationMinutes = quest.durationMinutes,
             heroLevel = hero.level,
-            classType = hero.classType,
+            classType = ClassType.ADVENTURER,
             serverSeed = baseSeed
         )
 
@@ -319,7 +309,7 @@ class DefaultQuestEngine(
             questId = quest.id,
             baseSeed = baseSeed,
             heroLevel = hero.level,
-            classType = hero.classType,
+            classType = ClassType.ADVENTURER,
             plan = plan,
             finalTotals = QuestLoot(estBase.xp, estBase.gold)
         )
@@ -362,12 +352,17 @@ class DefaultQuestEngine(
             questId = quest.id,
             baseSeed = baseSeed,
             heroLevel = hero.level,
-            classType = hero.classType,
+            classType = ClassType.ADVENTURER,
             plan = plan,
             finalTotals = QuestLoot(snap.totalXp, snap.totalGold)
         )
         val byIdx = ledger.entries.associateBy { it.eventIdx }
-        val ctx = QuestResolver.Context(quest.id, baseSeed, hero.level, hero.classType)
+        val ctx = QuestResolver.Context(
+            questId = quest.id,
+            baseSeed = baseSeed,
+            heroLevel = hero.level,
+            classType = ClassType.ADVENTURER
+        )
 
         var newCount = 0
         plan.filter { it.dueAt <= now && it.idx > lastIdx }
@@ -398,7 +393,7 @@ class DefaultQuestEngine(
             seed = seed,
             startAt = quest.startTime,
             heroLevel = hero.level,
-            classType = hero.classType
+            classType = ClassType.ADVENTURER
         )
         val planned = QuestPlanner.plan(spec).map { it.copy(questId = quest.id) }
         questRepository.saveQuestPlan(quest.id, planned)
@@ -421,12 +416,10 @@ class DefaultQuestEngine(
         questRepository.appendQuestEvent(ev)
     }
 
-    private suspend fun createDefaultHero(classType: ClassType): Hero {
+    private suspend fun createDefaultHero(): Hero {
         val hero = Hero(
             id = Uuid.random().toString(),
-            name = "Hero",
-            classType = classType,
-            lastActiveDate = Clock.System.now()
+            name = "Hero"
         )
         heroRepository.insertHero(hero)
         return hero

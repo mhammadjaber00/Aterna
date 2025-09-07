@@ -27,7 +27,9 @@ WHERE questId = ?;
 
 -- Existence in Drafts
 existsDraftByQuestIdx:
-SELECT EXISTS(SELECT 1 FROM QuestEventDraftEntity WHERE questId = ? AND idx = ?) AS present;
+SELECT EXISTS(
+  SELECT 1 FROM QuestEventDraftEntity WHERE questId = ? AND idx = ?
+) AS present;
 
 -- Max positive idx across BOTH drafts and events for this quest
 selectMaxIdxAcrossAll:

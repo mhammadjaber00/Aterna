@@ -1,4 +1,4 @@
--- Indexes helpful for analytics
+-- Helpful indexes (created here for clarity; idempotent)
 CREATE INDEX IF NOT EXISTS idx_quest_endtime_by_hero   ON QuestLogEntity(heroId, endTime);
 CREATE INDEX IF NOT EXISTS idx_quest_completed         ON QuestLogEntity(completed);
 CREATE INDEX IF NOT EXISTS idx_quest_gaveup            ON QuestLogEntity(gaveUp);
@@ -15,7 +15,6 @@ WHERE heroId = ?
   AND endTime BETWEEN ? AND ?
 GROUP BY day
 ORDER BY day ASC;
-
 
 -- Minutes by quest type (completed only)
 analytics_minutesByType:
@@ -80,3 +79,11 @@ WHERE heroId = ? AND completed = 1;
 -- today local day
 analytics_todayLocalDay:
 SELECT CAST(strftime('%s', date('now','localtime')) AS INTEGER) / 86400 AS day;
+
+-- Event-type breakdown within range (completed quests only)
+analytics_eventTypeBreakdown:
+SELECT e.type, COUNT(*) AS c
+FROM QuestEventEntity e
+JOIN QuestLogEntity q ON e.questId = q.id
+WHERE q.heroId = ? AND q.completed = 1 AND q.startTime BETWEEN ? AND ?
+GROUP BY e.type;

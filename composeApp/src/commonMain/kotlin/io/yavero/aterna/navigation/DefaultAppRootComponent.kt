@@ -4,17 +4,13 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import io.yavero.aterna.domain.model.ClassType
-import io.yavero.aterna.domain.repository.HeroRepository
-import io.yavero.aterna.domain.repository.InventoryRepository
-import io.yavero.aterna.domain.repository.QuestRepository
-import io.yavero.aterna.domain.repository.SettingsRepository
+import io.yavero.aterna.domain.repository.*
 import io.yavero.aterna.domain.util.TimeProvider
 import io.yavero.aterna.features.analytics.presentation.DefaultAnalyticsComponent
 import io.yavero.aterna.features.hero_stats.DefaultHeroStatsComponent
 import io.yavero.aterna.features.inventory.InventoryComponentImpl
 import io.yavero.aterna.features.logbook.DefaultLogbookComponent
 import io.yavero.aterna.features.logbook.QuestLogbookDataSource
-import io.yavero.aterna.features.onboarding.ui.DefaultClassSelectComponent
 import io.yavero.aterna.features.onboarding.ui.DefaultOnboardingRootComponent
 import io.yavero.aterna.features.quest.presentation.DefaultQuestComponent
 import io.yavero.aterna.features.quest.presentation.QuestIntent
@@ -32,6 +28,8 @@ class DefaultAppRootComponent(
 
     private val questRepository: QuestRepository by inject()
 
+    private val attributeRepo: AttributeProgressRepository by inject()
+
     private val heroRepository: HeroRepository by inject()
     private val inventoryRepository: InventoryRepository by inject()
     private val settingsRepository: SettingsRepository by inject()
@@ -41,7 +39,7 @@ class DefaultAppRootComponent(
         val hero = heroRepository.getCurrentHero()
         if (hero != null) return@runBlocking Config.QuestHub
         val onboardingDone = settingsRepository.getOnboardingDone()
-        if (onboardingDone) Config.ClassSelect else Config.Onboarding
+        if (onboardingDone) Config.QuestHub else Config.Onboarding
     }
 
     override val childStack: Value<ChildStack<*, AppRootComponent.Child>> =
@@ -58,16 +56,16 @@ class DefaultAppRootComponent(
             is Config.Onboarding -> AppRootComponent.Child.Onboarding(
                 DefaultOnboardingRootComponent(
                     componentContext = componentContext,
-                    onNavigateToClassSelect = ::navigateToClassSelect
+                    onNavigateToClassSelect = ::navigateToQuestHub
                 )
             )
 
-            is Config.ClassSelect -> AppRootComponent.Child.ClassSelect(
-                DefaultClassSelectComponent(
-                    componentContext = componentContext,
-                    onNavigateToQuestHub = ::navigateToQuestHub
-                )
-            )
+//            is Config.ClassSelect -> AppRootComponent.Child.ClassSelect(
+//                DefaultClassSelectComponent(
+//                    componentContext = componentContext,
+//                    onNavigateToQuestHub = ::navigateToQuestHub
+//                )
+//            )
 
             is Config.QuestHub -> AppRootComponent.Child.QuestHub(
                 DefaultQuestComponent(
@@ -115,6 +113,7 @@ class DefaultAppRootComponent(
                     onOpenLogbookNav = {
                         navigation.bringToFront(Config.Logbook)
                     },
+                    attrRepo = attributeRepo
                 )
             )
 
@@ -139,9 +138,9 @@ class DefaultAppRootComponent(
             )
         }
 
-    override fun navigateToClassSelect() {
-        navigation.bringToFront(Config.ClassSelect)
-    }
+//    override fun navigateToClassSelect() {
+//        navigation.bringToFront(Config.ClassSelect)
+//    }
 
     override fun navigateToQuestHub() {
         navigation.replaceAll(Config.QuestHub)
@@ -171,7 +170,7 @@ class DefaultAppRootComponent(
         val classTypeEnum = try {
             ClassType.valueOf(classType)
         } catch (e: IllegalArgumentException) {
-            ClassType.WARRIOR
+            ClassType.ADVENTURER
         }
         questStore.process(QuestIntent.StartQuest(durationMinutes, classTypeEnum, questType))
         navigateToQuestHub()

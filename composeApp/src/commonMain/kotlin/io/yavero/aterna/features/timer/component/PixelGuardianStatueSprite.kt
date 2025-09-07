@@ -43,8 +43,7 @@ fun PixelGuardianStatueSprite(
     val pedestal = Color(0xFF4A515B)
     val moss = Color(0xFF679E63)
     val eyeGlow = when (classType) {
-        ClassType.WARRIOR -> AternaColors.GoldAccent
-        ClassType.MAGE -> AternaColors.Primary300
+        ClassType.ADVENTURER -> AternaColors.GoldAccent
     }
 
     Canvas(modifier.size(size)) {
@@ -89,18 +88,18 @@ fun PixelGuardianStatueSprite(
 
 
         when (classType) {
-            ClassType.WARRIOR -> {
+            ClassType.ADVENTURER -> {
 
                 for (y in 7..13) p(3, y, Color(0xFFC7D2FF))
                 p(3, 6, AternaColors.GoldAccent)
             }
 
-            ClassType.MAGE -> {
-
-                for (y in 7..13) p(12, y, Color(0xFF7E5A3A))
-                p(12, 6, eyeGlow)
-                p(11, 6, Color.Companion.White, 0.25f)
-            }
+//            ClassType.MAGE -> {
+//
+//                for (y in 7..13) p(12, y, Color(0xFF7E5A3A))
+//                p(12, 6, eyeGlow)
+//                p(11, 6, Color.Companion.White, 0.25f)
+//            }
         }
 
 

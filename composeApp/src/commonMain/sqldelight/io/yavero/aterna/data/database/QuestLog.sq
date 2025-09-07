@@ -1,16 +1,20 @@
 CREATE TABLE QuestLogEntity (
   id TEXT NOT NULL PRIMARY KEY,
   heroId TEXT NOT NULL,
+
   durationMinutes INTEGER NOT NULL,
   startTime INTEGER NOT NULL,      -- epoch seconds
   endTime INTEGER,                 -- epoch seconds or NULL while active
+
   completed INTEGER NOT NULL DEFAULT 0,
   gaveUp INTEGER NOT NULL DEFAULT 0,
+
   xpGained INTEGER NOT NULL DEFAULT 0,
   goldGained INTEGER NOT NULL DEFAULT 0,
+
   serverValidated INTEGER NOT NULL DEFAULT 0,
 
-  -- Reward ledger snapshot
+  -- Reward ledger snapshot (for audit)
   ledgerVersion INTEGER,
   ledgerHash TEXT,
   ledgerTotalXp INTEGER,
@@ -25,6 +29,8 @@ CREATE TABLE QuestLogEntity (
 -- Helpful indexes
 CREATE INDEX IF NOT EXISTS idx_questlog_hero       ON QuestLogEntity(heroId);
 CREATE INDEX IF NOT EXISTS idx_questlog_hero_start ON QuestLogEntity(heroId, startTime);
+
+-- One active quest globally (kept as original behavior)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_quest
 ON QuestLogEntity ((CASE WHEN endTime IS NULL AND gaveUp = 0 THEN 1 END))
 WHERE endTime IS NULL AND gaveUp = 0;
@@ -47,12 +53,14 @@ WHERE heroId = ?
   AND startTime BETWEEN ? AND ?
 ORDER BY startTime DESC;
 
+-- Active quest (global)
 selectActiveQuestGlobal:
 SELECT * FROM QuestLogEntity
 WHERE endTime IS NULL AND gaveUp = 0
 ORDER BY startTime DESC
 LIMIT 1;
 
+-- Active quests (global, all)
 selectActiveQuestsGlobal:
 SELECT * FROM QuestLogEntity
 WHERE endTime IS NULL AND gaveUp = 0

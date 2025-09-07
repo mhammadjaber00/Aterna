@@ -9,11 +9,11 @@ object AternaRadii {
 
 object AternaClassColors {
 
-    val Warrior = Color(0xFFFF7F50)
+    val Adventurer = Color(0xFFFF7F50)
     val Mage = Color(0xFF9370DB)
 
     fun forClass(type: ClassType) = when (type) {
-        ClassType.WARRIOR -> Warrior
-        ClassType.MAGE -> Mage
+        ClassType.ADVENTURER -> Adventurer
+//        ClassType.MAGE -> Mage
     }
 }

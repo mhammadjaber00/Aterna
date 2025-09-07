@@ -2,13 +2,16 @@ package io.yavero.aterna.features.hero_stats
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import io.yavero.aterna.domain.model.quest.QuestEvent
+import io.yavero.aterna.domain.model.AttributeProgress
+import io.yavero.aterna.domain.model.Hero
+import io.yavero.aterna.domain.repository.AttributeProgressRepository
 import io.yavero.aterna.domain.repository.HeroRepository
 import io.yavero.aterna.domain.repository.InventoryRepository
 import io.yavero.aterna.domain.repository.QuestRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.pow
 
 /**
  * Lifetime "Hero" profile. Keep analytics/trends on a separate screen.
@@ -18,6 +21,7 @@ class DefaultHeroStatsComponent(
     private val heroRepository: HeroRepository,
     private val questRepository: QuestRepository?,
     private val inventoryRepository: InventoryRepository?,
+    private val attrRepo: AttributeProgressRepository,
     private val onBackNav: () -> Unit,
     private val onOpenLogbookNav: () -> Unit,
 ) : HeroStatsComponent, ComponentContext by componentContext {
@@ -42,7 +46,20 @@ class DefaultHeroStatsComponent(
                 val hero = heroRepository.getCurrentHero()
                 val heroId = hero?.id
 
-                // ---- Lifetime aggregates (now completed-only via SQL) ----
+                // ---- Attributes (SPECIAL) ----
+                val attrsUi: List<AttrUi>
+                var dailyAp = 0
+                var dailyLuck = 0
+                if (hero != null) {
+                    val st = attrRepo.get(hero.id)
+                    dailyAp = st?.dailyTotalAp ?: 0
+                    dailyLuck = st?.dailyLuckAp ?: 0
+                    attrsUi = buildAttrUi(hero, st)
+                } else {
+                    attrsUi = emptyList()
+                }
+
+                // ---- Lifetime aggregates (completed-only via SQL) ----
                 val totals = withContext(Dispatchers.Default) {
                     val lifetimeMinutes = runCatching { questRepository?.getLifetimeMinutes() ?: 0 }.getOrDefault(0)
                     val totalQuests = runCatching { questRepository?.getTotalQuests() ?: 0 }.getOrDefault(0)
@@ -56,13 +73,16 @@ class DefaultHeroStatsComponent(
                 }
 
                 // ---- Completed-only recent adventure log for Hero screen ----
-                val recent: List<QuestEvent> = runCatching {
+                val recent = runCatching {
                     questRepository?.getRecentAdventureLogCompleted(limit = 6) ?: emptyList()
                 }.getOrDefault(emptyList())
 
                 _ui.value = _ui.value.copy(
                     loading = false,
                     hero = hero,
+                    attributes = attrsUi,
+                    dailyApUsed = dailyAp,
+                    dailyLuckUsed = dailyLuck,
                     lifetimeMinutes = totals.a,
                     totalQuests = totals.b,
                     longestSessionMin = totals.c,
@@ -75,6 +95,33 @@ class DefaultHeroStatsComponent(
                 _ui.value = _ui.value.copy(loading = false, error = t.message ?: "Failed to load hero stats")
             }
         }
+    }
+
+    private fun buildAttrUi(
+        hero: Hero,
+        residues: AttributeProgress? // pass null if you don't have APXP residues yet
+    ): List<AttrUi> {
+
+        fun thresholdForAttr(rank: Int, base: Double = 120.0, alpha: Double = 2.0): Int {
+            val need = base * (rank + 1).toDouble().pow(alpha)
+            return need.toInt().coerceAtLeast(1)
+        }
+
+        fun progress(rank: Int, xpNow: Int?): Float {
+            val need = thresholdForAttr(rank)
+            val cur = (xpNow ?: 0).coerceAtLeast(0)
+            return (cur.toFloat() / need.toFloat()).coerceIn(0f, 1f)
+        }
+
+        return listOf(
+            AttrUi(SpecialAttr.STR, hero.strength, progressToNext = progress(hero.strength, residues?.strXp)),
+            AttrUi(SpecialAttr.PER, hero.perception, progressToNext = progress(hero.perception, residues?.perXp)),
+            AttrUi(SpecialAttr.END, hero.endurance, progressToNext = progress(hero.endurance, residues?.endXp)),
+            AttrUi(SpecialAttr.CHA, hero.charisma, progressToNext = progress(hero.charisma, residues?.chaXp)),
+            AttrUi(SpecialAttr.INT, hero.intelligence, progressToNext = progress(hero.intelligence, residues?.intXp)),
+            AttrUi(SpecialAttr.AGI, hero.agility, progressToNext = progress(hero.agility, residues?.agiXp)),
+            AttrUi(SpecialAttr.LUCK, hero.luck, progressToNext = progress(hero.luck, residues?.luckXp)),
+        )
     }
 }
 

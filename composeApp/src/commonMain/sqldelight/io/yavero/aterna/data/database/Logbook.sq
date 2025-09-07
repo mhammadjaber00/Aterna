@@ -1,4 +1,3 @@
--- Completed-only logbook feed. No includeIncomplete flag anymore.
 logbook_selectEvents:
 SELECT
   e.questId,
@@ -9,19 +8,20 @@ SELECT
   e.xpDelta,
   e.goldDelta,
   e.outcome,
-  q.completed    AS q_completed,
+  q.completed       AS q_completed,
   q.durationMinutes AS q_duration,
-  q.questType    AS q_type
+  q.questType       AS q_type
 FROM QuestEventEntity e
 JOIN QuestLogEntity q ON e.questId = q.id
 WHERE q.heroId = :heroId
   AND q.completed = 1
   AND e.type IN :types
-  AND e.at >= :fromSec AND e.at <= :toSec
-  AND ( :search IS NULL OR e.message LIKE '%' || :search || '%' )
-  AND e.at < COALESCE(:beforeAt, 9223372036854775807)
+  AND e.at >= CAST(:fromSec AS INTEGER)
+  AND e.at <= CAST(:toSec  AS INTEGER)
+  AND ( :search IS NULL OR e.message LIKE '%' || CAST(:search AS TEXT) || '%' )
+  AND e.at < COALESCE(CAST(:beforeAt AS INTEGER), 9223372036854775807)
 ORDER BY e.at DESC, e.idx DESC
-LIMIT :limit;
+LIMIT CAST(:limit AS INTEGER);
 
 logbook_dayEventCount:
 SELECT COUNT(*) AS c
@@ -30,4 +30,5 @@ JOIN QuestLogEntity q ON e.questId = q.id
 WHERE q.heroId = :heroId
   AND q.completed = 1
   AND e.type IN :types
-  AND e.at BETWEEN (:epochDay * 86400) AND ((:epochDay + 1) * 86400 - 1);
+  AND e.at BETWEEN (CAST(:epochDay AS INTEGER) * 86400)
+                AND ((CAST(:epochDay AS INTEGER) + 1) * 86400 - 1);

@@ -274,7 +274,7 @@ fun QuestScreen(
                             preflightThen {
                                 component.onNavigateToTimer(
                                     minutes,
-                                    uiState.hero?.classType ?: ClassType.WARRIOR
+                                    ClassType.ADVENTURER
                                 )
                             }
                         },
@@ -282,7 +282,7 @@ fun QuestScreen(
                             preflightThen {
                                 component.onNavigateToTimer(
                                     25,
-                                    uiState.hero?.classType ?: ClassType.WARRIOR
+                                    ClassType.ADVENTURER
                                 )
                             }
                         },

@@ -1,31 +1,61 @@
 package io.yavero.aterna.domain.util
 
-import io.yavero.aterna.domain.model.*
+import io.yavero.aterna.domain.model.*  // QuestLoot, Item, ItemRarity, ItemPool
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 object LootRoller {
 
+    data class RewardMultipliers(
+        val xp: Double = 1.0,
+        val gold: Double = 1.0,
+        val drop: Double = 1.0
+    )
+
     fun rollLoot(
         questDurationMinutes: Int,
         heroLevel: Int,
-        classType: ClassType,
         serverSeed: Long,
+        multipliers: RewardMultipliers = RewardMultipliers(),
         cfg: LootConfig = LootConfig()
     ): QuestLoot {
         val m = questDurationMinutes.coerceIn(1, 120)
         val rng = SplitMix64(serverSeed.toULong())
+
         val longMul = sessionRateMultiplier(m, cfg.longSessionKneeMin, cfg.longSessionFloorAt120)
+
         val baseXp = m * cfg.xpPerMinute * longMul
         val baseGold = m * cfg.goldPerMinute * longMul
+
         val goldLevelMul = min(1.0 + heroLevel * cfg.levelScalePerLevelGold, cfg.levelScaleCapGold)
-        val xp = max(0, (baseXp * classType.xpMultiplier * jitter(rng)).roundToInt())
-        val gold = max(0, (baseGold * classType.goldMultiplier * goldLevelMul * jitter(rng)).roundToInt())
-        val dropChance = min(cfg.itemDropCap, m * cfg.itemDropPerMinute)
+
+        val xp = max(0, (baseXp * multipliers.xp * jitter(rng)).roundToInt())
+        val gold = max(0, (baseGold * multipliers.gold * goldLevelMul * jitter(rng)).roundToInt())
+
+        val dropChance = min(cfg.itemDropCap, m * cfg.itemDropPerMinute * multipliers.drop)
         val items = if (rng.nextDouble() < dropChance) listOf(rollRandomItem(rng, heroLevel)) else emptyList()
+
         return QuestLoot(xp = xp, gold = gold, items = items)
     }
+
+    // ---- Backwards-compat shim (safe to delete after call sites are updated) ----
+    @Deprecated("classType is removed. Pass RewardMultipliers instead.")
+    fun rollLoot(
+        questDurationMinutes: Int,
+        heroLevel: Int,
+        classType: ClassType,               // kept only to not break existing callers
+        serverSeed: Long,
+        cfg: LootConfig = LootConfig()
+    ): QuestLoot {
+        val m = RewardMultipliers(
+            xp = classType.xpMultiplier,
+            gold = classType.goldMultiplier,
+            drop = 1.0
+        )
+        return rollLoot(questDurationMinutes, heroLevel, serverSeed, m, cfg)
+    }
+    // -----------------------------------------------------------------------------
 
     private fun sessionRateMultiplier(m: Int, knee: Int, floorAt120: Double): Double {
         if (m <= knee) return 1.0

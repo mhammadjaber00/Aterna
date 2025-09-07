@@ -8,6 +8,7 @@ import io.yavero.aterna.data.remote.createMockQuestApi
 import io.yavero.aterna.data.repository.*
 import io.yavero.aterna.domain.quest.economy.RewardService
 import io.yavero.aterna.domain.repository.*
+import io.yavero.aterna.domain.service.attr.AttributeProgressService
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -29,9 +30,14 @@ val dataModule = module {
     single<StatusEffectRepository> {
         StatusEffectRepositoryImpl(
             database = get<AternaDatabase>(),
-            timeProvider = get()
+            timeProvider = get(),
+            heroRepository = get()
         )
     }
+
+    single<AttributeProgressRepository> { AttributeProgressRepositoryImpl(get()) }
+
+    single { AttributeProgressService(attrRepo = get(), heroRepo = get(), questRepo = get()) }
 
     singleOf(::RewardService)
 

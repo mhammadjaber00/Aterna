@@ -1,3 +1,4 @@
+// file: io/yavero/aterna/domain/repository/StatusEffectRepository.kt
 package io.yavero.aterna.domain.repository
 
 import io.yavero.aterna.domain.model.StatusEffect
